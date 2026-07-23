@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="dark">
+    <title>Swashplate Rotor System — Interactive CAD Demo</title>
+    <link rel="stylesheet" href="./styles.css">
+  </head>
+  <body>
+    <main class="workbench">
+      <header class="topbar">
+        <div class="brand-lockup">
+          <div class="brand-mark" aria-hidden="true"><span></span><span></span><span></span></div>
+          <div>
+            <p class="eyebrow">ROTARY-WING MECHANICS LAB / 04</p>
+            <h1>Swashplate Rotor System</h1>
+          </div>
+        </div>
+        <div class="system-status" aria-label="System status">
+          <span class="status-dot" id="statusDot" aria-hidden="true"></span>
+          <div>
+            <span class="status-label">SYSTEM</span>
+            <strong id="systemStatus" aria-live="polite">ROTOR ONLINE</strong>
+          </div>
+          <div class="header-rpm"><span>MAIN ROTOR</span><strong id="headerRpm">234 RPM</strong></div>
+        </div>
+      </header>
+
+      <section class="dashboard" aria-label="Interactive rotor system dashboard">
+        <section class="stage-panel panel" aria-labelledby="stageTitle">
+          <div class="panel-heading stage-heading">
+            <div>
+              <p class="eyebrow">LIVE ASSEMBLY VIEW</p>
+              <h2 id="stageTitle">Main rotor / transmission train</h2>
+            </div>
+            <p class="camera-hint">Drag to orbit · Scroll to zoom</p>
+          </div>
+          <div class="canvas-frame">
+            <canvas id="rotorCanvas" role="img" aria-label="Interactive CAD-style view of a helicopter swashplate rotor and transmission system" aria-describedby="canvasDescription"></canvas>
+            <p class="sr-only" id="canvasDescription">ターボシャフト、主減速機、3基のサーボ、スワッシュプレート、4枚翼のピッチリンクを描画する、操作可能なヘリコプター主回転翼機構です。カメラはドラッグとホイール、または下の視点ボタンで操作できます。</p>
+            <div class="canvas-vignette" aria-hidden="true"></div>
+            <div class="axis-key" aria-label="Coordinate axes: X right, Y forward, Z up">
+              <span class="axis-x">X</span><span class="axis-y">Y</span><span class="axis-z">Z</span>
+            </div>
+            <div class="scene-legend" aria-label="Component colour legend">
+              <span><i class="swatch static"></i>Non-rotating</span>
+              <span><i class="swatch rotating"></i>Rotating</span>
+              <span><i class="swatch control"></i>Control link</span>
+              <span><i class="swatch power"></i>Power path</span>
+            </div>
+          </div>
+          <div class="camera-bar" role="group" aria-label="Camera presets">
+            <span class="camera-heading">CAMERA</span>
+            <button class="camera-button is-active" type="button" data-view="system" aria-pressed="true">SYSTEM</button>
+            <button class="camera-button" type="button" data-view="rotor" aria-pressed="false">ROTOR HEAD</button>
+            <button class="camera-button" type="button" data-view="transmission" aria-pressed="false">TRANSMISSION</button>
+            <button id="labelsToggle" class="camera-button is-active" type="button" aria-pressed="true">LABELS</button>
+            <button id="caseToggle" class="camera-button is-active" type="button" aria-pressed="true">CASE X-RAY</button>
+          </div>
+        </section>
+
+        <aside class="control-column" aria-label="Rotor controls and telemetry">
+          <section class="panel control-panel" aria-labelledby="controlsTitle">
+            <div class="panel-heading compact-heading">
+              <div>
+                <p class="eyebrow">COMMAND INPUT</p>
+                <h2 id="controlsTitle">Flight controls</h2>
+              </div>
+              <span class="live-chip">SIMULATION</span>
+            </div>
+
+            <div class="control-stack">
+              <label class="range-control" for="powerRange">
+                <span><strong>Engine output</strong><output id="powerValue" for="powerRange">65%</output></span>
+                <input id="powerRange" type="range" min="0" max="100" value="65" step="1">
+              </label>
+              <label class="range-control" for="collectiveRange">
+                <span><strong>Collective</strong><output id="collectiveValue" for="collectiveRange">35%</output></span>
+                <input id="collectiveRange" type="range" min="0" max="100" value="35" step="1">
+              </label>
+            </div>
+
+            <div class="cyclic-section">
+              <div class="cyclic-title-row"><strong>Cyclic command</strong><output id="cyclicValue">LAT +0.00 / LON +0.00</output></div>
+              <div class="cyclic-layout">
+                <div class="cyclic-pad-wrap">
+                  <div id="cyclicPad" class="cyclic-pad" role="group" aria-label="Pointer-operated cyclic command pad. Use the lateral and longitudinal range controls for keyboard operation.">
+                    <span class="pad-axis horizontal" aria-hidden="true"></span>
+                    <span class="pad-axis vertical" aria-hidden="true"></span>
+                    <span class="pad-north" aria-hidden="true">FWD</span>
+                    <span class="pad-east" aria-hidden="true">R</span>
+                    <span class="pad-south" aria-hidden="true">AFT</span>
+                    <span class="pad-west" aria-hidden="true">L</span>
+                    <span class="pad-marker" id="padMarker" aria-hidden="true"></span>
+                  </div>
+                  <p class="pad-help">Drag to set · axis arrows adjust · Home: neutral</p>
+                </div>
+                <div class="mini-ranges">
+                  <label for="lateralRange">Lateral <output id="lateralValue" for="lateralRange">+0.00</output></label>
+                  <input id="lateralRange" type="range" min="-100" max="100" value="0" step="1">
+                  <label for="longitudinalRange">Longitudinal <output id="longitudinalValue" for="longitudinalRange">+0.00</output></label>
+                  <input id="longitudinalRange" type="range" min="-100" max="100" value="0" step="1">
+                </div>
+              </div>
+            </div>
+
+            <div class="action-row">
+              <button id="runButton" class="primary-action" type="button" aria-pressed="true">STOP ROTOR</button>
+              <button id="resetButton" class="secondary-action" type="button">RESET</button>
+            </div>
+          </section>
+
+          <section class="panel telemetry-panel" aria-labelledby="telemetryTitle">
+            <div class="panel-heading compact-heading">
+              <div>
+                <p class="eyebrow">INSTANTANEOUS STATE</p>
+                <h2 id="telemetryTitle">Kinematic telemetry</h2>
+              </div>
+              <span class="unit-chip">mm · deg</span>
+            </div>
+            <dl class="primary-meters">
+              <div><dt>ROTOR SPEED</dt><dd id="rpmValue">234 <small>RPM</small></dd></div>
+              <div><dt>SWASH TRAVEL</dt><dd id="swashValue">+9.8 <small>mm</small></dd></div>
+              <div><dt>PLATE TILT</dt><dd id="tiltValue">0.0<small>°</small></dd></div>
+            </dl>
+            <div class="telemetry-grid">
+              <section class="telemetry-group" aria-labelledby="servoHeading">
+                <h3 id="servoHeading">SERVO STROKE</h3>
+                <div class="meter-line"><span>A / 0°</span><b><i id="servoBar0"></i></b><output id="servoValue0">+9.8 mm</output></div>
+                <div class="meter-line"><span>B / 120°</span><b><i id="servoBar1"></i></b><output id="servoValue1">+9.8 mm</output></div>
+                <div class="meter-line"><span>C / 240°</span><b><i id="servoBar2"></i></b><output id="servoValue2">+9.8 mm</output></div>
+              </section>
+              <section class="telemetry-group" aria-labelledby="bladeHeading">
+                <h3 id="bladeHeading">ACTUAL BLADE PITCH</h3>
+                <div class="blade-values"><output id="bladeValue0">B1 +6.2°</output><output id="bladeValue1">B2 +6.2°</output><output id="bladeValue2">B3 +6.2°</output><output id="bladeValue3">B4 +6.2°</output></div>
+              </section>
+            </div>
+          </section>
+        </aside>
+      </section>
+
+      <section class="mechanics-panel panel" aria-labelledby="mechanicsTitle">
+        <div class="mechanics-intro">
+          <p class="eyebrow">MECHANISM TRACE</p>
+          <h2 id="mechanicsTitle">From turbine torque to cyclic blade pitch</h2>
+          <p>カラーで動力・固定部・回転部・制御リンクを追跡できます。各要素は同じ時刻の姿勢で接続されます。</p>
+        </div>
+        <ol class="mechanics-list">
+          <li><span class="trace-index power-trace">01</span><div><h3>Power</h3><p>ターボシャフトからフリーホイールを経て、主減速機と傘歯車へトルクを伝達。</p></div></li>
+          <li><span class="trace-index control-trace">02</span><div><h3>Control</h3><p>120°配置の3サーボが、固定スワッシュプレートを昇降・傾斜させます。</p></div></li>
+          <li><span class="trace-index static-trace">03</span><div><h3>Fixed → rotating</h3><p>アンチローテーションガイドとシザーズリンクが、非回転の指令を回転側へ渡します。</p></div></li>
+          <li><span class="trace-index rotating-trace">04</span><div><h3>Blade pitch</h3><p>4本のピッチリンクが各ピッチホーンを押引し、翼弦を半径軸まわりに回転させます。</p></div></li>
+        </ol>
+        <div class="equation-box" aria-label="Blade pitch formula">
+          <span>Command law</span>
+          <code>θcmd,ᵢ = 2° + 12°c + 5°lat cos ψᵢ + 5°lon sin ψᵢ</code>
+          <small>表示値θᵢは固定長ピッチリンク拘束後の実角です。教育用運動学モデルであり、寸法・荷重は概念値です。</small>
+        </div>
+      </section>
+    </main>
+    <script src="./app.js" defer></script>
+  </body>
+</html>

@@ -4,6 +4,8 @@
 
 モデルへURLで渡す内容非干渉の作業入口は[`MODEL_TASK.md`](./MODEL_TASK.md)です。この接続仕様は詳細確認用であり、成果ページの制作要件を追加するものではありません。
 
+生成済み成果を共通サイトへ反映・公開する別タスクでは、[`PUBLISH_TASK.md`](./PUBLISH_TASK.md)を使用します。
+
 ## 追加方法
 
 1. `submissions/_template/` を `submissions/<candidate-id>/` へ複製します。

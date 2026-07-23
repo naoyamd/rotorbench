@@ -8,6 +8,7 @@ RotorBenchは、同じ共通プロンプトから各LLMが生成した独立Web�
 
 - `BENCHMARK_PROMPT.md` — 全モデルへ改変せず渡すRB-2.0の正本
 - `MODEL_TASK.md` — モデルへURLで渡す、内容非干渉の生成・提出手順
+- `PUBLISH_TASK.md` — 完成済み成果を反映・公開する別タスク用手順
 - `submissions/<candidate-id>/` — モデルごとのmanifestと完成済み静的ページ
 - `scripts/build-result-catalog.mjs` — submissionの検証、一覧生成、配信用コピー
 - `RESULT_SPEC.md` — 新しい成果物を追加するための接続仕様
@@ -35,6 +36,7 @@ pnpm check
 モデルへは次の公開ページを渡します。ここには成果ページの内容を左右する要件を含めず、配置・記録・検証だけを記載しています。
 
 - Model task: https://naoyamd.github.io/rotorbench/model-task/
+- Publish task: https://naoyamd.github.io/rotorbench/publish-task/
 - Markdown: [MODEL_TASK.md](./MODEL_TASK.md)
 
 接続仕様の詳細は[RESULT_SPEC.md](./RESULT_SPEC.md)を参照してください。

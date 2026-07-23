@@ -145,9 +145,14 @@ export default function Home() {
               </div>
             </li>
           </ol>
-          <a className="system-guide-link" href={`${basePath}/model-task/`}>
-            モデルへ渡す生成・提出手順を見る <span>↗</span>
-          </a>
+          <div className="system-guide-links">
+            <a className="system-guide-link" href={`${basePath}/model-task/`}>
+              モデルへ渡す生成・提出手順 <span>↗</span>
+            </a>
+            <a className="system-guide-link" href={`${basePath}/publish-task/`}>
+              完成後の反映・公開手順 <span>↗</span>
+            </a>
+          </div>
         </section>
       </main>
 

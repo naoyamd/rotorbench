@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { access, readFile } from "node:fs/promises";
+import { access, readFile, readdir } from "node:fs/promises";
 import test from "node:test";
 
 const root = new URL("../", import.meta.url);
@@ -9,10 +9,12 @@ async function source(path) {
 }
 
 test("the immutable prompt and submission protocol are checked in", async () => {
-  const [prompt, task, taskPage, specification, template, catalogScript, page] = await Promise.all([
+  const [prompt, task, taskPage, publishTask, publishPage, specification, template, catalogScript, page] = await Promise.all([
     source("BENCHMARK_PROMPT.md"),
     source("MODEL_TASK.md"),
     source("app/model-task/page.tsx"),
+    source("PUBLISH_TASK.md"),
+    source("app/publish-task/page.tsx"),
     source("RESULT_SPEC.md"),
     source("submissions/_template/manifest.json"),
     source("scripts/build-result-catalog.mjs"),
@@ -30,6 +32,9 @@ test("the immutable prompt and submission protocol are checked in", async () => 
   assert.match(taskPage, /MODEL HANDOFF \/ INTEGRATION ONLY/);
   assert.match(taskPage, /https:\/\/github\.com\/naoyamd\/rotorbench/);
   assert.match(taskPage, /共通UIの変更は行いません/);
+  assert.match(publishTask, /成果を生成したモデルへは渡さず/);
+  assert.match(publishTask, /https:\/\/naoyamd\.github\.io\/rotorbench\/publish-task\//);
+  assert.match(publishPage, /PUBLISH HANDOFF \/ AFTER GENERATION/);
   assert.match(specification, /中央レジストリへの追記は不要/);
   assert.match(template, /"promptVersion": "RB-2\.0"/);
   assert.match(catalogScript, /directoryEntry\.name\.startsWith\("_"\)/);
@@ -38,9 +43,19 @@ test("the immutable prompt and submission protocol are checked in", async () => 
   assert.match(page, /initialResults=\{initialCatalog\.results as ResultEntry\[\]\}/);
 });
 
-test("catalog generation produces an empty, versioned catalog", async () => {
+test("catalog generation includes every checked-in submission", async () => {
   const catalog = JSON.parse(await source("public/results/catalog.json"));
-  assert.deepEqual(catalog, { schemaVersion: 1, results: [] });
+  const entries = await readdir(new URL("../submissions/", import.meta.url), {
+    withFileTypes: true,
+  });
+  const expectedIds = entries
+    .filter((entry) => entry.isDirectory() && !entry.name.startsWith("_"))
+    .map((entry) => entry.name)
+    .sort();
+  const catalogIds = catalog.results.map((result) => result.id).sort();
+
+  assert.equal(catalog.schemaVersion, 1);
+  assert.deepEqual(catalogIds, expectedIds);
 });
 
 test("the project contains static hosting contracts", async () => {

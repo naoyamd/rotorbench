@@ -1,0 +1,18 @@
+{
+  "id": "openai-gpt-5-6-terra-max",
+  "title": "Swashplate Rotor System — Interactive CAD Demo",
+  "provider": "OpenAI",
+  "model": "gpt-5.6-terra",
+  "reasoning": "max",
+  "runDate": "2026-07-24",
+  "promptVersion": "RB-2.0",
+  "summary": "主回転翼の動力伝達、三系統サーボ、固定・回転スワッシュプレート、ピッチリンクを一体表示する操作可能なCAD志向の技術デモ。",
+  "tags": [
+    "helicopter",
+    "swashplate",
+    "cad",
+    "kinematics",
+    "interactive"
+  ],
+  "cover": null
+}
