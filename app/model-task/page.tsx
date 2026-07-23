@@ -68,9 +68,16 @@ export default function ModelTaskPage() {
           <div className="task-section-label">01 / START</div>
           <div className="task-section-body">
             <h2 id="start-title">開始</h2>
+            <p>
+              対象リポジトリは
+              <a href="https://github.com/naoyamd/rotorbench">
+                https://github.com/naoyamd/rotorbench
+              </a>
+              です。
+            </p>
             <ol className="task-list">
               <li>
-                指定されたリポジトリとcommitを使用します。指定がなければ、このリポジトリの
+                指定されたcommitを使用します。指定がなければ、対象リポジトリの
                 <code>main</code>を使用します。
               </li>
               <li>

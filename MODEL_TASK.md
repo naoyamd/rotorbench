@@ -4,7 +4,9 @@
 
 ## 開始
 
-1. 指定されたリポジトリとcommitを使用します。指定がなければ、このリポジトリの`main`を使用します。
+対象リポジトリは [`https://github.com/naoyamd/rotorbench`](https://github.com/naoyamd/rotorbench) です。
+
+1. 指定されたcommitを使用します。指定がなければ、対象リポジトリの`main`を使用します。
 2. `BENCHMARK_PROMPT.md`を改変せずに読み、その内容を実装します。
 3. 他候補の成果ページは参照しません。
 4. 候補IDが指定されていない場合は、実際のprovider・model・reasoningを小文字のkebab-caseで連結して決めます。

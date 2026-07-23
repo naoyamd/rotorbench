@@ -24,9 +24,11 @@ test("the immutable prompt and submission protocol are checked in", async () => 
   assert.match(prompt, /スワッシュプレート式可変ピッチ機構/);
   assert.match(task, /作業手順だけ/);
   assert.match(task, /BENCHMARK_PROMPT\.md/);
+  assert.match(task, /https:\/\/github\.com\/naoyamd\/rotorbench/);
   assert.match(task, /他候補の成果ページは参照しません/);
   assert.doesNotMatch(task, /スワッシュプレート式可変ピッチ機構/);
   assert.match(taskPage, /MODEL HANDOFF \/ INTEGRATION ONLY/);
+  assert.match(taskPage, /https:\/\/github\.com\/naoyamd\/rotorbench/);
   assert.match(taskPage, /共通UIの変更は行いません/);
   assert.match(specification, /中央レジストリへの追記は不要/);
   assert.match(template, /"promptVersion": "RB-2\.0"/);

@@ -27,6 +27,7 @@ test("the static export contains a benchmark-neutral model handoff", async () =>
   assert.match(html, /モデル成果ページの/);
   assert.match(html, /生成・提出手順/);
   assert.match(html, /成果ページの内容、技術、表現、設計判断、完成度の基準は追加しません/);
+  assert.match(html, /https:\/\/github\.com\/naoyamd\/rotorbench/);
   assert.match(html, /submissions\/&lt;candidate-id&gt;\//);
   assert.match(html, /pnpm check/);
   assert.doesNotMatch(html, /スワッシュプレート式可変ピッチ機構/);
