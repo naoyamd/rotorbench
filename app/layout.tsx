@@ -4,12 +4,13 @@ import "./globals.css";
 const siteUrl =
   process.env.NEXT_PUBLIC_SITE_URL ?? "https://rotorbench.pages.dev";
 const publicBasePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
+const socialImageUrl = `${siteUrl.replace(/\/$/, "")}/og.png`;
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: "RotorBench",
   description:
-    "LLMが実装した可変ピッチ・ローターデモを、同じ入力条件で比較するローカルファーストのベンチマーク。",
+    "同じ共通プロンプトから生まれた、モデル固有の独立Webページを収集・公開するアーカイブ。",
   applicationName: "RotorBench",
   keywords: [
     "LLM benchmark",
@@ -19,26 +20,26 @@ export const metadata: Metadata = {
     "GitHub Pages",
   ],
   openGraph: {
-    title: "RotorBench | 同じ入力で、実装の差を見る。",
+    title: "RotorBench | Model Output Archive",
     description:
-      "可変ピッチ・ローター実装を同期A/B比較するLLMベンチマーク。",
+      "同じ課題から生まれた、違う答えを並べる。",
     type: "website",
     locale: "ja_JP",
     images: [
       {
-        url: "/og.png",
-        width: 1536,
-        height: 1024,
-        alt: "RotorBench 可変ピッチ・ローター A/B ベンチマーク",
+        url: socialImageUrl,
+        width: 1672,
+        height: 941,
+        alt: "RotorBench Model Output Archive",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "RotorBench | 同じ入力で、実装の差を見る。",
+    title: "RotorBench | Model Output Archive",
     description:
-      "可変ピッチ・ローター実装を同期A/B比較するLLMベンチマーク。",
-    images: ["/og.png"],
+      "同じ課題から生まれた、違う答えを並べる。",
+    images: [socialImageUrl],
   },
   icons: {
     icon: `${publicBasePath}/favicon.svg`,

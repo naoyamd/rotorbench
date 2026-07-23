@@ -1,0 +1,12 @@
+{
+  "id": "replace-with-candidate-id",
+  "title": "Result title",
+  "provider": "Provider",
+  "model": "Exact model ID",
+  "reasoning": "Exact reasoning mode",
+  "runDate": "YYYY-MM-DD",
+  "promptVersion": "RB-2.0",
+  "summary": "この成果物の特徴を簡潔に記載します。",
+  "tags": [],
+  "cover": null
+}

@@ -6,13 +6,16 @@
     "node": ">=22.13.0"
   },
   "scripts": {
+    "catalog": "node scripts/build-result-catalog.mjs",
+    "predev": "pnpm catalog",
     "dev": "vinext dev",
+    "prebuild": "pnpm catalog",
     "build": "vinext build",
     "start": "vinext start",
     "typecheck": "tsc --noEmit",
-    "test": "next build && node --test tests/*.test.mjs",
-    "check": "tsc --noEmit && eslint . --ignore-pattern dist --ignore-pattern .next && next build && node --test tests/*.test.mjs",
-    "export:pages": "next build",
+    "test": "pnpm catalog && next build && node --test tests/*.test.mjs",
+    "check": "pnpm catalog && tsc --noEmit && eslint . --ignore-pattern dist --ignore-pattern .next && next build && node --test tests/*.test.mjs",
+    "export:pages": "pnpm catalog && next build",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
     "clean": "node -e \"const fs=require('node:fs'); for(const p of ['.next','out','dist']) fs.rmSync(p,{recursive:true,force:true})\""
   },

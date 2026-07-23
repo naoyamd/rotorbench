@@ -8,56 +8,44 @@ async function source(path) {
   return readFile(new URL(path, root), "utf8");
 }
 
-test("the reusable candidate protocol is checked in", async () => {
-  const [registry, types, prompt, specification, template, app] = await Promise.all([
-    source("app/candidates.ts"),
-    source("app/benchmarks/types.ts"),
+test("the immutable prompt and submission protocol are checked in", async () => {
+  const [prompt, specification, template, catalogScript, page] = await Promise.all([
     source("BENCHMARK_PROMPT.md"),
-    source("CANDIDATE_SPEC.md"),
-    source("app/benchmarks/candidate-template/manifest.ts"),
-    source("app/rotor-bench.tsx"),
+    source("RESULT_SPEC.md"),
+    source("submissions/_template/manifest.json"),
+    source("scripts/build-result-catalog.mjs"),
+    source("app/page.tsx"),
   ]);
 
-  assert.match(registry, /CANDIDATES:\s*RotorCandidate\[\]/);
-  assert.match(registry, /luna-xhigh/);
-  assert.match(registry, /reference-kinematics/);
-  assert.match(types, /View\?: ComponentType<RotorCandidateViewProps>/);
-  assert.match(types, /rotorAzimuth:\s*number/);
-  assert.match(types, /assetBasePath:\s*string/);
-  assert.match(types, /kind:\s*"model" \| "reference"/);
   assert.match(prompt, /Prompt version: `RB-2\.0`/);
   assert.match(prompt, /改変不可の正本/);
   assert.match(prompt, /スワッシュプレート式可変ピッチ機構/);
-  assert.match(prompt, /未指定事項は自律的に判断/);
-  assert.match(specification, /DeepSeek、Qwen、Kimi、GLM/);
-  assert.match(specification, /共有 controls \/ azimuth/);
-  assert.match(template, /replace-with-unique-id/);
-  assert.match(template, /promptVersion: "RB-2\.0"/);
-  assert.match(registry, /lunaXhighCandidate/);
-  assert.match(registry, /referenceCandidate/);
-  assert.match(app, /rotorbench-session-v1/);
-  assert.match(app, /Prompt version: RB-2\.0/);
-  assert.match(app, /この共通プロンプトは改変不可/);
-  assert.match(app, /onInput=/);
+  assert.match(specification, /中央レジストリへの追記は不要/);
+  assert.match(template, /"promptVersion": "RB-2\.0"/);
+  assert.match(catalogScript, /directoryEntry\.name\.startsWith\("_"\)/);
+  assert.match(catalogScript, /manifest\.id must use lowercase kebab-case/);
+  assert.match(page, /<ResultCatalog/);
+  assert.match(page, /initialResults=\{initialCatalog\.results as ResultEntry\[\]\}/);
 });
 
-test("the project contains static hosting contracts without starter residue", async () => {
-  const [packageJson, nextConfig, page, layout, workflow] = await Promise.all([
+test("catalog generation produces an empty, versioned catalog", async () => {
+  const catalog = JSON.parse(await source("public/results/catalog.json"));
+  assert.deepEqual(catalog, { schemaVersion: 1, results: [] });
+});
+
+test("the project contains static hosting contracts", async () => {
+  const [packageJson, nextConfig, workflow, layout] = await Promise.all([
     source("package.json"),
     source("next.config.ts"),
-    source("app/page.tsx"),
-    source("app/layout.tsx"),
     source(".github/workflows/deploy-pages.yml"),
+    source("app/layout.tsx"),
   ]);
 
-  assert.doesNotMatch(packageJson, /react-loading-skeleton|drizzle/);
+  assert.match(packageJson, /"catalog": "node scripts\/build-result-catalog\.mjs"/);
   assert.match(nextConfig, /output:\s*"export"/);
   assert.match(nextConfig, /PAGES_BASE_PATH/);
-  assert.match(page, /<RotorBench \/>/);
-  assert.match(layout, /<html lang="ja">/);
-  assert.match(layout, /\/og\.png/);
   assert.match(workflow, /actions\/deploy-pages@v4/);
   assert.match(workflow, /path: out/);
+  assert.match(layout, /Model Output Archive/);
   await access(new URL("public/.nojekyll", root));
-  await assert.rejects(access(new URL("app/_sites-preview/SkeletonPreview.tsx", root)));
 });
