@@ -16,7 +16,7 @@ export const candidate: RotorCandidate = {
     model: "Exact model ID",
     reasoning: "Reasoning level or mode",
     runDate: "YYYY-MM-DD",
-    promptVersion: "RB-1.0",
+    promptVersion: "RB-2.0",
     tags: ["candidate"],
   },
   theme: {

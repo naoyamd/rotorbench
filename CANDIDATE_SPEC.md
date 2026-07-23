@@ -1,8 +1,10 @@
 # RotorBench Candidate Specification
 
-Version: `1.0` / Prompt: `RB-1.0`
+Version: `1.1` / Prompt: `RB-2.0`
 
 この仕様は、DeepSeek、Qwen、Kimi、GLMを含む任意のLLM実装を同じ画面へ安全に接続するための契約です。
+
+`BENCHMARK_PROMPT.md` は改変不可です。候補実装では読み取り専用として扱い、変更が必要な場合は新しいPrompt versionを別管理します。
 
 ## 1. RotorCandidate インターフェース
 
@@ -34,7 +36,7 @@ type RotorCandidate = {
     model: string;
     reasoning: string;
     runDate: string;       // YYYY-MM-DD
-    promptVersion: string; // RB-1.0
+    promptVersion: string; // RB-2.0 for new candidates
     tags: string[];
   };
   theme: CandidateTheme;

@@ -25,15 +25,19 @@ test("the reusable candidate protocol is checked in", async () => {
   assert.match(types, /rotorAzimuth:\s*number/);
   assert.match(types, /assetBasePath:\s*string/);
   assert.match(types, /kind:\s*"model" \| "reference"/);
-  assert.match(prompt, /Prompt version: `RB-1\.0`/);
-  assert.match(prompt, /変更禁止/);
+  assert.match(prompt, /Prompt version: `RB-2\.0`/);
+  assert.match(prompt, /改変不可の正本/);
+  assert.match(prompt, /すわっしゅプレート式可変ピッチ機構/);
+  assert.match(prompt, /未指定事項は自律的に判断/);
   assert.match(specification, /DeepSeek、Qwen、Kimi、GLM/);
   assert.match(specification, /共有 controls \/ azimuth/);
   assert.match(template, /replace-with-unique-id/);
+  assert.match(template, /promptVersion: "RB-2\.0"/);
   assert.match(registry, /lunaXhighCandidate/);
   assert.match(registry, /referenceCandidate/);
   assert.match(app, /rotorbench-session-v1/);
-  assert.match(app, /app\/benchmarks\/candidate-template\/README\.md/);
+  assert.match(app, /Prompt version: RB-2\.0/);
+  assert.match(app, /この共通プロンプトは改変不可/);
   assert.match(app, /onInput=/);
 });
 
