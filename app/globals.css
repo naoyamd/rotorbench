@@ -720,6 +720,195 @@ footer {
   line-height: 1.7;
 }
 
+.system-guide-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 18px;
+  padding: 20px 24px;
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  font-family: "SFMono-Regular", Consolas, monospace;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-decoration: none;
+}
+
+.system-guide-link:hover {
+  background: var(--accent);
+  color: var(--ink);
+}
+
+.task-page {
+  max-width: 1160px;
+}
+
+.task-hero {
+  min-height: 560px;
+  padding: 120px 0 90px;
+  border-bottom: 1px solid var(--line-strong);
+}
+
+.task-hero h1 {
+  max-width: 980px;
+  margin: 0;
+  font-size: clamp(48px, 8vw, 104px);
+  letter-spacing: -0.075em;
+  line-height: 0.95;
+}
+
+.boundary-note {
+  display: grid;
+  grid-template-columns: 150px minmax(0, 1fr);
+  max-width: 900px;
+  margin-top: 64px;
+  border: 1px solid var(--accent);
+}
+
+.boundary-note > span {
+  display: grid;
+  place-items: center;
+  border-right: 1px solid var(--accent);
+  color: var(--accent);
+  font-family: "SFMono-Regular", Consolas, monospace;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+}
+
+.boundary-note p {
+  margin: 0;
+  padding: 24px 28px;
+  color: var(--paper-dim);
+  line-height: 1.9;
+}
+
+.boundary-note a {
+  margin: 0 0.35em;
+  color: var(--accent);
+}
+
+.task-section {
+  display: grid;
+  grid-template-columns: 180px minmax(0, 1fr);
+  gap: 56px;
+  padding: 92px 0;
+  border-bottom: 1px solid var(--line-strong);
+}
+
+.task-section-label {
+  padding-top: 9px;
+  color: var(--accent);
+  font-family: "SFMono-Regular", Consolas, monospace;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+}
+
+.task-section-body {
+  min-width: 0;
+}
+
+.task-section h2 {
+  margin: 0 0 38px;
+  font-size: clamp(36px, 5vw, 60px);
+  letter-spacing: -0.06em;
+}
+
+.task-section-body > p {
+  color: var(--paper-dim);
+  line-height: 1.85;
+}
+
+.task-list {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--line-strong);
+  list-style: none;
+  counter-reset: task-item;
+}
+
+.task-list li {
+  position: relative;
+  padding: 22px 22px 22px 64px;
+  border-bottom: 1px solid var(--line);
+  color: var(--paper-dim);
+  line-height: 1.8;
+  counter-increment: task-item;
+}
+
+.task-list li::before {
+  position: absolute;
+  top: 25px;
+  left: 18px;
+  color: var(--accent);
+  content: counter(task-item, decimal-leading-zero);
+  font-family: "SFMono-Regular", Consolas, monospace;
+  font-size: 9px;
+}
+
+.task-page code {
+  color: var(--paper);
+  font-family: "SFMono-Regular", Consolas, monospace;
+}
+
+.task-section pre {
+  margin: 28px 0 34px;
+  padding: 28px;
+  overflow-x: auto;
+  border: 1px solid var(--line-strong);
+  background: var(--panel);
+  color: var(--accent);
+  font-size: 13px;
+  line-height: 1.8;
+}
+
+.task-section pre code {
+  color: var(--accent);
+}
+
+.protected-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1px;
+  margin: 0 0 28px;
+  padding: 1px;
+  background: var(--line-strong);
+  list-style: none;
+}
+
+.protected-grid li {
+  display: flex;
+  min-height: 110px;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 22px;
+  padding: 20px;
+  background: var(--panel);
+}
+
+.protected-grid span {
+  color: var(--warning);
+  font-family: "SFMono-Regular", Consolas, monospace;
+  font-size: 8px;
+  letter-spacing: 0.14em;
+}
+
+.protected-grid code {
+  overflow-wrap: anywhere;
+}
+
+.final-note {
+  margin-top: 30px;
+  padding: 24px 28px;
+  border-left: 3px solid var(--accent);
+  background: var(--accent-dark);
+  color: var(--paper);
+  line-height: 1.85;
+}
+
 footer {
   display: flex;
   min-height: 150px;
@@ -799,6 +988,11 @@ footer p {
 
   .system-flow li:last-child {
     border-bottom: 0;
+  }
+
+  .task-section {
+    grid-template-columns: 1fr;
+    gap: 24px;
   }
 }
 
@@ -881,6 +1075,35 @@ footer p {
   .prompt-sheet li p {
     padding: 18px 16px;
     font-size: 13px;
+  }
+
+  .task-hero {
+    min-height: auto;
+    padding: 80px 0 70px;
+  }
+
+  .boundary-note {
+    grid-template-columns: 1fr;
+    margin-top: 46px;
+  }
+
+  .boundary-note > span {
+    min-height: 42px;
+    border-right: 0;
+    border-bottom: 1px solid var(--accent);
+  }
+
+  .boundary-note p {
+    padding: 20px;
+    font-size: 13px;
+  }
+
+  .task-section {
+    padding: 70px 0;
+  }
+
+  .protected-grid {
+    grid-template-columns: 1fr;
   }
 
   footer {

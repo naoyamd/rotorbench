@@ -39,6 +39,7 @@ export default function Home() {
         <nav aria-label="メインナビゲーション">
           <a href="#results">RESULTS</a>
           <a href="#prompt">PROMPT</a>
+          <a href={`${basePath}/model-task/`}>MODEL TASK</a>
           <a href="https://github.com/naoyamd/rotorbench">GITHUB ↗</a>
         </nav>
       </header>
@@ -144,6 +145,9 @@ export default function Home() {
               </div>
             </li>
           </ol>
+          <a className="system-guide-link" href={`${basePath}/model-task/`}>
+            モデルへ渡す生成・提出手順を見る <span>↗</span>
+          </a>
         </section>
       </main>
 

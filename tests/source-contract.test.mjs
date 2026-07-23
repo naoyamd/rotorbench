@@ -9,8 +9,10 @@ async function source(path) {
 }
 
 test("the immutable prompt and submission protocol are checked in", async () => {
-  const [prompt, specification, template, catalogScript, page] = await Promise.all([
+  const [prompt, task, taskPage, specification, template, catalogScript, page] = await Promise.all([
     source("BENCHMARK_PROMPT.md"),
+    source("MODEL_TASK.md"),
+    source("app/model-task/page.tsx"),
     source("RESULT_SPEC.md"),
     source("submissions/_template/manifest.json"),
     source("scripts/build-result-catalog.mjs"),
@@ -20,6 +22,12 @@ test("the immutable prompt and submission protocol are checked in", async () => 
   assert.match(prompt, /Prompt version: `RB-2\.0`/);
   assert.match(prompt, /改変不可の正本/);
   assert.match(prompt, /スワッシュプレート式可変ピッチ機構/);
+  assert.match(task, /作業手順だけ/);
+  assert.match(task, /BENCHMARK_PROMPT\.md/);
+  assert.match(task, /他候補の成果ページは参照しません/);
+  assert.doesNotMatch(task, /スワッシュプレート式可変ピッチ機構/);
+  assert.match(taskPage, /MODEL HANDOFF \/ INTEGRATION ONLY/);
+  assert.match(taskPage, /共通UIの変更は行いません/);
   assert.match(specification, /中央レジストリへの追記は不要/);
   assert.match(template, /"promptVersion": "RB-2\.0"/);
   assert.match(catalogScript, /directoryEntry\.name\.startsWith\("_"\)/);
