@@ -46,4 +46,5 @@ test("the static export contains the separate publishing handoff", async () => {
   assert.match(html, /成果を生成するモデルへは渡さず/);
   assert.match(html, /https:\/\/github\.com\/naoyamd\/rotorbench/);
   assert.match(html, /https:\/\/naoyamd\.github\.io\/rotorbench\/publish-task\//);
+  assert.match(html, /候補ID:/);
 });

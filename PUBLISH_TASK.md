@@ -34,6 +34,9 @@
 反映手順:
 https://naoyamd.github.io/rotorbench/publish-task/
 
+候補ID:
+<candidate-id>
+
 成果物:
 <成果を生成したCodexタスクのリンク、またはsubmissions/<candidate-id>/の絶対パス>
 ```
