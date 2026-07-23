@@ -52,7 +52,7 @@ pnpm export:pages
 
 ## 他モデルの成果を追加
 
-比較実験の正本は [BENCHMARK_PROMPT.md](./BENCHMARK_PROMPT.md)、接続契約は [CANDIDATE_SPEC.md](./CANDIDATE_SPEC.md) です。
+比較実験の改変不可の正本は [BENCHMARK_PROMPT.md](./BENCHMARK_PROMPT.md)、接続契約は [CANDIDATE_SPEC.md](./CANDIDATE_SPEC.md) です。新規候補は `RB-2.0` を使用し、既存候補のPrompt versionは実行時の記録として変更しません。
 
 1. DeepSeek、Qwen、Kimi、GLMなど任意モデルの新規セッションへ `BENCHMARK_PROMPT.md` の共通プロンプトを変更せず渡します。
 2. モデルに `app/benchmarks/candidate-template/` を候補ID名のフォルダへ複製させ、その中だけで実装させます。
