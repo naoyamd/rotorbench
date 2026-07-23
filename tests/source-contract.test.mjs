@@ -27,7 +27,7 @@ test("the reusable candidate protocol is checked in", async () => {
   assert.match(types, /kind:\s*"model" \| "reference"/);
   assert.match(prompt, /Prompt version: `RB-2\.0`/);
   assert.match(prompt, /改変不可の正本/);
-  assert.match(prompt, /すわっしゅプレート式可変ピッチ機構/);
+  assert.match(prompt, /スワッシュプレート式可変ピッチ機構/);
   assert.match(prompt, /未指定事項は自律的に判断/);
   assert.match(specification, /DeepSeek、Qwen、Kimi、GLM/);
   assert.match(specification, /共有 controls \/ azimuth/);
