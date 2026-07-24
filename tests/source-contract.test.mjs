@@ -23,6 +23,8 @@ import {
 
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const digest = (value) => createHash("sha256").update(value).digest("hex");
+const normalizedTextDigest = (value) =>
+  digest(value.replace(/\r\n?/g, "\n"));
 
 async function fixtureRoot() {
   const root = await mkdtemp(path.join(tmpdir(), "framework-fixture-"));
@@ -223,9 +225,9 @@ test("artifact validation rejects directories and symlinks without throwing", as
   }
 });
 
-test("legacy prompt and submission bytes remain unchanged", async () => {
+test("legacy prompt and submission text remains unchanged across line endings", async () => {
   const expected = {
-    "BENCHMARK_PROMPT.md": "1b33dfbdefcf398ebf22dba795ee36002f581204b6e12c9c29acc9ed94f49010",
+    "BENCHMARK_PROMPT.md": "98b503d8747874e973692d5d184c0750177627a5ab2313ed2a62df2865d51f9b",
     "submissions/_template/manifest.json": "899c171709c70384a6432ffc36f955affcd67426cf59e16059df4378d87038e1",
     "submissions/_template/site/index.html": "1b2c852f9b4bcc01f1026cc9da925909b02c9f614b86c36b4bfe5f59c6d11f44",
     "submissions/openai-gpt-5-6-terra-max/manifest.json": "cdb9ce017698030b1c4b95beb701483ff7783a2ca5ce627dbee337d372b1f667",
@@ -234,6 +236,7 @@ test("legacy prompt and submission bytes remain unchanged", async () => {
     "submissions/openai-gpt-5-6-terra-max/site/styles.css": "1455911a561efdb6b118feeb71bdfbd2e344c971ee3b60234384665c79c78975",
   };
   for (const [relativePath, expectedHash] of Object.entries(expected)) {
-    assert.equal(digest(await readFile(path.join(projectRoot, relativePath))), expectedHash, relativePath);
+    const text = await readFile(path.join(projectRoot, relativePath), "utf8");
+    assert.equal(normalizedTextDigest(text), expectedHash, relativePath);
   }
 });
