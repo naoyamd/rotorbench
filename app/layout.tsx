@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { absoluteSiteUrl } from "./site-url";
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://rotorbench-lab.naoyamd.chatgpt.site";
 const publicBasePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
@@ -17,7 +18,7 @@ export const metadata: Metadata = {
     locale: "en_US",
     images: [
       {
-        url: `${publicBasePath}/og-stage0.png`,
+        url: absoluteSiteUrl("og-stage0.png"),
         width: 1728,
         height: 909,
         alt: "Engineering Design Benchmark — Prepare, Design, Publish",
@@ -28,7 +29,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Engineering Design Benchmark Framework",
     description: "A static, task-neutral framework for future engineering design benchmark evidence.",
-    images: [`${publicBasePath}/og-stage0.png`],
+    images: [absoluteSiteUrl("og-stage0.png")],
   },
   icons: { icon: `${publicBasePath}/favicon.svg`, shortcut: `${publicBasePath}/favicon.svg` },
 };

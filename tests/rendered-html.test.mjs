@@ -25,7 +25,34 @@ import {
 const execFileAsync = promisify(execFile);
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const digest = (value) => createHash("sha256").update(value).digest("hex");
-const rootSiteUrl = "https://rotorbench-lab.naoyamd.chatgpt.site";
+const defaultSiteUrl = "https://rotorbench-lab.naoyamd.chatgpt.site";
+
+function normalizedBasePath() {
+  const value = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
+  if (!value || value === "/") return "";
+  return `/${value.replace(/^\/+|\/+$/g, "")}`;
+}
+
+function renderedSitePath(relativePath) {
+  const clean = relativePath.replace(/^\/+/, "");
+  return `${normalizedBasePath()}/${clean}`.replace(/\/{2,}/g, "/");
+}
+
+function renderedAbsoluteUrl(relativePath) {
+  const site = new URL(process.env.NEXT_PUBLIC_SITE_URL ?? defaultSiteUrl);
+  const basePath = normalizedBasePath();
+  const sitePathname = site.pathname.replace(/\/+$/, "");
+  const prefix = basePath && sitePathname.endsWith(basePath)
+    ? sitePathname
+    : `${sitePathname}${basePath}`;
+  site.pathname = `${prefix}/${relativePath.replace(/^\/+/, "")}`.replace(
+    /\/{2,}/g,
+    "/",
+  );
+  site.search = "";
+  site.hash = "";
+  return site.toString();
+}
 
 function firstPromptBlock(html) {
   const match = html.match(/<pre class="prompt-block"><code>([\s\S]*?)<\/code><\/pre>/);
@@ -338,6 +365,8 @@ test("static export counts match the generated catalog and preserves every legac
   const layout = await readFile(path.join(projectRoot, "app", "layout.tsx"), "utf8");
   assert.match(layout, /https:\/\/rotorbench-lab\.naoyamd\.chatgpt\.site/);
   assert.doesNotMatch(layout, /og-engineering-framework\.png/);
+  assert.ok(home.includes(renderedAbsoluteUrl("og-stage0.png")));
+  assert.doesNotMatch(home, /\/rotorbench\/rotorbench\/og-stage0\.png/);
   await assert.rejects(
     stat(path.join(projectRoot, "public", "og-engineering-framework.png")),
   );
@@ -348,10 +377,10 @@ test("Stage 0 pages render the exact shared contracts and no task content", asyn
     {
       route: "stage0",
       expected: materializeHandoffValues(STAGE0_COORDINATOR_HANDOFF, {
-        "<stage0-url>": `${rootSiteUrl}/stage0/`,
-        "<stage0-author-url>": `${rootSiteUrl}/stage0/author/`,
-        "<stage0-review-url>": `${rootSiteUrl}/stage0/review/`,
-        "<stage0-release-url>": `${rootSiteUrl}/stage0/release/`,
+        "<stage0-url>": renderedAbsoluteUrl("stage0/"),
+        "<stage0-author-url>": renderedAbsoluteUrl("stage0/author/"),
+        "<stage0-review-url>": renderedAbsoluteUrl("stage0/review/"),
+        "<stage0-release-url>": renderedAbsoluteUrl("stage0/release/"),
       }),
     },
     {
@@ -359,7 +388,7 @@ test("Stage 0 pages render the exact shared contracts and no task content", asyn
       expected: materializeHandoff(
         STAGE0_AUTHOR_HANDOFF,
         "<stage0-author-url>",
-        `${rootSiteUrl}/stage0/author/`,
+        renderedAbsoluteUrl("stage0/author/"),
       ),
     },
     {
@@ -367,7 +396,7 @@ test("Stage 0 pages render the exact shared contracts and no task content", asyn
       expected: materializeHandoff(
         STAGE0_REVIEW_HANDOFF,
         "<stage0-review-url>",
-        `${rootSiteUrl}/stage0/review/`,
+        renderedAbsoluteUrl("stage0/review/"),
       ),
     },
     {
@@ -375,7 +404,7 @@ test("Stage 0 pages render the exact shared contracts and no task content", asyn
       expected: materializeHandoff(
         STAGE0_RELEASE_HANDOFF,
         "<stage0-release-url>",
-        `${rootSiteUrl}/stage0/release/`,
+        renderedAbsoluteUrl("stage0/release/"),
       ),
     },
   ];
@@ -397,7 +426,7 @@ test("the Stage 1 guide stays closed until a launch is live-verified", async () 
   assert.match(html, /Stage 1 launcher \| Engineering Design Benchmark Framework/);
   assert.match(html, /STAGE 01/);
   assert.match(html, /0 LIVE-VERIFIED LAUNCHES/);
-  assert.match(html, /href="\/stage0\/"/);
+  assert.ok(html.includes(`href="${renderedSitePath("stage0/")}"`));
   assert.doesNotMatch(html, new RegExp(MODEL_LAUNCH_MESSAGE.slice(0, 24)));
   assert.doesNotMatch(html, /&lt;launch-url&gt;/);
   assert.doesNotMatch(html, /runs\/&lt;candidate-id&gt;\//);
