@@ -6,6 +6,7 @@ const projectRoot = process.cwd();
 const placeholderRoutes = [
   "runs/__framework-empty__",
   "benchmarks/__framework-empty__",
+  "launch/__framework-empty__",
 ];
 const publicRoots = [
   path.resolve(process.argv[2] ?? path.join(projectRoot, "out")),

@@ -1,24 +1,39 @@
-# Framework result page specification
+# Framework result and evidence specification
 
-A future framework run is rendered in a neutral static shell at
-`/runs/<run-id>/`. The page contains the following evidence sections:
+A published run is rendered at `/runs/<candidate-id>/` only when:
 
-1. Overview — run and benchmark metadata
-2. 3D — only a common preprocessed mesh for STEP artifacts
-3. Drawing — submitted drawing downloads
-4. BOM — submitted bill-of-material downloads
-5. Calculation — submitted calculation downloads
-6. Files — all submitted artifact downloads, roles, paths, and hashes
-7. Validation — manifest/path/hash and STEP processing results, including input
-   hashes, processor versions, and derived mesh hashes
+1. it references a valid task packet, launch, and Stage 2-owned cohort;
+2. its benchmark version, launch, cohort membership, and fairness fingerprint
+   match;
+3. Stage 2 has sealed `submitted/` with `sha256-tree-v1`;
+4. every process-evidence and artifact path is a safe regular file below the
+   sealed bundle path;
+5. the sealed `submission.json` matches the run model, process hashes, and
+   complete artifact declarations;
+6. every task-packet `requiredOutputs` role has at least one artifact whose
+   status is `present`;
+7. every declared SHA-256 and the immutable initial-plan checkpoint match;
+8. Stage 2 has fixed a schema-valid, successful publication report whose seal
+   attestation matches the run;
+9. every candidate listed in the cohort has a valid sealed run; and
+10. the run and its complete cohort both have status `published`.
 
-The browser must never parse original STEP or run arbitrary model-supplied HTML,
-CSS, or JavaScript. It displays a generated mesh asset with orbit, pan, zoom,
-fit, projection toggle, keyboard support, and a download fallback.
+The neutral result page exposes:
 
-The framework does not require a particular scoring method or engineering task.
-Those values, if a future benchmark introduces them, are scoped to `extensions`
-and must not change this common result shell.
+1. Overview — benchmark, launch, fairness fingerprint, model facts, and seal
+2. Process — initial requirements/plan and later work record as separate,
+   hashed downloads
+3. 3D — only common preprocessed meshes for STEP artifacts
+4. Drawings
+5. BOM
+6. Calculations
+7. All submitted files
+8. Validation — manifest, reference, path, hash, STEP, and bundle-seal checks
 
-Existing RB-2.0 `/results/<id>/` pages are a separate read-only legacy archive
-and do not conform to or populate this framework result catalog.
+The browser never runs candidate HTML, CSS, JavaScript, or CAD parsers.
+Candidate files are copied to inert same-origin `.download` paths and retain
+their original save names through download metadata. The candidate bundle is
+preserved as submitted; derived public assets remain outside the sealed bundle.
+
+The comparison page groups only runs with the same fairness fingerprint. It
+does not introduce a score, rank, winner, or task-specific interpretation.

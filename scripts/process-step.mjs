@@ -5,7 +5,7 @@ import { ensureInside, sha256, validateFramework, validateReport } from "./frame
 
 const rootArgument = process.argv.indexOf("--root");
 const projectRoot = rootArgument >= 0 ? path.resolve(process.argv[rootArgument + 1]) : process.cwd();
-const outputRoot = path.join(projectRoot, "public", "framework");
+const outputRoot = path.join(projectRoot, ".framework-staging");
 const meshRoot = path.join(outputRoot, "meshes");
 const reportRoot = path.join(outputRoot, "reports");
 const require = createRequire(import.meta.url);
@@ -45,13 +45,16 @@ async function getOcct() {
   return factory();
 }
 
+const validation = await validateFramework(projectRoot);
+const runs = validation.runs.filter((run) =>
+  ["validated", "published"].includes(run.manifest?.status)
+  && run.manifest?.seal?.sealed === true
+  && run.validationIssues.length === 0
+);
 await rm(meshRoot, { recursive: true, force: true });
 await rm(reportRoot, { recursive: true, force: true });
 await mkdir(meshRoot, { recursive: true });
 await mkdir(reportRoot, { recursive: true });
-
-const validation = await validateFramework(projectRoot);
-const runs = validation.runs.filter((run) => run.manifest);
 const stepRuns = runs.filter((run) => run.manifest.artifacts.some((artifact) => artifact.role === "step"));
 let occt = null;
 let engineError = null;

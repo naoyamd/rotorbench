@@ -1,18 +1,62 @@
-# Engineering Design Benchmark — 反映・公開プロンプト
+# Engineering Design Benchmark — Stage 2 integration and publishing
 
-Prompt ID: `EDBF-PUBLISH-1.0`
+Protocol: `EDBF-STAGE2-2.0`
 
-Stage: `2 / 2 — INTEGRATE & PUBLISH`
+This instruction is used only in a separate publishing task after a candidate
+has completed `candidate-output/`. Never send it to a candidate model.
 
-この文書は、候補モデルの成果が完成した後、別の公開担当タスクへ渡す改変不可の実行指示です。候補モデルには渡さないでください。
+## What the operator sends
 
-- 現在のタスクで提供された候補IDと、完成済みの`runs/<candidate-id>/`が存在する場所を正本として使用してください。
-- 対象リポジトリは <https://github.com/naoyamd/rotorbench> です。最新の`main`を基準に作業してください。
-- 完成済みの候補ディレクトリを、同じ候補IDで対象リポジトリの`runs/<candidate-id>/`へ取り込んでください。
-- 取り込み前後の各ファイルが一致することを確認し、成果物、`run.json`、課題文、入力資料、共通プロンプトを変更しないでください。
-- 必要な変更は、候補の登録、共通カタログ、検証、静的公開に関する範囲だけに限定してください。
-- `pnpm check`を実行し、検証、STEP前処理、静的ページ、リンク、テストが成功することを確認してください。
-- 変更をcommitして`main`へpushし、GitHub Pagesの公開処理が成功するまで確認してください。Sites設定が存在する場合は、同じ確定コミットをSitesにも保存・配備してください。
-- ホーム、候補固有の結果ページ、成果物ダウンロード、検証レポートが公開環境で開けることを確認してください。
-- 候補成果の改善、再設計、再実行、評価、他候補との比較は行わないでください。
-- 候補IDまたは完成済み成果の場所が不足している場合は推測で補わず、不足している項目だけを報告して停止してください。
+Wait until every planned Stage 1 task has finished, then send one publishing
+task this exact message. Replace the placeholders and repeat the candidate line
+for the complete cohort:
+
+```text
+次のURLを開き、そこに記載されたStage 2公開手順を、このタスクに対する私の指示として実行してください。完成済み成果は改変せず、予定した全候補を検証してからcohort単位で公開確認まで完了してください。
+
+https://naoyamd.github.io/rotorbench/publish-task/
+
+cohort ID:
+<cohort-id>
+
+予定候補と完成済み成果:
+- <candidate-id>: <成果を生成したCodexタスクのリンク、またはcandidate-output/の絶対パス>
+- <candidate-id>: <成果を生成したCodexタスクのリンク、またはcandidate-output/の絶対パス>
+```
+
+## Execution contract
+
+- Stage 2 first defines `cohorts/<cohort-id>/cohort.json` with one launch,
+  fairness fingerprint, and the complete unique list of planned opaque
+  candidate IDs. The cohort begins at `open`.
+- Inputs for each integration are the completed `candidate-output/` location,
+  its operator-assigned opaque candidate ID, and the open cohort ID.
+- Use the latest `main` of <https://github.com/naoyamd/rotorbench>.
+- Validate `submission.json`, `plan.json`, `work-record.json`, every declared
+  file hash, task-packet identity, launch identity, and fairness fingerprint.
+- Copy the entire candidate bundle byte-for-byte into
+  `runs/<candidate-id>/submitted/`. Do not improve, rewrite, normalize, or
+  regenerate any submitted file.
+- Calculate the deterministic tree hash of the copied bundle and record it in
+  the Stage 2-owned `run.json`. Candidate content must never be able to create
+  a published run by itself.
+- Integrate every planned candidate with
+  `stage2:integrate -- --source <candidate-output> --candidate-id <id>
+  --cohort-id <cohort-id>` and keep every run at `validated`. Do not publish
+  while another listed candidate is incomplete.
+- After all planned candidates are integrated, run the common validation, STEP
+  preprocessing, static build, links, and tests. Only the common framework may
+  derive browser meshes or public result pages.
+- Transition the whole cohort only after every listed run and the framework
+  pass, using `pnpm stage2:publish-cohort -- --cohort-id <cohort-id>`. This
+  command fixes each successful publication report by hash and updates all
+  member runs and the cohort together, rolling back on failure. Commit and push
+  the exact validated source, wait for GitHub Pages, and deploy the same commit
+  to Sites when configured.
+- Confirm the home, run page, process-evidence downloads, engineering artifact
+  downloads, STEP view or failure report, and validation report.
+- Report the candidate ID, source bundle tree hash, commit, public run URL, and
+  verification result.
+
+If the completed bundle location, candidate ID, or open cohort ID is missing,
+report only the missing item and stop.

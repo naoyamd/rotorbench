@@ -11,6 +11,9 @@ const report = {
   status: result.issues.length === 0 ? "valid" : "invalid",
   generatedAt: new Date().toISOString(),
   benchmarks: result.benchmarks.length,
+  taskPackets: result.taskPackets.length,
+  launches: result.launches.length,
+  cohorts: result.cohorts.length,
   runs: result.runs.length,
   issues: result.issues,
 };
@@ -21,5 +24,5 @@ if (result.issues.length > 0) {
   for (const entry of result.issues) console.error(`${entry.scope}: ${entry.code}: ${entry.message}`);
   process.exitCode = 1;
 } else {
-  console.log(`Framework validation passed (${result.benchmarks.length} benchmarks, ${result.runs.length} runs).`);
+  console.log(`Framework validation passed (${result.benchmarks.length} benchmarks, ${result.taskPackets.length} task packets, ${result.launches.length} launches, ${result.cohorts.length} cohorts, ${result.runs.length} runs).`);
 }

@@ -1,0 +1,38 @@
+{
+  "schemaVersion": "1.0",
+  "protocolVersion": "2.0",
+  "status": "complete",
+  "launchId": "launch-id",
+  "taskPacket": {
+    "id": "benchmark-id",
+    "version": "1.0",
+    "digest": "0000000000000000000000000000000000000000000000000000000000000000"
+  },
+  "fairnessFingerprint": "0000000000000000000000000000000000000000000000000000000000000000",
+  "model": {
+    "provider": "unknown",
+    "name": "unknown",
+    "version": "unknown"
+  },
+  "initialPlan": {
+    "path": "plan.json",
+    "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+  },
+  "initialPlanCheckpoint": {
+    "path": "initial-plan.sha256",
+    "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+  },
+  "workRecord": {
+    "path": "work-record.json",
+    "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+  },
+  "artifacts": [
+    {
+      "id": "design-evidence",
+      "role": "supporting",
+      "path": "artifacts/replace-me.txt",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "status": "present"
+    }
+  ]
+}

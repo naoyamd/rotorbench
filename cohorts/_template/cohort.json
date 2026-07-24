@@ -1,0 +1,11 @@
+{
+  "schemaVersion": "1.0",
+  "id": "cohort-id",
+  "launchId": "launch-id",
+  "fairnessFingerprint": "0000000000000000000000000000000000000000000000000000000000000000",
+  "status": "open",
+  "candidateIds": [
+    "candidate-id"
+  ],
+  "extensions": {}
+}

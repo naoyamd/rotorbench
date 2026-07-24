@@ -1,0 +1,17 @@
+{
+  "schemaVersion": "1.0",
+  "alternatives": [],
+  "decisions": [],
+  "planRevisions": [],
+  "verificationClaims": [
+    {
+      "id": "CLAIM-001",
+      "requirementRefs": [
+        "REQ-001"
+      ],
+      "method": "Replace with the performed verification.",
+      "result": "not-run",
+      "evidenceArtifactRefs": []
+    }
+  ]
+}

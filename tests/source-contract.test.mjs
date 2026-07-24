@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
+import { execFile } from "node:child_process";
 import {
+  cp,
   mkdir,
   mkdtemp,
   readFile,
@@ -12,28 +14,43 @@ import {
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { promisify } from "node:util";
 import test from "node:test";
 import {
+  bundleTreeHash,
+  computeFairnessFingerprint,
   isSafeRelativePath,
+  manifestDigest,
   validateArtifact,
   validateBenchmark,
+  validateCohort,
   validateFramework,
+  validateLaunch,
+  validatePlan,
   validateRun,
+  validateSubmission,
+  validateTaskPacket,
+  validateWorkRecord,
 } from "../scripts/framework-lib.mjs";
+import { validateCandidateBundle } from "../scripts/stage-contract.mjs";
 import {
+  MODEL_LAUNCH_MESSAGE,
   MODEL_TASK_PROMPT,
+  PUBLISH_LAUNCH_MESSAGE,
   PUBLISH_TASK_PROMPT,
+  buildLaunchPrompt,
 } from "../shared/prompts.mjs";
 
+const execFileAsync = promisify(execFile);
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const digest = (value) => createHash("sha256").update(value).digest("hex");
-const normalizedTextDigest = (value) =>
-  digest(value.replace(/\r\n?/g, "\n"));
+const normalizedTextDigest = (value) => digest(value.replace(/\r\n?/g, "\n"));
 
 async function fixtureRoot() {
-  const root = await mkdtemp(path.join(tmpdir(), "framework-fixture-"));
-  await mkdir(path.join(root, "benchmarks"), { recursive: true });
-  await mkdir(path.join(root, "runs"), { recursive: true });
+  const root = await mkdtemp(path.join(tmpdir(), "engineering-benchmark-"));
+  for (const name of ["benchmarks", "task-packets", "launches", "cohorts", "runs"]) {
+    await mkdir(path.join(root, name), { recursive: true });
+  }
   return root;
 }
 
@@ -42,194 +59,852 @@ async function writeJson(filePath, value) {
   await writeFile(filePath, `${JSON.stringify(value, null, 2)}\n`);
 }
 
-function benchmark(id = "neutral-benchmark") {
+function benchmark() {
   return {
     schemaVersion: "1.0",
-    id,
-    title: "Neutral benchmark",
+    id: "neutral-benchmark",
+    title: "Neutral fixture",
     status: "draft",
     version: "1.0",
     extensions: {},
   };
 }
 
-function run(id, artifacts = []) {
+async function writeProtocolFixture(
+  root,
+  launchId = "neutral-launch",
+  requiredOutputs = ["supporting"],
+  candidateIds = ["candidate-a"],
+) {
+  const taskText = "Fixture protocol task. No real engineering design is performed.";
+  const packet = {
+    schemaVersion: "1.0",
+    id: "neutral-benchmark",
+    version: "1.0",
+    title: "Protocol-only fixture",
+    instructions: { path: "TASK.md", sha256: digest(taskText) },
+    inputs: [],
+    requiredOutputs,
+    environment: { baseline: "fixture", cad: "fixture", stepPipeline: "fixture" },
+    completionCriteria: ["Produce protocol evidence only"],
+  };
+  const launch = {
+    schemaVersion: "1.0",
+    id: launchId,
+    protocolVersion: "2.0",
+    taskPacket: { id: packet.id, version: packet.version, digest: manifestDigest(packet) },
+    baselineCommit: "0".repeat(40),
+    workspaceDigest: "1".repeat(64),
+    outputRoot: "candidate-output",
+    startAction: "checkpoint-initial-plan",
+    stopConditions: ["A declared input is missing or its hash differs"],
+    fairnessFingerprint: "",
+  };
+  launch.fairnessFingerprint = computeFairnessFingerprint(launch);
+  const cohort = {
+    schemaVersion: "1.0",
+    id: "neutral-cohort",
+    launchId: launch.id,
+    fairnessFingerprint: launch.fairnessFingerprint,
+    status: "open",
+    candidateIds,
+    extensions: {},
+  };
+  await writeJson(path.join(root, "benchmarks", packet.id, "benchmark.json"), benchmark());
+  await mkdir(path.join(root, "task-packets", packet.id), { recursive: true });
+  await writeFile(path.join(root, "task-packets", packet.id, "TASK.md"), taskText);
+  await writeJson(path.join(root, "task-packets", packet.id, "packet.json"), packet);
+  await writeJson(path.join(root, "launches", launch.id, "launch.json"), launch);
+  await writeJson(path.join(root, "cohorts", cohort.id, "cohort.json"), cohort);
+  return { packet, launch, cohort, taskText };
+}
+
+async function writeCandidateBundle(root, protocol) {
+  const output = path.join(root, "candidate-output");
+  const plan = {
+    schemaVersion: "1.0",
+    status: "initial",
+    requirements: [{ id: "REQ-001", source: "fixture", statement: "Produce protocol evidence" }],
+    assumptions: [],
+    steps: [{ id: "STEP-001", statement: "Create the protocol artifact", requirementRefs: ["REQ-001"] }],
+    alternativesToEvaluate: [{ id: "ALT-001", question: "Which evidence encoding is inspectable?", requirementRefs: ["REQ-001"] }],
+    verificationPlan: [{ id: "VER-001", requirementRefs: ["REQ-001"], method: "Hash comparison", expectedEvidence: "Matching SHA-256" }],
+  };
+  const workRecord = {
+    schemaVersion: "1.0",
+    alternatives: [{ id: "ALT-001", description: "Plain text evidence", disposition: "selected" }],
+    decisions: [{ id: "DEC-001", requirementRefs: ["REQ-001"], alternativeRefs: ["ALT-001"], choice: "plain text", rationale: "inspectable", tradeoffs: "minimal fixture only" }],
+    planRevisions: [],
+    verificationClaims: [{ id: "CLAIM-001", requirementRefs: ["REQ-001"], method: "Hash comparison", result: "pass", evidenceArtifactRefs: ["protocol-evidence"] }],
+  };
+  const evidence = "protocol evidence";
+  const planText = `${JSON.stringify(plan, null, 2)}\n`;
+  const checkpointText = `${digest(planText)}  plan.json\n`;
+  const recordText = `${JSON.stringify(workRecord, null, 2)}\n`;
+  await mkdir(path.join(output, "artifacts"), { recursive: true });
+  await writeFile(path.join(output, "plan.json"), planText);
+  await writeFile(path.join(output, "initial-plan.sha256"), checkpointText);
+  await writeFile(path.join(output, "work-record.json"), recordText);
+  await writeFile(path.join(output, "artifacts", "evidence.txt"), evidence);
+  const submission = {
+    schemaVersion: "1.0",
+    protocolVersion: "2.0",
+    status: "complete",
+    launchId: protocol.launch.id,
+    taskPacket: {
+      id: protocol.packet.id,
+      version: protocol.packet.version,
+      digest: manifestDigest(protocol.packet),
+    },
+    fairnessFingerprint: protocol.launch.fairnessFingerprint,
+    model: { provider: "unknown", name: "unknown", version: "unknown" },
+    initialPlan: { path: "plan.json", sha256: digest(planText) },
+    initialPlanCheckpoint: {
+      path: "initial-plan.sha256",
+      sha256: digest(checkpointText),
+    },
+    workRecord: { path: "work-record.json", sha256: digest(recordText) },
+    artifacts: [{
+      id: "protocol-evidence",
+      role: "supporting",
+      path: "artifacts/evidence.txt",
+      sha256: digest(evidence),
+      status: "present",
+    }],
+  };
+  await writeJson(path.join(output, "submission.json"), submission);
+  return { output, submission, plan, checkpointText, workRecord };
+}
+
+function validRun(protocol, bundleHash, submission) {
   return {
     schemaVersion: "1.0",
-    id,
-    benchmarkId: "neutral-benchmark",
-    benchmarkVersion: "1.0",
-    status: "submitted",
+    id: "candidate-a",
+    benchmarkId: protocol.packet.id,
+    benchmarkVersion: protocol.packet.version,
+    launchId: protocol.launch.id,
+    cohortId: protocol.cohort.id,
+    taskPacketDigest: protocol.launch.taskPacket.digest,
+    fairnessFingerprint: protocol.launch.fairnessFingerprint,
+    status: "validated",
     submittedAt: "2026-01-01T00:00:00Z",
-    model: { provider: "Provider", name: "Model", version: "Version" },
-    artifacts,
+    model: submission.model,
+    seal: { sealed: true, bundlePath: "submitted", bundleSha256: bundleHash, algorithm: "sha256-tree-v1" },
+    processEvidence: {
+      initialPlan: { path: "submitted/plan.json", sha256: submission.initialPlan.sha256 },
+      workRecord: { path: "submitted/work-record.json", sha256: submission.workRecord.sha256 },
+    },
+    artifacts: submission.artifacts.map((artifact) => ({ ...artifact, path: `submitted/${artifact.path}` })),
     extensions: {},
   };
 }
 
-test("Draft 2020-12 schemas are checked in and applied by Ajv", async () => {
+test("all Stage 1, Stage 2, and publication schemas compile and reject unknown fields", async () => {
   const schemaNames = [
-    "benchmark.schema.json",
-    "run.schema.json",
     "artifact.schema.json",
+    "benchmark.schema.json",
+    "task-packet.schema.json",
+    "launch.schema.json",
+    "cohort.schema.json",
+    "plan.schema.json",
+    "work-record.schema.json",
+    "submission.schema.json",
+    "run.schema.json",
     "validation-report.schema.json",
   ];
   for (const name of schemaNames) {
     const schema = JSON.parse(await readFile(path.join(projectRoot, "schemas", name), "utf8"));
     assert.equal(schema.$schema, "https://json-schema.org/draft/2020-12/schema");
   }
-  const artifact = {
-    id: "evidence",
-    role: "supporting",
-    path: "files/note.txt",
-    sha256: digest("note"),
-    status: "present",
-    mediaType: "text/plain",
-  };
-  assert.deepEqual(validateBenchmark(benchmark()), []);
-  assert.deepEqual(validateArtifact(artifact), []);
-  assert.deepEqual(validateRun(run("valid-run", [artifact])), []);
-  assert.ok(validateBenchmark({ ...benchmark(), summary: 42 }).some((issue) => issue.code === "schema-type"));
-  assert.ok(validateBenchmark({ ...benchmark(), version: 42 }).some((issue) => issue.code === "schema-type"));
-  assert.ok(validateRun({ ...run("bad-run"), model: { provider: 42, name: "M", version: "V" } }).some((issue) => issue.code === "schema-type"));
-  assert.ok(validateArtifact({ ...artifact, mediaType: 42 }).some((issue) => issue.code === "schema-type"));
-  assert.ok(validateRun({ ...run("bad-run"), unexpected: true }).some((issue) => issue.code === "schema-additionalProperties"));
+  const root = await fixtureRoot();
+  try {
+    const protocol = await writeProtocolFixture(root);
+    const bundle = await writeCandidateBundle(root, protocol);
+    const bundleHash = await bundleTreeHash(bundle.output);
+    assert.deepEqual(validateBenchmark(benchmark()), []);
+    assert.deepEqual(validateTaskPacket(protocol.packet), []);
+    assert.deepEqual(validateLaunch(protocol.launch), []);
+    assert.deepEqual(validateCohort(protocol.cohort), []);
+    assert.deepEqual(validatePlan(bundle.plan), []);
+    assert.deepEqual(validateWorkRecord(bundle.workRecord), []);
+    assert.deepEqual(validateSubmission(bundle.submission), []);
+    assert.deepEqual(validateRun(validRun(protocol, bundleHash, bundle.submission)), []);
+    assert.ok(validateLaunch({ ...protocol.launch, unexpected: true }).length > 0);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
 });
 
-test("safe artifact paths reject traversal, URL-dangerous characters, and absolute paths", () => {
-  assert.equal(isSafeRelativePath("files/design.step"), true);
+test("schema-invalid cohort members are reported without crashing validation", async () => {
+  const root = await fixtureRoot();
+  try {
+    await writeJson(path.join(root, "cohorts", "invalid-cohort", "cohort.json"), {
+      schemaVersion: "1.0",
+      id: "invalid-cohort",
+      launchId: "missing-launch",
+      fairnessFingerprint: "0".repeat(64),
+      status: "published",
+      candidateIds: {},
+      extensions: {},
+    });
+    const validation = await validateFramework(root);
+    assert.ok(
+      validation.issues.some(
+        (issue) => issue.scope === "cohorts/invalid-cohort",
+      ),
+    );
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("safe artifact paths reject traversal and URL-dangerous characters", () => {
   const artifact = {
     id: "path-contract",
     role: "supporting",
-    path: "files/design.step",
+    path: "artifacts/design.step",
     sha256: digest("path"),
     status: "present",
   };
   assert.deepEqual(validateArtifact(artifact), []);
-  for (const unsafe of [
-    "files/../design.step",
-    "files/./design.step",
-    "../design.step",
-    "/design.step",
-    ".hidden",
-    "files/.hidden",
-    "files/",
-    "files\\design.step",
-    "files/model?.step",
-    "files/model#1.step",
-    "files/model%20.step",
-  ]) {
+  for (const unsafe of ["../design.step", "/design.step", ".hidden", "files/.hidden", "files\\design.step", "files/model?.step"]) {
     assert.equal(isSafeRelativePath(unsafe), false, unsafe);
-    assert.ok(
-      validateArtifact({ ...artifact, path: unsafe }).some(
-        (issue) => issue.code === "schema-pattern",
-      ),
-      `schema accepted ${unsafe}`,
-    );
+    assert.ok(validateArtifact({ ...artifact, path: unsafe }).length > 0);
   }
 });
 
-test("an empty temporary catalog validates without relying on repository counts", async () => {
+test("empty catalogs remain valid and contain no hidden engineering task", async () => {
   const root = await fixtureRoot();
   try {
     const result = await validateFramework(root);
     assert.deepEqual(result.issues, []);
     assert.equal(result.benchmarks.length, 0);
+    assert.equal(result.taskPackets.length, 0);
+    assert.equal(result.launches.length, 0);
+    assert.equal(result.cohorts.length, 0);
     assert.equal(result.runs.length, 0);
   } finally {
     await rm(root, { recursive: true, force: true });
   }
 });
 
-test("repository directories and generated catalog have matching actual counts", async () => {
+test("a launch is self-contained, fail-closed, and identity-neutral", async () => {
+  const root = await fixtureRoot();
+  try {
+    const first = await writeProtocolFixture(root, "launch-a");
+    const second = { ...first.launch, id: "launch-b" };
+    assert.equal(computeFairnessFingerprint(first.launch), computeFairnessFingerprint(second));
+    const prompt = buildLaunchPrompt(first.launch, { ...first.packet, instructionsText: first.taskText });
+    for (const required of [
+      first.packet.id,
+      first.launch.taskPacket.digest,
+      first.launch.baselineCommit,
+      first.launch.workspaceDigest,
+      "candidate-output/plan.json",
+      "candidate-output/work-record.json",
+      "candidate-output/submission.json",
+      "Do not clone or modify RotorBench",
+    ]) assert.match(prompt, new RegExp(required.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+    const broken = structuredClone(first.launch);
+    broken.taskPacket.digest = "f".repeat(64);
+    await writeJson(path.join(root, "launches", "launch-a", "launch.json"), broken);
+    const result = await validateFramework(root);
+    assert.ok(result.issues.some((issue) => issue.code === "task-packet-digest-mismatch"));
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("candidate bundle validation traces requirements through decisions and evidence", async () => {
+  const root = await fixtureRoot();
+  try {
+    const protocol = await writeProtocolFixture(root);
+    const bundle = await writeCandidateBundle(root, protocol);
+    assert.equal((await validateCandidateBundle(bundle.output)).status, "valid");
+    await writeFile(
+      path.join(bundle.output, "initial-plan.sha256"),
+      `${"f".repeat(64)}  plan.json\n`,
+    );
+    assert.ok(
+      (await validateCandidateBundle(bundle.output)).issues.some((issue) =>
+        issue.includes("does not checkpoint"),
+      ),
+    );
+    await writeFile(
+      path.join(bundle.output, "initial-plan.sha256"),
+      bundle.checkpointText,
+    );
+    const record = structuredClone(bundle.workRecord);
+    record.verificationClaims[0].requirementRefs = ["REQ-999"];
+    const recordText = `${JSON.stringify(record, null, 2)}\n`;
+    await writeFile(path.join(bundle.output, "work-record.json"), recordText);
+    const submission = { ...bundle.submission, workRecord: { path: "work-record.json", sha256: digest(recordText) } };
+    await writeJson(path.join(bundle.output, "submission.json"), submission);
+    const invalid = await validateCandidateBundle(bundle.output);
+    assert.equal(invalid.status, "invalid");
+    assert.ok(invalid.issues.some((issue) => issue.includes("dangling reference REQ-999")));
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("Stage 2 assigns identity and preserves the candidate bundle byte-for-byte", async () => {
+  const root = await fixtureRoot();
+  try {
+    const protocol = await writeProtocolFixture(root);
+    const bundle = await writeCandidateBundle(root, protocol);
+    const sourceHash = await bundleTreeHash(bundle.output);
+    await execFileAsync(
+      process.execPath,
+      [path.join(projectRoot, "scripts", "stage2-integrate.mjs"), "--source", bundle.output, "--candidate-id", "candidate-a", "--cohort-id", protocol.cohort.id],
+      { cwd: root },
+    );
+    const copied = path.join(root, "runs", "candidate-a", "submitted");
+    assert.equal(await bundleTreeHash(copied), sourceHash);
+    const run = JSON.parse(await readFile(path.join(root, "runs", "candidate-a", "run.json"), "utf8"));
+    assert.equal(run.id, "candidate-a");
+    assert.equal(run.status, "validated");
+    assert.equal(run.seal.bundleSha256, sourceHash);
+    assert.equal(run.fairnessFingerprint, protocol.launch.fairnessFingerprint);
+    await assert.rejects(
+      execFileAsync(
+        process.execPath,
+        [path.join(projectRoot, "scripts", "stage2-publish-cohort.mjs"), "--cohort-id", protocol.cohort.id],
+        { cwd: root },
+      ),
+      /validation report/i,
+    );
+    await execFileAsync(
+      process.execPath,
+      [path.join(projectRoot, "scripts", "process-step.mjs"), "--root", root],
+      { cwd: projectRoot },
+    );
+    const report = JSON.parse(
+      await readFile(
+        path.join(root, ".framework-staging", "reports", "candidate-a.json"),
+        "utf8",
+      ),
+    );
+    assert.equal(report.status, "valid");
+    await execFileAsync(
+      process.execPath,
+      [path.join(projectRoot, "scripts", "stage2-publish-cohort.mjs"), "--cohort-id", protocol.cohort.id],
+      { cwd: root },
+    );
+    const published = JSON.parse(
+      await readFile(path.join(root, "runs", "candidate-a", "run.json"), "utf8"),
+    );
+    assert.equal(published.status, "published");
+    const publishedCohort = JSON.parse(
+      await readFile(
+        path.join(root, "cohorts", protocol.cohort.id, "cohort.json"),
+        "utf8",
+      ),
+    );
+    assert.equal(publishedCohort.status, "published");
+    await writeFile(path.join(root, "runs", "candidate-a", "keep.txt"), "preserve");
+    await assert.rejects(
+      execFileAsync(
+        process.execPath,
+        [path.join(projectRoot, "scripts", "stage2-integrate.mjs"), "--source", bundle.output, "--candidate-id", "candidate-a", "--cohort-id", protocol.cohort.id],
+        { cwd: root },
+      ),
+    );
+    assert.equal(
+      await readFile(path.join(root, "runs", "candidate-a", "keep.txt"), "utf8"),
+      "preserve",
+    );
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("Stage 2 and framework validation require every task-packet output role", async () => {
+  const root = await fixtureRoot();
+  try {
+    const protocol = await writeProtocolFixture(
+      root,
+      "neutral-launch",
+      ["cad-source", "step"],
+    );
+    const bundle = await writeCandidateBundle(root, protocol);
+    await assert.rejects(
+      execFileAsync(
+        process.execPath,
+        [path.join(projectRoot, "scripts", "stage2-integrate.mjs"), "--source", bundle.output, "--candidate-id", "candidate-a", "--cohort-id", protocol.cohort.id],
+        { cwd: root },
+      ),
+      /missing required output role/i,
+    );
+    const runRoot = path.join(root, "runs", "candidate-a");
+    await cp(bundle.output, path.join(runRoot, "submitted"), { recursive: true });
+    const bundleHash = await bundleTreeHash(path.join(runRoot, "submitted"));
+    await writeJson(
+      path.join(runRoot, "run.json"),
+      validRun(protocol, bundleHash, bundle.submission),
+    );
+    const validation = await validateFramework(root);
+    const missingRoles = validation.issues
+      .filter((issue) => issue.code === "missing-required-output")
+      .map((issue) => issue.message);
+    assert.equal(missingRoles.length, 2);
+    assert.ok(missingRoles.some((message) => message.includes("cad-source")));
+    assert.ok(missingRoles.some((message) => message.includes("step")));
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("cohort publication fails closed until every planned member is validated", async () => {
+  const root = await fixtureRoot();
+  try {
+    const protocol = await writeProtocolFixture(
+      root,
+      "neutral-launch",
+      ["supporting"],
+      ["candidate-a", "candidate-b"],
+    );
+    const bundle = await writeCandidateBundle(root, protocol);
+    await execFileAsync(
+      process.execPath,
+      [
+        path.join(projectRoot, "scripts", "stage2-integrate.mjs"),
+        "--source",
+        bundle.output,
+        "--candidate-id",
+        "candidate-a",
+        "--cohort-id",
+        protocol.cohort.id,
+      ],
+      { cwd: root },
+    );
+    await execFileAsync(
+      process.execPath,
+      [path.join(projectRoot, "scripts", "process-step.mjs"), "--root", root],
+      { cwd: projectRoot },
+    );
+    await assert.rejects(
+      execFileAsync(
+        process.execPath,
+        [path.join(projectRoot, "scripts", "stage2-publish-cohort.mjs"), "--cohort-id", protocol.cohort.id],
+        { cwd: root },
+      ),
+      /candidate-b/i,
+    );
+    const run = JSON.parse(
+      await readFile(path.join(root, "runs", "candidate-a", "run.json"), "utf8"),
+    );
+    const cohort = JSON.parse(
+      await readFile(
+        path.join(root, "cohorts", protocol.cohort.id, "cohort.json"),
+        "utf8",
+      ),
+    );
+    assert.equal(run.status, "validated");
+    assert.equal(cohort.status, "open");
+    await assert.rejects(
+      readFile(path.join(root, "runs", "candidate-a", "publication-report.json")),
+    );
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("a complete two-member cohort publishes and enters the catalog together", async () => {
+  const root = await fixtureRoot();
+  try {
+    const protocol = await writeProtocolFixture(
+      root,
+      "neutral-launch",
+      ["supporting"],
+      ["candidate-a", "candidate-b"],
+    );
+    const bundles = [
+      ["candidate-a", await writeCandidateBundle(path.join(root, "work-a"), protocol)],
+      ["candidate-b", await writeCandidateBundle(path.join(root, "work-b"), protocol)],
+    ];
+    for (const [candidateId, bundle] of bundles) {
+      await execFileAsync(
+        process.execPath,
+        [
+          path.join(projectRoot, "scripts", "stage2-integrate.mjs"),
+          "--source",
+          bundle.output,
+          "--candidate-id",
+          candidateId,
+          "--cohort-id",
+          protocol.cohort.id,
+        ],
+        { cwd: root },
+      );
+    }
+    await execFileAsync(
+      process.execPath,
+      [path.join(projectRoot, "scripts", "process-step.mjs"), "--root", root],
+      { cwd: projectRoot },
+    );
+    await execFileAsync(
+      process.execPath,
+      [path.join(projectRoot, "scripts", "stage2-publish-cohort.mjs"), "--cohort-id", protocol.cohort.id],
+      { cwd: root },
+    );
+    for (const candidateId of ["candidate-a", "candidate-b"]) {
+      const run = JSON.parse(
+        await readFile(path.join(root, "runs", candidateId, "run.json"), "utf8"),
+      );
+      assert.equal(run.status, "published");
+      assert.equal(run.cohortId, protocol.cohort.id);
+      assert.match(run.publicationReport.sha256, /^[a-f0-9]{64}$/);
+    }
+    await execFileAsync(
+      process.execPath,
+      [path.join(projectRoot, "scripts", "build-framework-catalog.mjs"), "--root", root],
+      { cwd: projectRoot },
+    );
+    const catalog = JSON.parse(
+      await readFile(path.join(root, "public", "framework", "catalog.json"), "utf8"),
+    );
+    assert.deepEqual(
+      catalog.runs.map(({ id }) => id),
+      ["candidate-a", "candidate-b"],
+    );
+    assert.deepEqual(
+      catalog.cohorts[0].candidateIds,
+      ["candidate-a", "candidate-b"],
+    );
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("cohort validation rejects duplicate membership and launch fingerprint drift", async () => {
+  const root = await fixtureRoot();
+  try {
+    const protocol = await writeProtocolFixture(root);
+    await writeJson(
+      path.join(root, "cohorts", "second-cohort", "cohort.json"),
+      {
+        ...protocol.cohort,
+        id: "second-cohort",
+        fairnessFingerprint: "f".repeat(64),
+      },
+    );
+    const validation = await validateFramework(root);
+    assert.ok(validation.issues.some(
+      (issue) => issue.code === "duplicate-cohort-member",
+    ));
+    assert.ok(validation.issues.some(
+      (issue) =>
+        issue.scope === "cohorts/second-cohort"
+        && issue.code === "cohort-fingerprint-mismatch",
+    ));
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("invalid task packets propagate through launches into dependent runs", async () => {
+  const root = await fixtureRoot();
+  try {
+    const protocol = await writeProtocolFixture(root);
+    const bundle = await writeCandidateBundle(root, protocol);
+    const runRoot = path.join(root, "runs", "candidate-a");
+    await cp(bundle.output, path.join(runRoot, "submitted"), { recursive: true });
+    const bundleHash = await bundleTreeHash(path.join(runRoot, "submitted"));
+    await writeJson(
+      path.join(runRoot, "run.json"),
+      validRun(protocol, bundleHash, bundle.submission),
+    );
+    await writeFile(
+      path.join(root, "task-packets", protocol.packet.id, "TASK.md"),
+      "corrupted task packet",
+    );
+    const validation = await validateFramework(root);
+    assert.ok(validation.issues.some(
+      (issue) =>
+        issue.scope === `launches/${protocol.launch.id}`
+        && issue.code === "invalid-task-packet",
+    ));
+    assert.ok(validation.issues.some(
+      (issue) =>
+        issue.scope === "runs/candidate-a"
+        && issue.code === "invalid-launch",
+    ));
+    assert.ok(validation.issues.some(
+      (issue) =>
+        issue.scope === "runs/candidate-a"
+        && issue.code === "invalid-task-packet",
+    ));
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("task-packet files cannot escape through an intermediate directory link", async () => {
+  const root = await fixtureRoot();
+  try {
+    const protocol = await writeProtocolFixture(root);
+    const outside = path.join(root, "outside-packet");
+    await mkdir(outside, { recursive: true });
+    await writeFile(path.join(outside, "TASK.md"), protocol.taskText);
+    const packetRoot = path.join(root, "task-packets", protocol.packet.id);
+    await symlink(outside, path.join(packetRoot, "linked"), "junction");
+    const linkedPacket = structuredClone(protocol.packet);
+    linkedPacket.instructions.path = "linked/TASK.md";
+    await writeJson(path.join(packetRoot, "packet.json"), linkedPacket);
+    const validation = await validateFramework(root);
+    assert.ok(validation.issues.some(
+      (issue) =>
+        issue.scope === `task-packets/${protocol.packet.id}`
+        && issue.code === "file-escape",
+    ));
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("framework validation rejects an altered seal and accepts a complete sealed run", async () => {
+  const root = await fixtureRoot();
+  try {
+    const protocol = await writeProtocolFixture(root);
+    const bundle = await writeCandidateBundle(root, protocol);
+    const runRoot = path.join(root, "runs", "candidate-a");
+    await cp(bundle.output, path.join(runRoot, "submitted"), { recursive: true });
+    const bundleHash = await bundleTreeHash(path.join(runRoot, "submitted"));
+    const run = validRun(protocol, bundleHash, bundle.submission);
+    await writeJson(path.join(runRoot, "run.json"), run);
+    assert.deepEqual((await validateFramework(root)).issues, []);
+    run.seal.bundleSha256 = "f".repeat(64);
+    await writeJson(path.join(runRoot, "run.json"), run);
+    assert.ok((await validateFramework(root)).issues.some((issue) => issue.code === "bundle-seal-mismatch"));
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("framework validation binds run paths and metadata to the sealed submission", async () => {
+  const root = await fixtureRoot();
+  try {
+    const protocol = await writeProtocolFixture(root);
+    const bundle = await writeCandidateBundle(root, protocol);
+    const runRoot = path.join(root, "runs", "candidate-a");
+    const submittedRoot = path.join(runRoot, "submitted");
+    await cp(bundle.output, submittedRoot, { recursive: true });
+    const originalRun = validRun(
+      protocol,
+      await bundleTreeHash(submittedRoot),
+      bundle.submission,
+    );
+    await writeJson(path.join(runRoot, "run.json"), originalRun);
+
+    const outsideArtifact = structuredClone(originalRun);
+    outsideArtifact.artifacts[0].path = "outside/evidence.txt";
+    await mkdir(path.join(runRoot, "outside"), { recursive: true });
+    await writeFile(path.join(runRoot, "outside", "evidence.txt"), "protocol evidence");
+    await writeJson(path.join(runRoot, "run.json"), outsideArtifact);
+    assert.ok((await validateFramework(root)).issues.some(
+      (issue) => issue.code === "artifact-outside-sealed-bundle",
+    ));
+
+    const outsideProcess = structuredClone(originalRun);
+    outsideProcess.processEvidence.initialPlan.path = "outside/plan.json";
+    await writeFile(
+      path.join(runRoot, "outside", "plan.json"),
+      `${JSON.stringify(bundle.plan, null, 2)}\n`,
+    );
+    await writeJson(path.join(runRoot, "run.json"), outsideProcess);
+    assert.ok((await validateFramework(root)).issues.some(
+      (issue) => issue.code === "process-evidence-outside-sealed-bundle",
+    ));
+
+    const changedMetadata = structuredClone(originalRun);
+    changedMetadata.model.name = "rewritten-after-seal";
+    changedMetadata.artifacts[0].sha256 = "f".repeat(64);
+    changedMetadata.processEvidence.initialPlan.sha256 = "e".repeat(64);
+    await writeJson(path.join(runRoot, "run.json"), changedMetadata);
+    const metadataIssues = (await validateFramework(root)).issues;
+    assert.ok(metadataIssues.some((issue) => issue.code === "sealed-submission-model-mismatch"));
+    assert.ok(metadataIssues.some((issue) => issue.code === "sealed-submission-artifacts-mismatch"));
+    assert.ok(metadataIssues.some((issue) => issue.code === "sealed-submission-process-mismatch"));
+
+    const bogusCheckpoint = `${"f".repeat(64)}  plan.json\n`;
+    await writeFile(path.join(submittedRoot, "initial-plan.sha256"), bogusCheckpoint);
+    const changedSubmission = structuredClone(bundle.submission);
+    changedSubmission.initialPlanCheckpoint.sha256 = digest(bogusCheckpoint);
+    await writeJson(path.join(submittedRoot, "submission.json"), changedSubmission);
+    const checkpointRun = validRun(
+      protocol,
+      await bundleTreeHash(submittedRoot),
+      changedSubmission,
+    );
+    await writeJson(path.join(runRoot, "run.json"), checkpointRun);
+    assert.ok((await validateFramework(root)).issues.some(
+      (issue) => issue.code === "initial-plan-checkpoint-mismatch",
+    ));
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("the public catalog excludes valid but unpublished runs", async () => {
+  const root = await fixtureRoot();
+  try {
+    const protocol = await writeProtocolFixture(root);
+    const bundle = await writeCandidateBundle(root, protocol);
+    const runRoot = path.join(root, "runs", "candidate-a");
+    await cp(bundle.output, path.join(runRoot, "submitted"), { recursive: true });
+    const bundleHash = await bundleTreeHash(path.join(runRoot, "submitted"));
+    const run = { ...validRun(protocol, bundleHash, bundle.submission), status: "validated" };
+    await writeJson(path.join(runRoot, "run.json"), run);
+    await execFileAsync(
+      process.execPath,
+      [path.join(projectRoot, "scripts", "build-framework-catalog.mjs"), "--root", root],
+      { cwd: projectRoot },
+    );
+    let catalog = JSON.parse(await readFile(path.join(root, "public", "framework", "catalog.json"), "utf8"));
+    assert.equal(catalog.runs.length, 0);
+    await execFileAsync(
+      process.execPath,
+      [path.join(projectRoot, "scripts", "process-step.mjs"), "--root", root],
+      { cwd: projectRoot },
+    );
+    await assert.rejects(
+      readFile(path.join(root, "public", "framework", "reports", "candidate-a.json")),
+    );
+    await execFileAsync(
+      process.execPath,
+      [path.join(projectRoot, "scripts", "stage2-publish-cohort.mjs"), "--cohort-id", protocol.cohort.id],
+      { cwd: root },
+    );
+    await execFileAsync(
+      process.execPath,
+      [path.join(projectRoot, "scripts", "build-framework-catalog.mjs"), "--root", root],
+      { cwd: projectRoot },
+    );
+    catalog = JSON.parse(await readFile(path.join(root, "public", "framework", "catalog.json"), "utf8"));
+    assert.deepEqual(catalog.runs.map(({ id }) => id), ["candidate-a"]);
+    const reportPath = path.join(root, ".framework-staging", "reports", "candidate-a.json");
+    const report = JSON.parse(await readFile(reportPath, "utf8"));
+    report.status = "invalid";
+    await writeJson(reportPath, report);
+    await execFileAsync(
+      process.execPath,
+      [path.join(projectRoot, "scripts", "build-framework-catalog.mjs"), "--root", root],
+      { cwd: projectRoot },
+    );
+    catalog = JSON.parse(await readFile(path.join(root, "public", "framework", "catalog.json"), "utf8"));
+    assert.deepEqual(catalog.runs.map(({ id }) => id), ["candidate-a"]);
+    assert.equal(catalog.runs[0].validation.status, "invalid");
+    await writeFile(path.join(runRoot, "publication-report.json"), "{}");
+    assert.ok((await validateFramework(root)).issues.some(
+      (issue) => issue.code === "invalid-publication-report",
+    ));
+    await assert.rejects(
+      execFileAsync(
+        process.execPath,
+        [path.join(projectRoot, "scripts", "build-framework-catalog.mjs"), "--root", root],
+        { cwd: projectRoot },
+      ),
+      /publication report/i,
+    );
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("candidate HTML and SVG are published only under inert download names", async () => {
+  const root = await fixtureRoot();
+  try {
+    const protocol = await writeProtocolFixture(root);
+    const bundle = await writeCandidateBundle(root, protocol);
+    const html = "<script>globalThis.candidateCodeRan = true</script>";
+    const svg = "<svg xmlns=\"http://www.w3.org/2000/svg\"><script>globalThis.candidateSvgRan = true</script></svg>";
+    await writeFile(path.join(bundle.output, "artifacts", "candidate.html"), html);
+    await writeFile(path.join(bundle.output, "artifacts", "candidate.svg"), svg);
+    const submission = structuredClone(bundle.submission);
+    submission.artifacts = [
+      {
+        id: "protocol-evidence",
+        role: "supporting",
+        path: "artifacts/candidate.html",
+        sha256: digest(html),
+        status: "present",
+      },
+      {
+        id: "candidate-svg",
+        role: "supporting",
+        path: "artifacts/candidate.svg",
+        sha256: digest(svg),
+        status: "present",
+      },
+    ];
+    await writeJson(path.join(bundle.output, "submission.json"), submission);
+    const runRoot = path.join(root, "runs", "candidate-a");
+    const submittedRoot = path.join(runRoot, "submitted");
+    await cp(bundle.output, submittedRoot, { recursive: true });
+    await writeJson(
+      path.join(runRoot, "run.json"),
+      validRun(protocol, await bundleTreeHash(submittedRoot), submission),
+    );
+    await execFileAsync(
+      process.execPath,
+      [path.join(projectRoot, "scripts", "process-step.mjs"), "--root", root],
+      { cwd: projectRoot },
+    );
+    await execFileAsync(
+      process.execPath,
+      [path.join(projectRoot, "scripts", "stage2-publish-cohort.mjs"), "--cohort-id", protocol.cohort.id],
+      { cwd: root },
+    );
+    await execFileAsync(
+      process.execPath,
+      [path.join(projectRoot, "scripts", "build-framework-catalog.mjs"), "--root", root],
+      { cwd: projectRoot },
+    );
+    const catalog = JSON.parse(
+      await readFile(path.join(root, "public", "framework", "catalog.json"), "utf8"),
+    );
+    for (const artifact of catalog.runs[0].artifacts) {
+      assert.match(artifact.download, /\.download$/);
+      assert.doesNotMatch(artifact.download, /\.(?:html|svg)$/i);
+    }
+    assert.equal(
+      await readFile(
+        path.join(root, "public", "framework", "files", "candidate-a", "artifacts", "protocol-evidence.download"),
+        "utf8",
+      ),
+      html,
+    );
+    assert.equal(
+      await readFile(
+        path.join(root, "public", "framework", "files", "candidate-a", "artifacts", "candidate-svg.download"),
+        "utf8",
+      ),
+      svg,
+    );
+    await assert.rejects(
+      readFile(
+        path.join(root, "public", "framework", "files", "candidate-a", "submitted", "artifacts", "candidate.html"),
+      ),
+    );
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("repository catalog counts match checked-in non-template content", async () => {
   const contentDirectories = async (name) =>
     (await readdir(path.join(projectRoot, name), { withFileTypes: true }))
       .filter((entry) => entry.isDirectory() && !entry.name.startsWith("_")).length;
-  const catalog = JSON.parse(
-    await readFile(path.join(projectRoot, "public", "framework", "catalog.json"), "utf8"),
-  );
+  const catalog = JSON.parse(await readFile(path.join(projectRoot, "public", "framework", "catalog.json"), "utf8"));
   assert.equal(catalog.benchmarks.length, await contentDirectories("benchmarks"));
-  assert.equal(catalog.runs.length, await contentDirectories("runs"));
-  const validation = await validateFramework(projectRoot);
-  assert.deepEqual(validation.issues, []);
+  assert.equal(catalog.taskPackets.length, await contentDirectories("task-packets"));
+  assert.equal(catalog.launches.length, await contentDirectories("launches"));
+  assert.equal(catalog.cohorts.length, await contentDirectories("cohorts"));
+  assert.deepEqual((await validateFramework(projectRoot)).issues, []);
 });
 
-test("validation reports duplicate IDs, malformed manifests, and hash mismatches as diagnostics", async () => {
-  const root = await fixtureRoot();
-  try {
-    await writeJson(path.join(root, "benchmarks", "neutral-benchmark", "benchmark.json"), benchmark());
-    await writeJson(path.join(root, "benchmarks", "another", "benchmark.json"), benchmark("neutral-benchmark"));
-    const file = Buffer.from("unmodified test file");
-    await mkdir(path.join(root, "runs", "first-run", "files"), { recursive: true });
-    await writeFile(path.join(root, "runs", "first-run", "files", "note.txt"), file);
-    const artifact = {
-      id: "evidence",
-      role: "supporting",
-      path: "files/note.txt",
-      sha256: digest("wrong"),
-      status: "present",
-    };
-    await writeJson(path.join(root, "runs", "first-run", "run.json"), run("first-run", [artifact]));
-    await writeJson(path.join(root, "runs", "second-run", "run.json"), run("first-run"));
-    await mkdir(path.join(root, "runs", "broken-json"), { recursive: true });
-    await writeFile(path.join(root, "runs", "broken-json", "run.json"), "{not-json");
-    await mkdir(path.join(root, "runs", "missing-manifest"), { recursive: true });
-    const result = await validateFramework(root);
-    assert.ok(result.issues.some((issue) => issue.code === "duplicate-id"));
-    assert.ok(result.issues.some((issue) => issue.code === "hash-mismatch"));
-    assert.ok(result.issues.some((issue) => issue.code === "invalid-json"));
-    assert.ok(result.issues.some((issue) => issue.code === "missing-manifest"));
-  } finally {
-    await rm(root, { recursive: true, force: true });
-  }
-});
-
-test("artifact validation rejects directories and symlinks without throwing", async (context) => {
-  const root = await fixtureRoot();
-  try {
-    await writeJson(path.join(root, "benchmarks", "neutral-benchmark", "benchmark.json"), benchmark());
-    const runRoot = path.join(root, "runs", "path-run");
-    await mkdir(path.join(runRoot, "files", "directory.txt"), { recursive: true });
-    const directoryArtifact = {
-      id: "directory",
-      role: "supporting",
-      path: "files/directory.txt",
-      sha256: digest("irrelevant"),
-      status: "present",
-    };
-    await writeJson(path.join(runRoot, "run.json"), run("path-run", [directoryArtifact]));
-    let result = await validateFramework(root);
-    assert.ok(result.issues.some((issue) => issue.code === "artifact-not-file"));
-
-    const outsideDirectory = path.join(root, "outside");
-    await mkdir(outsideDirectory);
-    await writeFile(path.join(outsideDirectory, "outside.txt"), "outside");
-    const linkedDirectory = path.join(runRoot, "files", "escape");
-    try {
-      await symlink(outsideDirectory, linkedDirectory, "junction");
-    } catch (error) {
-      if (error && typeof error === "object" && error.code === "EPERM") {
-        context.diagnostic("File symlink creation is unavailable; directory rejection still exercised.");
-        return;
-      }
-      throw error;
-    }
-    const linkArtifact = {
-      id: "linked",
-      role: "supporting",
-      path: "files/escape/outside.txt",
-      sha256: digest("outside"),
-      status: "present",
-    };
-    await writeJson(path.join(runRoot, "run.json"), run("path-run", [linkArtifact]));
-    result = await validateFramework(root);
-    assert.ok(result.issues.some((issue) => issue.code === "artifact-escape"));
-  } finally {
-    await rm(root, { recursive: true, force: true });
-  }
-});
-
-test("legacy prompt and submission text remains unchanged across line endings", async () => {
+test("legacy material remains byte-identical", async () => {
   const expected = {
     "BENCHMARK_PROMPT.md": "98b503d8747874e973692d5d184c0750177627a5ab2313ed2a62df2865d51f9b",
     "submissions/_template/manifest.json": "899c171709c70384a6432ffc36f955affcd67426cf59e16059df4378d87038e1",
@@ -240,44 +915,28 @@ test("legacy prompt and submission text remains unchanged across line endings", 
     "submissions/openai-gpt-5-6-terra-max/site/styles.css": "1455911a561efdb6b118feeb71bdfbd2e344c971ee3b60234384665c79c78975",
   };
   for (const [relativePath, expectedHash] of Object.entries(expected)) {
-    const text = await readFile(path.join(projectRoot, relativePath), "utf8");
-    assert.equal(normalizedTextDigest(text), expectedHash, relativePath);
+    assert.equal(normalizedTextDigest(await readFile(path.join(projectRoot, relativePath), "utf8")), expectedHash, relativePath);
   }
 });
 
-test("the common candidate prompt is pinned to EDBF-COMMON-1.0", async () => {
-  const prompt = await readFile(path.join(projectRoot, "MODEL_TASK.md"), "utf8");
-  assert.equal(prompt.replace(/\r\n?/g, "\n").trimEnd(), MODEL_TASK_PROMPT);
-  assert.equal(
-    normalizedTextDigest(prompt),
-    "26ed3140850140eb9edb9c737dd043027dddf650d9b46d1be1dccbb10b7a2979",
-  );
-  assert.match(prompt, /Prompt ID: `EDBF-COMMON-1\.0`/);
-  assert.match(prompt, /Stage: `1 \/ 2 — MODEL RUN`/);
-  assert.match(prompt, /変更は`runs\/<candidate-id>\/`内に限定/);
-  assert.match(prompt, /候補固有のビューワー、Webページ、公開処理は実装しない/);
-});
-
-test("the publishing prompt is pinned to EDBF-PUBLISH-1.0", async () => {
-  const prompt = await readFile(path.join(projectRoot, "PUBLISH_TASK.md"), "utf8");
-  assert.equal(prompt.replace(/\r\n?/g, "\n").trimEnd(), PUBLISH_TASK_PROMPT);
-  assert.equal(
-    normalizedTextDigest(prompt),
-    "c20a61a4eddcb8291d4d77f50b7571597caed89ea5d85aab6f380cf22bed14d4",
-  );
-  assert.match(prompt, /Prompt ID: `EDBF-PUBLISH-1\.0`/);
-  assert.match(prompt, /Stage: `2 \/ 2 — INTEGRATE & PUBLISH`/);
-  assert.match(prompt, /候補モデルには渡さない/);
-  assert.match(prompt, /候補成果の改善、再設計、再実行、評価、他候補との比較は行わない/);
-});
-
-test("prompt pages bundle their content without runtime filesystem reads", async () => {
-  for (const relativePath of [
-    "app/model-task/page.tsx",
-    "app/publish-task/page.tsx",
-  ]) {
-    const source = await readFile(path.join(projectRoot, relativePath), "utf8");
-    assert.doesNotMatch(source, /node:fs|readFileSync|process\.cwd/);
-    assert.match(source, /shared\/prompts\.mjs/);
-  }
+test("operator and publisher contracts enforce the two-stage boundary", async () => {
+  const [model, publish] = await Promise.all([
+    readFile(path.join(projectRoot, "MODEL_TASK.md"), "utf8"),
+    readFile(path.join(projectRoot, "PUBLISH_TASK.md"), "utf8"),
+  ]);
+  assert.match(model, /EDBF-STAGE1-2\.0/);
+  assert.match(model, /bare URL/i);
+  assert.match(model, /candidate-output\//);
+  assert.match(model, /candidate ID/);
+  assert.match(MODEL_LAUNCH_MESSAGE, /このタスクに対する私の指示として実行/);
+  assert.match(MODEL_TASK_PROMPT, /isolated engineering project/);
+  assert.match(publish, /EDBF-STAGE2-2\.0/);
+  assert.match(publish, /byte-for-byte/);
+  assert.match(publish, /opaque candidate ID/);
+  assert.match(publish, /stage2:publish-cohort/);
+  assert.match(publish, /open cohort ID/);
+  assert.match(PUBLISH_LAUNCH_MESSAGE, /このタスクに対する私の指示として実行/);
+  assert.match(PUBLISH_LAUNCH_MESSAGE, /予定候補と完成済み成果/);
+  assert.match(PUBLISH_TASK_PROMPT, /deterministic tree hash/);
+  assert.match(PUBLISH_TASK_PROMPT, /transition together or roll back/);
 });

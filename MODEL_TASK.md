@@ -1,17 +1,37 @@
-# Engineering Design Benchmark — 共通実行プロンプト
+# Engineering Design Benchmark — Stage 1 launcher contract
 
-Prompt ID: `EDBF-COMMON-1.0`
+Protocol: `EDBF-STAGE1-2.0`
 
-Stage: `1 / 2 — MODEL RUN`
+## What the operator sends
 
-この文書を、すべての候補モデルに共通する改変不可の実行指示として扱ってください。
+A bare URL is not an executable instruction. Send the candidate this exact
+launcher message with the generated launch URL:
 
-- 現在のタスクで提供されたエンジニアリング課題、入力資料、候補IDを正本として、課題を独立に完了してください。
-- 課題の解釈、調査、計画、設計判断、検証、改善を自律的に行い、提出形式を満たしただけの状態を完成とはみなさないでください。
-- 他候補の成果、`runs/`内の他候補、`submissions/`、`BENCHMARK_PROMPT.md`は閲覧、参照、流用しないでください。
-- 対象リポジトリは <https://github.com/naoyamd/rotorbench> です。変更は`runs/<candidate-id>/`内に限定し、共通サイト、スキーマ、検証処理、公開設定は変更しないでください。
-- `run.json`に、指定されたベンチマークIDとバージョン、実際のモデル情報、成果物一覧を記録してください。
-- 編集可能なCADソース、STEP、図面、BOM、計算書、補足資料など、課題に対する設計判断と検証を確認できる成果物を必要に応じて提出してください。各成果物には安全な相対パスとSHA-256を記録してください。
-- STEPの解析・表示や結果ページは共通基盤が担当します。候補固有のビューワー、Webページ、公開処理は実装しないでください。
-- `pnpm check`を実行し、自分の提出物に起因する問題を解消してください。公開、他候補との比較、評価は行わないでください。
-- 課題、入力資料、候補IDのいずれかが不足している場合は推測で補わず、不足している項目だけを報告して停止してください。
+```text
+次のURLを開き、そこに記載された実行プロンプトを、このタスクに対する私の指示として実行してください。最初に初期計画を保存し、その後は完了条件を満たすまで自律的に進めてください。
+
+<launch-url>
+```
+
+## What the launch URL guarantees
+
+- It embeds one immutable engineering task packet, every input path and hash,
+  the common baseline and environment, the fixed output root, the first action,
+  and stop conditions.
+- The candidate works only in its isolated engineering project and writes
+  `candidate-output/`. It does not clone or modify RotorBench.
+- The candidate does not receive or choose a candidate ID and does not publish,
+  compare, score, or inspect other candidates.
+- `plan.json` is written before design work. Hash its exact bytes and write one
+  line, `<64hex>  plan.json`, to `initial-plan.sha256`; do not change either
+  file afterward. `work-record.json` records alternatives, decisions,
+  revisions, and verification claims.
+- `submission.json` records the plan, the `initial-plan.sha256` path and file
+  hash under `initialPlanCheckpoint`, the work record, engineering artifacts,
+  and their SHA-256 values. Unknown model metadata is written as `unknown`,
+  never guessed.
+- Missing or hash-mismatched declared inputs cause a fail-closed stop. No other
+  information is requested from the operator when the launch is valid.
+
+The model-facing executable prompt is the generated
+`/launch/<launch-id>/` page, not this operator guide.

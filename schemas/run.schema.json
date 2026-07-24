@@ -4,12 +4,32 @@
   "title": "Engineering Design Benchmark Framework run",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "id", "benchmarkId", "benchmarkVersion", "status", "submittedAt", "model", "artifacts", "extensions"],
+  "required": [
+    "schemaVersion",
+    "id",
+    "benchmarkId",
+    "benchmarkVersion",
+    "launchId",
+    "cohortId",
+    "taskPacketDigest",
+    "fairnessFingerprint",
+    "status",
+    "submittedAt",
+    "model",
+    "seal",
+    "processEvidence",
+    "artifacts",
+    "extensions"
+  ],
   "properties": {
     "schemaVersion": { "const": "1.0" },
     "id": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" },
     "benchmarkId": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" },
     "benchmarkVersion": { "type": "string", "minLength": 1 },
+    "launchId": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" },
+    "cohortId": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" },
+    "taskPacketDigest": { "$ref": "artifact.schema.json#/$defs/sha256" },
+    "fairnessFingerprint": { "$ref": "artifact.schema.json#/$defs/sha256" },
     "status": { "type": "string", "enum": ["draft", "submitted", "validated", "published", "failed"] },
     "submittedAt": { "type": "string", "format": "date-time" },
     "model": {
@@ -23,10 +43,67 @@
       }
     },
     "summary": { "type": "string" },
+    "seal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sealed", "bundlePath", "bundleSha256", "algorithm"],
+      "properties": {
+        "sealed": { "const": true },
+        "bundlePath": { "const": "submitted" },
+        "bundleSha256": { "$ref": "artifact.schema.json#/$defs/sha256" },
+        "algorithm": { "const": "sha256-tree-v1" }
+      }
+    },
+    "processEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["initialPlan", "workRecord"],
+      "properties": {
+        "initialPlan": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["path", "sha256"],
+          "properties": {
+            "path": { "$ref": "artifact.schema.json#/$defs/safePath" },
+            "sha256": { "$ref": "artifact.schema.json#/$defs/sha256" }
+          }
+        },
+        "workRecord": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["path", "sha256"],
+          "properties": {
+            "path": { "$ref": "artifact.schema.json#/$defs/safePath" },
+            "sha256": { "$ref": "artifact.schema.json#/$defs/sha256" }
+          }
+        }
+      }
+    },
     "artifacts": {
       "type": "array",
       "items": { "$ref": "artifact.schema.json" }
     },
+    "publicationReport": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256"],
+      "properties": {
+        "path": { "const": "publication-report.json" },
+        "sha256": { "$ref": "artifact.schema.json#/$defs/sha256" }
+      }
+    },
     "extensions": { "type": "object" }
-  }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": { "status": { "const": "published" } },
+        "required": ["status"]
+      },
+      "then": {
+        "properties": { "publicationReport": true },
+        "required": ["publicationReport"]
+      }
+    }
+  ]
 }

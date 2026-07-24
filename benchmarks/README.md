@@ -1,5 +1,6 @@
 # Benchmark definitions
 
-This directory intentionally starts empty. Add one directory per future benchmark,
-containing `benchmark.json` that conforms to `schemas/benchmark.schema.json`.
-Task-specific requirements and any scoring rules belong only in `extensions`.
+This directory intentionally starts empty. Add one neutral public manifest per
+future benchmark. The executable task, inputs, environment, deliverables, and
+completion criteria belong to the matching versioned
+`task-packets/<benchmark-id>/packet.json`, not to a candidate prompt.

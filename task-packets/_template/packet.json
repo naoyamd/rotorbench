@@ -1,0 +1,28 @@
+{
+  "schemaVersion": "1.0",
+  "id": "benchmark-id",
+  "version": "1.0",
+  "title": "Future engineering benchmark",
+  "summary": "Replace this template when a real benchmark is created.",
+  "instructions": {
+    "path": "TASK.md",
+    "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+  },
+  "inputs": [],
+  "requiredOutputs": [
+    "cad-source",
+    "step",
+    "drawing",
+    "bom",
+    "calculation",
+    "supporting"
+  ],
+  "environment": {
+    "baseline": "Declare the isolated starting workspace.",
+    "cad": "Declare the common CAD environment.",
+    "stepPipeline": "common-occt-import-js"
+  },
+  "completionCriteria": [
+    "Replace this placeholder with task-specific, observable completion criteria."
+  ]
+}

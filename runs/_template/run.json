@@ -3,12 +3,32 @@
   "id": "run-id",
   "benchmarkId": "benchmark-id",
   "benchmarkVersion": "1.0",
+  "launchId": "launch-id",
+  "cohortId": "cohort-id",
+  "taskPacketDigest": "0000000000000000000000000000000000000000000000000000000000000000",
+  "fairnessFingerprint": "0000000000000000000000000000000000000000000000000000000000000000",
   "status": "draft",
   "submittedAt": "2026-01-01T00:00:00Z",
   "model": {
     "provider": "Provider name",
     "name": "Model name",
     "version": "Model version"
+  },
+  "seal": {
+    "sealed": true,
+    "bundlePath": "submitted",
+    "bundleSha256": "0000000000000000000000000000000000000000000000000000000000000000",
+    "algorithm": "sha256-tree-v1"
+  },
+  "processEvidence": {
+    "initialPlan": {
+      "path": "submitted/plan.json",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+    },
+    "workRecord": {
+      "path": "submitted/work-record.json",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+    }
   },
   "artifacts": [],
   "extensions": {}
