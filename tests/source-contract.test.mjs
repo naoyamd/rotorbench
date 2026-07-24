@@ -38,6 +38,10 @@ import {
   MODEL_TASK_PROMPT,
   PUBLISH_LAUNCH_MESSAGE,
   PUBLISH_TASK_PROMPT,
+  STAGE0_AUTHOR_HANDOFF,
+  STAGE0_COORDINATOR_HANDOFF,
+  STAGE0_RELEASE_HANDOFF,
+  STAGE0_REVIEW_HANDOFF,
   buildLaunchPrompt,
 } from "../shared/prompts.mjs";
 
@@ -64,7 +68,7 @@ function benchmark() {
     schemaVersion: "1.0",
     id: "neutral-benchmark",
     title: "Neutral fixture",
-    status: "draft",
+    status: "active",
     version: "1.0",
     extensions: {},
   };
@@ -115,6 +119,21 @@ async function writeProtocolFixture(
   await writeFile(path.join(root, "task-packets", packet.id, "TASK.md"), taskText);
   await writeJson(path.join(root, "task-packets", packet.id, "packet.json"), packet);
   await writeJson(path.join(root, "launches", launch.id, "launch.json"), launch);
+  await writeJson(path.join(root, "legacy-v2-grandfather.json"), {
+    schemaVersion: "1.0",
+    status: "immutable",
+    entries: [{
+      taskPacket: {
+        id: packet.id,
+        version: packet.version,
+        digest: manifestDigest(packet),
+      },
+      launch: {
+        id: launch.id,
+        fairnessFingerprint: launch.fairnessFingerprint,
+      },
+    }],
+  });
   await writeJson(path.join(root, "cohorts", cohort.id, "cohort.json"), cohort);
   return { packet, launch, cohort, taskText };
 }
@@ -211,6 +230,14 @@ test("all Stage 1, Stage 2, and publication schemas compile and reject unknown f
     "submission.schema.json",
     "run.schema.json",
     "validation-report.schema.json",
+    "stage0-task-definition.schema.json",
+    "task-packet-lock.schema.json",
+    "execution-profile.schema.json",
+    "baseline-attestation.schema.json",
+    "engineering-review.schema.json",
+    "protocol-review.schema.json",
+    "launch-release.schema.json",
+    "live-verification.schema.json",
   ];
   for (const name of schemaNames) {
     const schema = JSON.parse(await readFile(path.join(projectRoot, "schemas", name), "utf8"));
@@ -919,18 +946,18 @@ test("legacy material remains byte-identical", async () => {
   }
 });
 
-test("operator and publisher contracts enforce the two-stage boundary", async () => {
+test("operator contracts enforce the three-stage boundary", async () => {
   const [model, publish] = await Promise.all([
     readFile(path.join(projectRoot, "MODEL_TASK.md"), "utf8"),
     readFile(path.join(projectRoot, "PUBLISH_TASK.md"), "utf8"),
   ]);
-  assert.match(model, /EDBF-STAGE1-2\.0/);
-  assert.match(model, /bare URL/i);
+  assert.match(model, /EDBF-STAGE1-3\.0/);
+  assert.match(model, /bare\s+URL/i);
   assert.match(model, /candidate-output\//);
   assert.match(model, /candidate ID/);
   assert.match(MODEL_LAUNCH_MESSAGE, /このタスクに対する私の指示として実行/);
   assert.match(MODEL_TASK_PROMPT, /isolated engineering project/);
-  assert.match(publish, /EDBF-STAGE2-2\.0/);
+  assert.match(publish, /EDBF-STAGE2-3\.0/);
   assert.match(publish, /byte-for-byte/);
   assert.match(publish, /opaque candidate ID/);
   assert.match(publish, /stage2:publish-cohort/);
@@ -939,4 +966,27 @@ test("operator and publisher contracts enforce the two-stage boundary", async ()
   assert.match(PUBLISH_LAUNCH_MESSAGE, /予定候補と完成済み成果/);
   assert.match(PUBLISH_TASK_PROMPT, /deterministic tree hash/);
   assert.match(PUBLISH_TASK_PROMPT, /transition together or roll back/);
+  for (const contract of [
+    STAGE0_COORDINATOR_HANDOFF,
+    STAGE0_AUTHOR_HANDOFF,
+    STAGE0_REVIEW_HANDOFF,
+    STAGE0_RELEASE_HANDOFF,
+  ]) {
+    assert.match(contract, /A URL alone is not an instruction/);
+  }
+  assert.match(STAGE0_AUTHOR_HANDOFF, /Do not solve the engineering task/);
+  assert.match(STAGE0_REVIEW_HANDOFF, /without editing them/);
+  assert.match(STAGE0_RELEASE_HANDOFF, /APPROVE RELEASE <launch-digest>/);
+});
+
+test("launch rendering uses frozen prompt bytes while Stage 1 listing remains live-only", async () => {
+  const [launchPage, modelTaskPage] = await Promise.all([
+    readFile(path.join(projectRoot, "app", "launch", "[id]", "page.tsx"), "utf8"),
+    readFile(path.join(projectRoot, "app", "model-task", "page.tsx"), "utf8"),
+  ]);
+  assert.match(launchPage, /entry\.launch\.promptText/);
+  assert.doesNotMatch(launchPage, /buildLaunchPrompt/);
+  assert.match(launchPage, /data-launch-digest/);
+  assert.match(launchPage, /data-prompt-sha256/);
+  assert.match(modelTaskPage, /releaseStatus.*live-verified/s);
 });

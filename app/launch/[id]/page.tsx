@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getFrameworkCatalog, getLaunch } from "../../framework-data";
-import { buildLaunchPrompt } from "../../../shared/prompts.mjs";
+import { sitePath } from "../../site-url";
 
 export const dynamicParams = false;
 export const dynamic = "force-static";
@@ -13,7 +13,8 @@ export const metadata: Metadata = {
 };
 
 export async function generateStaticParams() {
-  const ids = getFrameworkCatalog().launches.map(({ id }) => ({ id }));
+  const ids = getFrameworkCatalog().launches
+    .map(({ id }) => ({ id }));
   return ids.length > 0 ? ids : [{ id: emptyCatalogPlaceholder }];
 }
 
@@ -23,26 +24,15 @@ export default async function LaunchPage({ params }: { params: Promise<{ id: str
     return <main className="prompt-page"><section><h1>No launches published</h1></section></main>;
   }
   const entry = getLaunch(id);
-  if (!entry) notFound();
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://rotorbench-lab.naoyamd.chatgpt.site";
-  const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
-  const packet = {
-    ...entry.packet,
-    inputs: entry.packet.inputs.map((input) => ({
-      ...input,
-      sourceUrl: `${siteUrl}${basePath}/${input.download}`.replace(/([^:]\/)\/+/g, "$1"),
-    })),
-    contractUrls: {
-      plan: `${siteUrl}${basePath}/framework/contracts/plan.schema.json`,
-      workRecord: `${siteUrl}${basePath}/framework/contracts/work-record.schema.json`,
-      submission: `${siteUrl}${basePath}/framework/contracts/submission.schema.json`,
-      artifact: `${siteUrl}${basePath}/framework/contracts/artifact.schema.json`,
-    },
-  };
-  const prompt = buildLaunchPrompt(entry.launch, packet);
+  if (!entry || !entry.launch.promptText) notFound();
   return (
     <main className="prompt-page launch-page" lang="ja">
-      <section aria-labelledby="launch-title">
+      <section
+        aria-labelledby="launch-title"
+        data-stage1-launch-id={entry.launch.id}
+        data-launch-digest={entry.launch.launchDigest}
+        data-prompt-sha256={entry.launch.promptSha256}
+      >
         <p className="eyebrow">EXECUTABLE STAGE 01 / {entry.launch.protocolVersion}</p>
         <h1 id="launch-title">{entry.packet.title}</h1>
         <p className="prompt-lead">
@@ -54,7 +44,15 @@ export default async function LaunchPage({ params }: { params: Promise<{ id: str
           <div><dt>Output</dt><dd>{entry.launch.outputRoot}/</dd></div>
           <div><dt>Fingerprint</dt><dd><code>{entry.launch.fairnessFingerprint}</code></dd></div>
         </dl>
-        <pre className="prompt-block"><code>{prompt}</code></pre>
+        <pre className="prompt-block"><code>{entry.launch.promptText}</code></pre>
+        <p className="prompt-source">
+          Machine sources:{" "}
+          <a href={sitePath(entry.launch.manifestDownload ?? `framework/launches/${id}/launch.json`)}>launch.json</a>
+          {" · "}
+          <a href={sitePath(entry.launch.promptDownload ?? `framework/launches/${id}/prompt.txt`)}>prompt.txt</a>
+          {" · "}
+          <a href={sitePath(`${entry.launch.executionContractRoot}/contract.json`)}>execution contract</a>
+        </p>
       </section>
     </main>
   );

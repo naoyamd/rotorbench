@@ -22,12 +22,22 @@ export default function FormatPage() {
         <section className="page-intro">
           <p className="eyebrow">PUBLICATION FORMAT / 1.0</p>
           <h1>Common submission format</h1>
-          <p>The framework separates the immutable task packet, candidate-owned evidence bundle, and Stage 2-owned publication record. It does not supply an engineering task, score, or reference answer.</p>
+          <p>The framework separates Stage 0 protocol governance, the Stage 1 candidate-owned evidence bundle, and the Stage 2-owned publication record. It does not supply an engineering task, score, or reference answer.</p>
         </section>
         <section className="content-section">
-          <h2>Two-stage sequence</h2>
-          <pre className="code-block"><code>{`task-packets/<benchmark-id>/packet.json
-launches/<launch-id>/launch.json
+          <h2>Three-stage sequence</h2>
+          <pre className="code-block"><code>{`task-packets/<benchmark-id>/<version>/
+  task.json
+  packet.json
+  packet-lock.json
+
+launches/<launch-id>/
+  launch.json
+  prompt.txt
+  baseline-attestation.json
+  execution-profile.json
+  release.json
+
 cohorts/<cohort-id>/cohort.json
 
 candidate-output/
@@ -41,7 +51,7 @@ runs/<candidate-id>/
   run.json
   publication-report.json
   submitted/  # byte-identical candidate-output bundle`}</code></pre>
-          <p>Stage 1 writes <code>initial-plan.sha256</code> as the single line <code>&lt;64hex&gt;  plan.json</code>, records its path and file hash as <code>submission.initialPlanCheckpoint</code>, and then preserves both it and <code>plan.json</code>. Stage 1 never assigns candidate identity or edits this repository. Stage 2 binds every run to an open cohort, validates and seals the complete bundle, fixes a successful publication report by hash, and publishes every planned cohort member together.</p>
+          <p>Stage 0 freezes versioned packet, Git baseline, execution contract, prompt, independent reviews, and release state. Stage 1 starts only from a live-verified launch, writes <code>initial-plan.sha256</code> as the single line <code>&lt;64hex&gt;  plan.json</code>, and preserves it with <code>plan.json</code>. Protocol v3 carries the packet bundle, execution contract, prompt, and launch digests through <code>submission.json</code>. Stage 2 validates the same bindings, seals the complete bundle, and publishes every planned cohort member together.</p>
         </section>
         <section className="content-section">
           <h2>Process evidence</h2>

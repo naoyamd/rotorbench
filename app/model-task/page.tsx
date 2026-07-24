@@ -1,58 +1,68 @@
 import type { Metadata } from "next";
 import { getFrameworkCatalog } from "../framework-data";
 import { SiteFooter, SiteHeader } from "../components/site-header";
-import {
-  MODEL_LAUNCH_MESSAGE,
-  MODEL_TASK_PROMPT,
-} from "../../shared/prompts.mjs";
+import { absoluteSiteUrl, sitePath } from "../site-url";
+import { buildModelLaunchMessage } from "../../shared/prompts.mjs";
 
 export const metadata: Metadata = {
   title: "Stage 1 launcher | Engineering Design Benchmark Framework",
   description:
-    "The operator handoff that starts a self-contained engineering benchmark launch.",
+    "Live-verified, self-contained engineering benchmark launch handoffs.",
 };
 
 export default function ModelTaskPage() {
-  const { launches } = getFrameworkCatalog();
+  const launches = getFrameworkCatalog().launches.filter(
+    ({ releaseStatus }) => releaseStatus === "live-verified",
+  );
   return (
     <>
       <SiteHeader />
-      <main className="listing-page" lang="ja">
+      <main className="listing-page">
         <section className="page-intro">
-          <p className="eyebrow">STAGE 01 / OPERATOR HANDOFF</p>
-          <h1>URLを、実行指示として成立させる</h1>
+          <p className="eyebrow">STAGE 01 / LIVE-VERIFIED HANDOFF</p>
+          <h1>Start design from a verified launch</h1>
           <p>
-            裸のURLだけではモデルへの指示になりません。将来の課題ごとに生成される
-            launch URLを、下の固定ランチャー文と一緒に渡します。
+            A URL alone is not an instruction. Copy one complete block below
+            into an isolated candidate task. Every listed launch has completed
+            Stage 0 authoring, independent review, approval, deployment, and
+            live verification.
           </p>
         </section>
-        <section className="content-section">
-          <h2>候補モデルへ貼る全文</h2>
-          <pre className="prompt-block"><code>{MODEL_LAUNCH_MESSAGE}</code></pre>
-          <p>
-            <code>&lt;launch-url&gt;</code>だけを実際の
-            <code>/launch/&lt;launch-id&gt;/</code>へ置き換えます。それ以外は全候補で変更しません。
-          </p>
-        </section>
-        <section className="content-section">
-          <h2>この入口が保証する境界</h2>
-          <pre className="code-block"><code>{MODEL_TASK_PROMPT}</code></pre>
-          <ul className="plain-list">
-            <li>実課題、入力、hash、環境、完了条件はlaunch URL内で完結します。</li>
-            <li>候補は別プロジェクトで設計し、固定の<code>candidate-output/</code>だけを引き渡します。</li>
-            <li>候補IDの付与、RotorBenchへの登録、比較、評価、公開はStage 2へ分離します。</li>
-            <li>初期計画と設計判断・代替案・検証証拠を構造化して残します。</li>
-          </ul>
-        </section>
-        <section className="empty-state">
-          <h2>{launches.length} executable launches</h2>
-          <p>
-            現在は実際のエンジニアリング課題を登録していないため、候補へ渡せるlaunch URLはありません。
-          </p>
-          <a className="button-link secondary" href="https://github.com/naoyamd/rotorbench/blob/main/MODEL_TASK.md">
-            CANONICAL CONTRACT
-          </a>
-        </section>
+        {launches.length > 0 ? (
+          <section className="content-section" aria-labelledby="live-launches">
+            <h2 id="live-launches">Live-verified launches</h2>
+            {launches.map((launch) => {
+              const launchUrl = absoluteSiteUrl(`launch/${launch.id}/`);
+              return (
+                <article className="launch-handoff" key={launch.id}>
+                  <p className="eyebrow">{launch.id} / {launch.protocolVersion}</p>
+                  <pre className="prompt-block"><code>{buildModelLaunchMessage(launchUrl)}</code></pre>
+                  <p>
+                    <a href={sitePath(`launch/${launch.id}/`)}>Inspect the executable launch</a>
+                    {" · "}
+                    <a href={sitePath(launch.manifestDownload ?? `framework/launches/${launch.id}/launch.json`)}>launch.json</a>
+                    {" · "}
+                    {launch.promptDownload
+                      ? <a href={sitePath(launch.promptDownload)}>prompt.txt</a>
+                      : null}
+                  </p>
+                </article>
+              );
+            })}
+          </section>
+        ) : (
+          <section className="empty-state">
+            <p className="eyebrow">0 LIVE-VERIFIED LAUNCHES</p>
+            <h2>Stage 1 is intentionally closed</h2>
+            <p>
+              No task prompt is available until Stage 0 has completed
+              independent approval and live endpoint verification.
+            </p>
+            <a className="button-link" href={sitePath("stage0/")}>
+              OPEN STAGE 0 PREPARATION
+            </a>
+          </section>
+        )}
       </main>
       <SiteFooter />
     </>

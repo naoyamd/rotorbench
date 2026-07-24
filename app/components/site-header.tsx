@@ -11,6 +11,7 @@ export function SiteHeader() {
         </span>
       </a>
       <nav aria-label="Primary navigation">
+        <a href={`${basePath}/stage0/`}>STAGE 0</a>
         <a href={`${basePath}/benchmarks/`}>BENCHMARKS</a>
         <a href={`${basePath}/model-task/`}>STAGE 1</a>
         <a href={`${basePath}/publish-task/`}>STAGE 2</a>

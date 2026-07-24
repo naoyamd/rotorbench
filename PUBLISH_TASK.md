@@ -1,6 +1,6 @@
 # Engineering Design Benchmark — Stage 2 integration and publishing
 
-Protocol: `EDBF-STAGE2-2.0`
+Protocol: `EDBF-STAGE2-3.0`
 
 This instruction is used only in a separate publishing task after a candidate
 has completed `candidate-output/`. Never send it to a candidate model.
@@ -33,7 +33,10 @@ cohort ID:
   its operator-assigned opaque candidate ID, and the open cohort ID.
 - Use the latest `main` of <https://github.com/naoyamd/rotorbench>.
 - Validate `submission.json`, `plan.json`, `work-record.json`, every declared
-  file hash, task-packet identity, launch identity, and fairness fingerprint.
+  file hash, task-packet manifest and bundle digests, live-verified launch,
+  execution-contract digest, prompt hash, launch digest, and fairness
+  fingerprint. Protocol v2 remains readable for existing material, but every
+  new Stage 0 launch and Stage 1 bundle uses v3.
 - Copy the entire candidate bundle byte-for-byte into
   `runs/<candidate-id>/submitted/`. Do not improve, rewrite, normalize, or
   regenerate any submitted file.

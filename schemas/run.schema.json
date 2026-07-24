@@ -29,6 +29,10 @@
     "launchId": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" },
     "cohortId": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" },
     "taskPacketDigest": { "$ref": "artifact.schema.json#/$defs/sha256" },
+    "taskPacketBundleDigest": { "$ref": "artifact.schema.json#/$defs/sha256" },
+    "executionContractDigest": { "$ref": "artifact.schema.json#/$defs/sha256" },
+    "promptSha256": { "$ref": "artifact.schema.json#/$defs/sha256" },
+    "launchDigest": { "$ref": "artifact.schema.json#/$defs/sha256" },
     "fairnessFingerprint": { "$ref": "artifact.schema.json#/$defs/sha256" },
     "status": { "type": "string", "enum": ["draft", "submitted", "validated", "published", "failed"] },
     "submittedAt": { "type": "string", "format": "date-time" },
@@ -95,6 +99,52 @@
     "extensions": { "type": "object" }
   },
   "allOf": [
+    {
+      "if": {
+        "properties": {
+          "extensions": {
+            "type": "object",
+            "properties": { "protocolVersion": { "const": "3.0" } },
+            "required": ["protocolVersion"]
+          }
+        },
+        "required": ["extensions"]
+      },
+      "then": {
+        "required": [
+          "taskPacketBundleDigest",
+          "executionContractDigest",
+          "promptSha256",
+          "launchDigest"
+        ],
+        "properties": {
+          "taskPacketBundleDigest": true,
+          "executionContractDigest": true,
+          "promptSha256": true,
+          "launchDigest": true,
+          "artifacts": {
+            "type": "array",
+            "items": {
+              "allOf": [
+                { "$ref": "artifact.schema.json" },
+                {
+                  "type": "object",
+                  "required": ["requiredOutputRefs"],
+                  "properties": {
+                    "requiredOutputRefs": {
+                      "type": "array",
+                      "minItems": 1,
+                      "uniqueItems": true,
+                      "items": { "type": "string", "pattern": "^OUT-[0-9]{3,}$" }
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
     {
       "if": {
         "properties": { "status": { "const": "published" } },

@@ -17,6 +17,7 @@
     "stage1:checkpoint": "node scripts/stage1-checkpoint.mjs",
     "stage2:integrate": "node scripts/stage2-integrate.mjs",
     "stage2:publish-cohort": "node scripts/stage2-publish-cohort.mjs",
+    "stage0": "node scripts/stage0.mjs",
     "packet:finalize": "node scripts/finalize-task-packet.mjs",
     "launch:finalize": "node scripts/finalize-launch.mjs",
     "framework:prepare": "node scripts/framework-validate.mjs && node scripts/process-step.mjs && node scripts/build-framework-catalog.mjs",

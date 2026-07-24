@@ -9,6 +9,7 @@ import {
   validateSubmission,
   validateWorkRecord,
 } from "./framework-lib.mjs";
+import { loadFrozenContractValidators } from "./frozen-contract.mjs";
 
 async function regularFileInside(root, relativePath) {
   const candidate = ensureInside(root, relativePath);
@@ -40,8 +41,38 @@ function duplicateIds(items) {
     .map((item) => item.id);
 }
 
-export async function validateCandidateBundle(root) {
+export async function readCandidateSubmissionIdentity(root) {
+  if (path.basename(path.resolve(root)) !== "candidate-output") {
+    throw new Error("Stage 1 bundle root must be named candidate-output");
+  }
+  const file = await regularFileInside(root, "submission.json");
+  if (file.issue) throw new Error(file.issue);
+  let submission;
+  try {
+    submission = JSON.parse(file.data.toString("utf8"));
+  } catch {
+    throw new Error("missing or invalid submission.json");
+  }
+  if (
+    typeof submission.launchId !== "string"
+    || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(submission.launchId)
+    || !["2.0", "3.0"].includes(submission.protocolVersion)
+  ) {
+    throw new Error("submission.json does not declare a safe launch identity");
+  }
+  return {
+    launchId: submission.launchId,
+    protocolVersion: submission.protocolVersion,
+  };
+}
+
+export async function validateCandidateBundle(root, options = {}) {
   const issues = [];
+  const contractValidators = options.contractValidators ?? {
+    validatePlan,
+    validateSubmission,
+    validateWorkRecord,
+  };
   if (path.basename(path.resolve(root)) !== "candidate-output") {
     issues.push("Stage 1 bundle root must be named candidate-output");
   }
@@ -51,7 +82,7 @@ export async function validateCandidateBundle(root) {
   } catch {
     return { status: "invalid", issues: ["missing or invalid submission.json"] };
   }
-  issues.push(...validateSubmission(submission).map((issue) => issue.message));
+  issues.push(...contractValidators.validateSubmission(submission).map((issue) => issue.message));
   if (issues.length > 0) return { status: "invalid", issues };
 
   const planFile = await regularFileInside(root, submission.initialPlan.path);
@@ -91,8 +122,10 @@ export async function validateCandidateBundle(root) {
   } catch {
     issues.push("plan.json or work-record.json is not valid JSON");
   }
-  if (plan) issues.push(...validatePlan(plan).map((issue) => issue.message));
-  if (workRecord) issues.push(...validateWorkRecord(workRecord).map((issue) => issue.message));
+  if (plan) issues.push(...contractValidators.validatePlan(plan).map((issue) => issue.message));
+  if (workRecord) {
+    issues.push(...contractValidators.validateWorkRecord(workRecord).map((issue) => issue.message));
+  }
 
   for (const duplicate of duplicateIds(plan?.requirements ?? [])) {
     issues.push(`duplicate requirement id: ${duplicate}`);
@@ -151,3 +184,4 @@ export async function validateCandidateBundle(root) {
 }
 
 export { bundleTreeHash };
+export { loadFrozenContractValidators };

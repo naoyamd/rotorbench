@@ -9,17 +9,25 @@ The repository currently contains no real engineering task, design answer,
 dimensions, loads, materials, scoring rules, or reference solution. Only
 underscored structural templates are present.
 
-## End-to-end flow
+## Three-stage flow
 
-### Prepare outside the candidate run
+### Stage 0 — prepare outside the candidate run
 
-1. Add one immutable `task-packets/<benchmark-id>/` directory containing
-   `packet.json`, the task brief, and every input file.
+1. Draft and lint the task outside `task-packets/`, then freeze one immutable
+   `task-packets/<benchmark-id>/<version>/` directory containing `task.json`,
+   `packet.json`, `packet-lock.json`, the task brief, and every input file.
+   Every revision uses a new version.
 2. Add the matching neutral `benchmarks/<benchmark-id>/benchmark.json`.
-3. Add `launches/<launch-id>/launch.json`. It binds the packet to a baseline
-   workspace and common environment and produces `/launch/<launch-id>/`.
-4. Give every model in one cohort the same launch URL and the exact launcher
+3. Freeze a new launch against an exact clean Git repository and an execution
+   profile, then obtain independent engineering and protocol reviews.
+4. Approve and mark the digest-bound release `release-ready`. Draft,
+   unapproved, and retired launches are excluded from public routes.
+5. Give every model in one cohort the same launch URL and the exact launcher
    sentence shown at `/model-task/`.
+
+Stage 0 v3 binds packet-manifest and whole-bundle digests, the verified Git
+worktree, execution profile and contract, rendered prompt, and launch. Existing
+Stage 1/2 v2 material remains readable; new freezes use v3.
 
 ### Stage 1 — candidate engineering work
 
@@ -99,16 +107,34 @@ pnpm check
 Useful scoped commands:
 
 ```bash
-node scripts/finalize-task-packet.mjs --packet-id <benchmark-id>
-node scripts/finalize-launch.mjs --launch-id <launch-id>
+pnpm stage0 -- lint --source <draft-directory>
+pnpm stage0 -- freeze-packet --source <draft-directory> --packet-id <id> --version <version>
+pnpm stage0 -- verify-workspace --workspace <git-repository>
+pnpm stage0 -- freeze-launch --launch-id <launch-id> --packet-id <id> --version <version> --profile <profile.json> --workspace <git-repository>
+pnpm stage0 -- review --launch-id <launch-id>
+pnpm stage0 -- approve --launch-id <launch-id> --expected-launch-digest <digest> --approval "APPROVE RELEASE <digest>"
+pnpm stage0 -- preview --launch-id <launch-id>
+pnpm stage0 -- release-ready --launch-id <launch-id> --expected-launch-digest <digest> --approval "APPROVE RELEASE <digest>"
+pnpm stage0 -- live-verify --launch-id <launch-id> --launch-url <https-url> --launch-json-url <https-url> --prompt-url <https-url>
 node scripts/stage1-validate.mjs --root <candidate-output>
 node scripts/stage1-checkpoint.mjs --root <candidate-output>
 node scripts/stage2-integrate.mjs --source <candidate-output> --candidate-id <id> --cohort-id <cohort-id>
 pnpm stage2:publish-cohort -- --cohort-id <cohort-id>
 ```
 
+`freeze-launch` requires an execution profile with `canonicalBaseUrl`: the
+canonical HTTPS deployment base without a trailing slash. Stage 0 freezes
+declared input and contract-schema URLs under that exact base.
+
+The legacy packet and launch finalize commands are check-only compatibility
+shims and never mutate frozen content.
+
 ## Operator pages
 
+- Stage 0 preparation: https://naoyamd.github.io/rotorbench/stage0/
+- Stage 0 author: https://naoyamd.github.io/rotorbench/stage0/author/
+- Stage 0 review: https://naoyamd.github.io/rotorbench/stage0/review/
+- Stage 0 release: https://naoyamd.github.io/rotorbench/stage0/release/
 - Stage 1 handoff: https://naoyamd.github.io/rotorbench/model-task/
 - Stage 2 handoff: https://naoyamd.github.io/rotorbench/publish-task/
 - Submission format: https://naoyamd.github.io/rotorbench/format/

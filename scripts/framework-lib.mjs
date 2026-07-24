@@ -4,6 +4,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import Ajv2020 from "ajv/dist/2020.js";
 import addFormats from "ajv-formats";
+import { loadFrozenContractValidators } from "./frozen-contract.mjs";
 
 export const artifactRoles = new Set([
   "cad-source",
@@ -27,6 +28,14 @@ const schemaNames = [
   "submission.schema.json",
   "run.schema.json",
   "validation-report.schema.json",
+  "stage0-task-definition.schema.json",
+  "task-packet-lock.schema.json",
+  "execution-profile.schema.json",
+  "baseline-attestation.schema.json",
+  "engineering-review.schema.json",
+  "protocol-review.schema.json",
+  "launch-release.schema.json",
+  "live-verification.schema.json",
 ];
 const schemas = [];
 for (const name of schemaNames) {
@@ -46,6 +55,14 @@ const schemaValidators = {
   submission: ajv.getSchema("https://rotorbench.example/schemas/submission.schema.json"),
   run: ajv.getSchema("https://rotorbench.example/schemas/run.schema.json"),
   report: ajv.getSchema("https://rotorbench.example/schemas/validation-report.schema.json"),
+  taskDefinition: ajv.getSchema("https://rotorbench.example/schemas/stage0-task-definition.schema.json"),
+  packetLock: ajv.getSchema("https://rotorbench.example/schemas/task-packet-lock.schema.json"),
+  executionProfile: ajv.getSchema("https://rotorbench.example/schemas/execution-profile.schema.json"),
+  baselineAttestation: ajv.getSchema("https://rotorbench.example/schemas/baseline-attestation.schema.json"),
+  engineeringReview: ajv.getSchema("https://rotorbench.example/schemas/engineering-review.schema.json"),
+  protocolReview: ajv.getSchema("https://rotorbench.example/schemas/protocol-review.schema.json"),
+  launchRelease: ajv.getSchema("https://rotorbench.example/schemas/launch-release.schema.json"),
+  liveVerification: ajv.getSchema("https://rotorbench.example/schemas/live-verification.schema.json"),
 };
 
 if (Object.values(schemaValidators).some((validator) => typeof validator !== "function")) {
@@ -87,6 +104,13 @@ export function computeFairnessFingerprint(launch) {
     outputRoot: launch.outputRoot,
     startAction: launch.startAction,
     stopConditions: launch.stopConditions,
+    ...(launch.protocolVersion === "3.0"
+      ? {
+        executionProfile: launch.executionProfile,
+        executionContractDigest: launch.executionContractDigest,
+        canonicalBaseUrl: launch.canonicalBaseUrl,
+      }
+      : {}),
   };
   return manifestDigest(comparable);
 }
@@ -139,10 +163,15 @@ export function validateSubmission(manifest) {
   return schemaIssues(schemaValidators.submission, manifest);
 }
 
-export function validateProcessTrace(plan, workRecord, artifacts = []) {
+export function validateProcessTrace(
+  plan,
+  workRecord,
+  artifacts = [],
+  contractValidators = null,
+) {
   const issues = [
-    ...validatePlan(plan),
-    ...validateWorkRecord(workRecord),
+    ...(contractValidators?.validatePlan ?? validatePlan)(plan),
+    ...(contractValidators?.validateWorkRecord ?? validateWorkRecord)(workRecord),
   ];
   const collections = [
     plan?.requirements ?? [],
@@ -214,8 +243,119 @@ export function validateRun(manifest) {
   return issues;
 }
 
+export function validateRequiredOutputBindings(packet, artifacts = []) {
+  const issues = [];
+  if (packet?.schemaVersion !== "3.0") return issues;
+  const outputs = new Map((packet.requiredOutputs ?? []).map((output) => [output.id, output]));
+  const bindings = new Map();
+  for (const [artifactIndex, artifact] of (artifacts ?? []).entries()) {
+    const refs = Array.isArray(artifact?.requiredOutputRefs)
+      ? artifact.requiredOutputRefs
+      : [];
+    if (refs.length === 0) {
+      issues.push({
+        code: "missing-required-output-ref",
+        message: `artifact ${artifact?.id ?? artifactIndex} must bind at least one required output ID`,
+        path: `artifacts.${artifactIndex}.requiredOutputRefs`,
+      });
+      continue;
+    }
+    for (const outputId of refs) {
+      const output = outputs.get(outputId);
+      if (!output) {
+        issues.push({
+          code: "unknown-required-output-ref",
+          message: `artifact ${artifact?.id ?? artifactIndex} binds unknown output ${outputId}`,
+          path: `artifacts.${artifactIndex}.requiredOutputRefs`,
+        });
+        continue;
+      }
+      const bound = bindings.get(outputId) ?? [];
+      bound.push({ artifact, artifactIndex });
+      bindings.set(outputId, bound);
+      if (artifact.status !== "present") {
+        issues.push({
+          code: "required-output-not-present",
+          message: `artifact ${artifact.id} binds ${outputId} but is not present`,
+          path: `artifacts.${artifactIndex}.status`,
+        });
+      }
+      if (artifact.role !== output.role) {
+        issues.push({
+          code: "required-output-role-mismatch",
+          message: `artifact ${artifact.id} role does not match required output ${outputId}`,
+          path: `artifacts.${artifactIndex}.role`,
+        });
+      }
+    }
+  }
+  for (const [outputId] of outputs) {
+    const bound = bindings.get(outputId) ?? [];
+    if (bound.length === 0) {
+      issues.push({
+        code: "missing-required-output-binding",
+        message: `required output ${outputId} has no bound artifact`,
+        path: "artifacts",
+      });
+    } else if (bound.length > 1) {
+      issues.push({
+        code: "duplicate-required-output-binding",
+        message: `required output ${outputId} is bound by more than one artifact`,
+        path: "artifacts",
+      });
+    }
+  }
+  for (const criterion of packet.completionCriteria ?? []) {
+    for (const outputId of criterion.requiredOutputRefs ?? []) {
+      const bound = bindings.get(outputId) ?? [];
+      for (const { artifact, artifactIndex } of bound) {
+        if (!criterion.evidenceRoles?.includes(artifact.role)) {
+          issues.push({
+            code: "criterion-evidence-role-mismatch",
+            message: `criterion ${criterion.id} does not admit the role bound to ${outputId}`,
+            path: `artifacts.${artifactIndex}.requiredOutputRefs`,
+          });
+        }
+      }
+    }
+  }
+  return issues;
+}
+
 export function validateReport(report) {
   return schemaIssues(schemaValidators.report, report);
+}
+
+export function validateTaskDefinition(value) {
+  return schemaIssues(schemaValidators.taskDefinition, value);
+}
+
+export function validatePacketLock(value) {
+  return schemaIssues(schemaValidators.packetLock, value);
+}
+
+export function validateExecutionProfile(value) {
+  return schemaIssues(schemaValidators.executionProfile, value);
+}
+
+export function validateBaselineAttestation(value) {
+  return schemaIssues(schemaValidators.baselineAttestation, value);
+}
+
+export function validateEngineeringReview(value) {
+  return schemaIssues(schemaValidators.engineeringReview, value);
+}
+
+export function validateProtocolReview(value) {
+  return schemaIssues(schemaValidators.protocolReview, value);
+}
+
+export function validateLaunchRelease(value) {
+  return schemaIssues(schemaValidators.launchRelease, value);
+}
+
+export function validateLiveVerification(value) {
+  return schemaIssues(schemaValidators.liveVerification, value);
 }
 
 export async function readJson(filePath) {
@@ -287,7 +427,12 @@ function isPathUnderBundle(bundlePath, filePath) {
   );
 }
 
-async function validateSealedSubmission(run, local, checks) {
+async function validateSealedSubmission(
+  run,
+  local,
+  checks,
+  contractValidators = null,
+) {
   const bundlePath = run.manifest.seal?.bundlePath;
   if (!isSafeRelativePath(bundlePath)) return;
 
@@ -307,7 +452,9 @@ async function validateSealedSubmission(run, local, checks) {
     return;
   }
 
-  const schemaProblems = validateSubmission(submission);
+  const schemaProblems = (
+    contractValidators?.validateSubmission ?? validateSubmission
+  )(submission);
   if (schemaProblems.length > 0) {
     for (const issue of schemaProblems) {
       addIssue(
@@ -360,6 +507,15 @@ async function validateSealedSubmission(run, local, checks) {
     || submission.taskPacket.version !== run.manifest.benchmarkVersion
     || submission.taskPacket.digest !== run.manifest.taskPacketDigest
     || submission.fairnessFingerprint !== run.manifest.fairnessFingerprint
+    || (
+      submission.protocolVersion === "3.0"
+      && (
+        submission.taskPacket.bundleDigest !== run.manifest.taskPacketBundleDigest
+        || submission.executionContractDigest !== run.manifest.executionContractDigest
+        || submission.promptSha256 !== run.manifest.promptSha256
+        || submission.launchDigest !== run.manifest.launchDigest
+      )
+    )
   ) {
     addIssue(
       local,
@@ -497,6 +653,112 @@ async function loadManifest(root, directory, name) {
   }
 }
 
+async function readOptionalJson(filePath) {
+  try {
+    return { value: await readJson(filePath), issues: [] };
+  } catch (error) {
+    if (error && typeof error === "object" && error.code === "ENOENT") {
+      return { value: null, issues: [] };
+    }
+    return {
+      value: null,
+      issues: [{
+        code: "invalid-json",
+        message: `${path.basename(filePath)} is not valid JSON`,
+        path: path.basename(filePath),
+      }],
+    };
+  }
+}
+
+async function loadV2GrandfatherRegistry(projectRoot) {
+  const registryPath = path.join(projectRoot, "legacy-v2-grandfather.json");
+  const loaded = await readOptionalJson(registryPath);
+  if (!loaded.value) {
+    return { entries: [], issues: loaded.issues };
+  }
+  const registry = loaded.value;
+  const issues = [...loaded.issues];
+  const validEntry = (entry) =>
+    entry
+    && typeof entry === "object"
+    && Object.keys(entry).sort().join(",") === "launch,taskPacket"
+    && entry.taskPacket
+    && typeof entry.taskPacket.id === "string"
+    && typeof entry.taskPacket.version === "string"
+    && /^[a-f0-9]{64}$/.test(entry.taskPacket.digest)
+    && entry.launch
+    && typeof entry.launch.id === "string"
+    && /^[a-f0-9]{64}$/.test(entry.launch.fairnessFingerprint);
+  if (
+    !registry
+    || registry.schemaVersion !== "1.0"
+    || registry.status !== "immutable"
+    || !Array.isArray(registry.entries)
+    || Object.keys(registry).sort().join(",") !== "entries,schemaVersion,status"
+    || registry.entries.some((entry) => !validEntry(entry))
+  ) {
+    issues.push({
+      code: "invalid-v2-grandfather-registry",
+      message: "legacy-v2-grandfather.json must be an explicit immutable registry of exact packet and launch identities",
+      path: "legacy-v2-grandfather.json",
+    });
+    return { entries: [], issues };
+  }
+  return { entries: registry.entries, issues };
+}
+
+function isV2PacketGrandfathered(entries, packet) {
+  const packetDigest = manifestDigest(packet);
+  return entries.some((entry) =>
+    entry.taskPacket.id === packet.id
+    && entry.taskPacket.version === packet.version
+    && entry.taskPacket.digest === packetDigest,
+  );
+}
+
+function isV2LaunchGrandfathered(entries, launch) {
+  return entries.some((entry) =>
+    entry.taskPacket.id === launch.taskPacket?.id
+    && entry.taskPacket.version === launch.taskPacket?.version
+    && entry.taskPacket.digest === launch.taskPacket?.digest
+    && entry.launch.id === launch.id
+    && entry.launch.fairnessFingerprint === launch.fairnessFingerprint,
+  );
+}
+
+async function loadTaskPacketVersions(taskPacketsRoot) {
+  const packetIds = await listContentDirectories(taskPacketsRoot);
+  const entries = [];
+  for (const packetId of packetIds) {
+    const packetIdRoot = path.join(taskPacketsRoot, packetId);
+    if (await pathExists(path.join(packetIdRoot, "packet.json"))) {
+      const legacy = await loadManifest(taskPacketsRoot, packetId, "packet.json");
+      legacy.packetId = packetId;
+      legacy.packetVersion = legacy.manifest?.version ?? null;
+      legacy.layout = "legacy-flat";
+      entries.push(legacy);
+    }
+    for (const version of await listContentDirectories(packetIdRoot)) {
+      const directory = `${packetId}/${version}`;
+      const entry = await loadManifest(taskPacketsRoot, directory, "packet.json");
+      entry.packetId = packetId;
+      entry.packetVersion = version;
+      entry.layout = "versioned";
+      const lock = await readOptionalJson(path.join(entry.root, "packet-lock.json"));
+      const task = await readOptionalJson(path.join(entry.root, "task.json"));
+      entry.lock = lock.value;
+      entry.taskDefinition = task.value;
+      entry.loadIssues.push(...lock.issues, ...task.issues);
+      entries.push(entry);
+    }
+  }
+  return entries.sort((left, right) =>
+    `${left.packetId}@${left.packetVersion ?? ""}`.localeCompare(
+      `${right.packetId}@${right.packetVersion ?? ""}`,
+    ));
+}
+
 export async function loadFramework(projectRoot) {
   const benchmarksRoot = path.join(projectRoot, "benchmarks");
   const taskPacketsRoot = path.join(projectRoot, "task-packets");
@@ -504,7 +766,6 @@ export async function loadFramework(projectRoot) {
   const cohortsRoot = path.join(projectRoot, "cohorts");
   const runsRoot = path.join(projectRoot, "runs");
   const benchmarkDirectories = await listContentDirectories(benchmarksRoot);
-  const taskPacketDirectories = await listContentDirectories(taskPacketsRoot);
   const launchDirectories = await listContentDirectories(launchesRoot);
   const cohortDirectories = await listContentDirectories(cohortsRoot);
   const runDirectories = await listContentDirectories(runsRoot);
@@ -514,15 +775,19 @@ export async function loadFramework(projectRoot) {
         loadManifest(benchmarksRoot, directory, "benchmark.json"),
       ),
     ),
-    taskPackets: await Promise.all(
-      taskPacketDirectories.map((directory) =>
-        loadManifest(taskPacketsRoot, directory, "packet.json"),
-      ),
-    ),
+    taskPackets: await loadTaskPacketVersions(taskPacketsRoot),
     launches: await Promise.all(
-      launchDirectories.map((directory) =>
-        loadManifest(launchesRoot, directory, "launch.json"),
-      ),
+      launchDirectories.map(async (directory) => {
+        const entry = await loadManifest(launchesRoot, directory, "launch.json");
+        const release = await readOptionalJson(path.join(entry.root, "release.json"));
+        const verification = await readOptionalJson(
+          path.join(entry.root, "live-verification.json"),
+        );
+        entry.release = release.value;
+        entry.liveVerification = verification.value;
+        entry.loadIssues.push(...release.issues, ...verification.issues);
+        return entry;
+      }),
     ),
     cohorts: await Promise.all(
       cohortDirectories.map((directory) =>
@@ -645,7 +910,12 @@ export async function validateFramework(projectRoot) {
     cohorts,
     runs,
   } = await loadFramework(projectRoot);
+  const v2GrandfatherRegistry = await loadV2GrandfatherRegistry(projectRoot);
   const issues = [];
+  issues.push(...v2GrandfatherRegistry.issues.map((entry) => ({
+    scope: "legacy-v2-grandfather.json",
+    ...entry,
+  })));
   const benchmarkIds = new Set();
   const packetIds = new Set();
   const launchIds = new Set();
@@ -674,21 +944,47 @@ export async function validateFramework(projectRoot) {
 
   for (const packet of taskPackets) {
     const local = [...packet.loadIssues];
+    if (packet.taskDefinition) {
+      local.push(...validateTaskDefinition(packet.taskDefinition));
+      if (
+        packet.taskDefinition.id !== packet.packetId
+        || packet.taskDefinition.version !== packet.packetVersion
+      ) {
+        addIssue(
+          local,
+          "directory-id",
+          "task definition id/version must match its versioned directory",
+          "id",
+        );
+      }
+    }
     if (packet.manifest) {
       local.push(...validateTaskPacket(packet.manifest));
-      if (packet.manifest.id !== packet.directory) {
-        addIssue(local, "directory-id", "task packet directory and id must match", "id");
+      if (
+        packet.manifest.id !== packet.packetId
+        || (packet.layout === "versioned" && packet.manifest.version !== packet.packetVersion)
+      ) {
+        addIssue(local, "directory-id", "task packet id/version and directory must match", "id");
       }
-      if (packetIds.has(packet.manifest.id)) {
-        addIssue(local, "duplicate-id", "task packet id is duplicated", "id");
+      const packetKey = `${packet.manifest.id}@${packet.manifest.version}`;
+      if (packetIds.has(packetKey)) {
+        addIssue(local, "duplicate-id", "task packet id/version is duplicated", "id");
       }
-      packetIds.add(packet.manifest.id);
-      packetsById.set(packet.manifest.id, packet);
+      packetIds.add(packetKey);
+      packetsById.set(packetKey, packet);
+      packet.v2Grandfathered = packet.manifest.schemaVersion !== "1.0"
+        || isV2PacketGrandfathered(v2GrandfatherRegistry.entries, packet.manifest);
+      if (packet.manifest.schemaVersion === "1.0" && !packet.v2Grandfathered) {
+        addIssue(
+          local,
+          "v2-not-grandfathered",
+          "Protocol v2 task packets are read-only legacy records and require an exact immutable grandfather registry entry",
+          "schemaVersion",
+        );
+      }
       const benchmark = benchmarksById.get(packet.manifest.id);
       if (!benchmark) {
         addIssue(local, "unknown-benchmark", "task packet id does not name a benchmark", "id");
-      } else if (benchmark.version !== packet.manifest.version) {
-        addIssue(local, "benchmark-version-mismatch", "task packet version does not match benchmark", "version");
       }
       if (validateTaskPacket(packet.manifest).length === 0) {
         await validateDeclaredFile(packet.root, packet.manifest.instructions, "task instructions", local);
@@ -697,8 +993,21 @@ export async function validateFramework(projectRoot) {
         }
       }
     }
-    packet.validationIssues = local;
-    issues.push(...local.map((entry) => ({ scope: `task-packets/${packet.directory}`, ...entry })));
+    const frozenV3 = packet.manifest?.schemaVersion === "3.0" && packet.lock;
+    if (frozenV3) {
+      const { validateFrozenPacket } = await import("./stage0-lib.mjs");
+      const frozen = await validateFrozenPacket(packet.root);
+      local.push(...frozen.issues);
+    }
+    const draftV3 = packet.layout === "versioned" && !packet.lock;
+    packet.stage0Issues = local;
+    packet.validationIssues = draftV3 ? [] : local;
+    if (!draftV3) {
+      issues.push(...local.map((entry) => ({
+        scope: `task-packets/${packet.directory}`,
+        ...entry,
+      })));
+    }
   }
 
   for (const launch of launches) {
@@ -712,19 +1021,78 @@ export async function validateFramework(projectRoot) {
         addIssue(local, "duplicate-id", "launch id is duplicated", "id");
       }
       launchIds.add(launch.manifest.id);
-      const packet = packetsById.get(launch.manifest.taskPacket?.id);
+      const v2RegistryMatched = isV2LaunchGrandfathered(
+        v2GrandfatherRegistry.entries,
+        launch.manifest,
+      );
+      launch.v2Grandfathered = launch.manifest.protocolVersion !== "2.0";
+      const packet = packetsById.get(
+        `${launch.manifest.taskPacket?.id}@${launch.manifest.taskPacket?.version}`,
+      );
       if (!packet?.manifest) {
         addIssue(local, "unknown-task-packet", "launch taskPacket.id does not exist", "taskPacket.id");
       } else {
         if (packet.validationIssues.length > 0) {
           addIssue(local, "invalid-task-packet", "launch references an invalid task packet", "taskPacket.id");
         }
-        if (packet.manifest.version !== launch.manifest.taskPacket.version) {
-          addIssue(local, "task-packet-version-mismatch", "launch task packet version does not match", "taskPacket.version");
-        }
         if (manifestDigest(packet.manifest) !== launch.manifest.taskPacket.digest) {
           addIssue(local, "task-packet-digest-mismatch", "launch task packet digest does not match", "taskPacket.digest");
         }
+        if (
+          launch.manifest.protocolVersion === "3.0"
+          && packet.lock?.bundleDigest !== launch.manifest.taskPacket.bundleDigest
+        ) {
+          addIssue(
+            local,
+            "task-packet-bundle-digest-mismatch",
+            "launch task packet bundle digest does not match its lock",
+            "taskPacket.bundleDigest",
+          );
+        }
+        if (launch.manifest.protocolVersion === "2.0") {
+          launch.v2Grandfathered = (
+            v2RegistryMatched
+            && packet.layout === "legacy-flat"
+            && packet.manifest.schemaVersion === "1.0"
+            && packet.v2Grandfathered === true
+          );
+          if (!launch.v2Grandfathered) {
+            addIssue(
+              local,
+              "v2-hybrid-packet",
+              "Protocol v2 launches require an exact registry match and a grandfathered legacy-flat v2 packet",
+              "taskPacket",
+            );
+          }
+        }
+        if (
+          launch.manifest.protocolVersion === "3.0"
+          && (
+            packet.layout !== "versioned"
+            || packet.manifest.schemaVersion !== "3.0"
+            || !packet.lock
+            || packet.stage0Issues?.length > 0
+          )
+        ) {
+          addIssue(
+            local,
+            "v3-packet-not-frozen",
+            "Protocol v3 launches require a clean locked versioned v3 packet",
+            "taskPacket",
+          );
+        }
+      }
+      if (
+        launch.manifest.protocolVersion === "2.0"
+        && !launch.v2Grandfathered
+        && !local.some(({ code }) => code === "v2-hybrid-packet")
+      ) {
+        addIssue(
+          local,
+          "v2-not-grandfathered",
+          "Protocol v2 launches are read-only legacy records and require an exact immutable grandfather registry entry",
+          "protocolVersion",
+        );
       }
       if (
         validateLaunch(launch.manifest).length === 0
@@ -733,8 +1101,63 @@ export async function validateFramework(projectRoot) {
         addIssue(local, "fairness-fingerprint-mismatch", "launch fairness fingerprint does not match its common inputs", "fairnessFingerprint");
       }
     }
-    launch.validationIssues = local;
-    issues.push(...local.map((entry) => ({ scope: `launches/${launch.directory}`, ...entry })));
+    const isV3 = launch.manifest?.protocolVersion === "3.0";
+    if (isV3) {
+      if (!launch.release) {
+        addIssue(local, "missing-release", "Stage 1 v3 launch requires release.json", "release.json");
+      } else {
+        local.push(...validateLaunchRelease(launch.release));
+        if (
+          launch.release.launchId !== launch.manifest.id
+          || launch.release.launchDigest !== launch.manifest.launchDigest
+          || launch.release.packetDigest !== launch.manifest.taskPacket.digest
+          || launch.release.packetBundleDigest !== launch.manifest.taskPacket.bundleDigest
+          || launch.release.executionContractDigest !== launch.manifest.executionContractDigest
+          || launch.release.canonicalBaseUrl !== launch.manifest.canonicalBaseUrl
+          || launch.release.promptSha256 !== launch.manifest.promptSha256
+        ) {
+          addIssue(local, "release-binding-mismatch", "release.json does not bind launch.json");
+        }
+        const { validateLaunchFreeze } = await import("./stage0-lib.mjs");
+        const frozen = await validateLaunchFreeze(projectRoot, launch.directory);
+        local.push(...frozen.issues);
+        if (["approved", "release-ready", "live-verified", "retired"].includes(
+          launch.release.status,
+        )) {
+          const { validateReviews } = await import("./stage0-lib.mjs");
+          const reviewed = await validateReviews(projectRoot, launch.directory);
+          local.push(...reviewed.issues);
+        }
+        if (launch.release.status === "live-verified") {
+          if (!launch.liveVerification) {
+            addIssue(local, "missing-live-verification", "live-verified launch requires live-verification.json");
+          } else {
+            local.push(...validateLiveVerification(launch.liveVerification));
+            const { validateLiveVerificationBindings } =
+              await import("./stage0-lib.mjs");
+            local.push(...await validateLiveVerificationBindings(
+              launch.root,
+              launch.manifest,
+              launch.liveVerification,
+            ));
+            if (
+              manifestDigest(launch.liveVerification)
+              !== launch.release.liveVerificationDigest
+            ) {
+              addIssue(local, "live-verification-digest-mismatch", "live verification digest differs from release");
+            }
+          }
+        }
+      }
+    }
+    launch.publicEligible = isV3
+      ? ["release-ready", "live-verified"].includes(launch.release?.status)
+      : launch.v2Grandfathered === true;
+    launch.stage0Issues = local;
+    launch.validationIssues = isV3 && !launch.publicEligible ? [] : local;
+    if (!isV3 || launch.publicEligible) {
+      issues.push(...local.map((entry) => ({ scope: `launches/${launch.directory}`, ...entry })));
+    }
   }
 
   for (const cohort of cohorts) {
@@ -757,6 +1180,17 @@ export async function validateFramework(projectRoot) {
       } else {
         if (launch.validationIssues.length > 0) {
           addIssue(local, "invalid-launch", "cohort references an invalid launch", "launchId");
+        }
+        if (
+          launch.manifest.protocolVersion === "3.0"
+          && launch.release?.status !== "live-verified"
+        ) {
+          addIssue(
+            local,
+            "cohort-launch-not-live-verified",
+            "Stage 2 v3 cohorts require a live-verified launch",
+            "launchId",
+          );
         }
         if (
           launch.manifest.fairnessFingerprint
@@ -805,7 +1239,33 @@ export async function validateFramework(projectRoot) {
     if (!run.manifest) {
       checks.push(check("Run manifest", "fail", "run.json could not be loaded"));
     } else {
-      const schemaProblems = validateRun(run.manifest);
+      const launch = launches.find(
+        (entry) => entry.manifest?.id === run.manifest.launchId,
+      );
+      let contractValidators = null;
+      if (
+        launch?.manifest?.protocolVersion === "3.0"
+        && launch.validationIssues.length === 0
+      ) {
+        try {
+          contractValidators = await loadFrozenContractValidators(
+            path.join(launch.root, "execution-contract"),
+            { runSchemaPath: path.join(projectRoot, "schemas", "run.schema.json") },
+          );
+        } catch (error) {
+          addIssue(
+            local,
+            "frozen-contract-validator",
+            error instanceof Error
+              ? error.message
+              : "Frozen execution contract validators could not be loaded",
+            "launchId",
+          );
+        }
+      }
+      const schemaProblems = (
+        contractValidators?.validateRun ?? validateRun
+      )(run.manifest);
       local.push(...schemaProblems);
       checks.push(check(
         "Run manifest",
@@ -823,18 +1283,25 @@ export async function validateFramework(projectRoot) {
       if (!benchmark) {
         addIssue(local, "unknown-benchmark", "benchmarkId does not name a checked-in benchmark", "benchmarkId");
         checks.push(check("Benchmark reference", "fail", "Referenced benchmark does not exist"));
-      } else if (run.manifest.benchmarkVersion !== benchmark.version) {
-        addIssue(local, "benchmark-version-mismatch", "benchmarkVersion does not match the benchmark manifest", "benchmarkVersion");
-        checks.push(check("Benchmark reference", "fail", "Benchmark version does not match"));
       } else {
-        checks.push(check("Benchmark reference", "pass", `${benchmark.id} version ${benchmark.version}`));
+        checks.push(check("Benchmark reference", "pass", `${benchmark.id} is registered`));
       }
-      const launch = launches.find((entry) => entry.manifest?.id === run.manifest.launchId);
       if (!launch?.manifest) {
         addIssue(local, "unknown-launch", "launchId does not name a checked-in launch", "launchId");
       } else {
         if (launch.validationIssues.length > 0) {
           addIssue(local, "invalid-launch", "launchId names an invalid launch", "launchId");
+        }
+        if (
+          launch.manifest.protocolVersion === "3.0"
+          && launch.release?.status !== "live-verified"
+        ) {
+          addIssue(
+            local,
+            "launch-not-live-verified",
+            "Stage 2 v3 runs require a live-verified launch",
+            "launchId",
+          );
         }
         if (launch.manifest.fairnessFingerprint !== run.manifest.fairnessFingerprint) {
           addIssue(local, "run-fingerprint-mismatch", "run fairness fingerprint does not match the launch", "fairnessFingerprint");
@@ -845,6 +1312,22 @@ export async function validateFramework(projectRoot) {
           || launch.manifest.taskPacket.digest !== run.manifest.taskPacketDigest
         ) {
           addIssue(local, "run-task-packet-mismatch", "run task packet identity does not match the launch", "taskPacketDigest");
+        }
+        if (
+          launch.manifest.protocolVersion === "3.0"
+          && (
+            launch.manifest.taskPacket.bundleDigest !== run.manifest.taskPacketBundleDigest
+            || launch.manifest.executionContractDigest !== run.manifest.executionContractDigest
+            || launch.manifest.promptSha256 !== run.manifest.promptSha256
+            || launch.manifest.launchDigest !== run.manifest.launchDigest
+          )
+        ) {
+          addIssue(
+            local,
+            "run-launch-binding-mismatch",
+            "run v3 digests do not match the frozen launch",
+            "launchDigest",
+          );
         }
       }
       const cohort = cohortsById.get(run.manifest.cohortId);
@@ -883,19 +1366,26 @@ export async function validateFramework(projectRoot) {
           );
         }
       }
-      const packet = packetsById.get(run.manifest.benchmarkId);
+      const packet = packetsById.get(
+        `${run.manifest.benchmarkId}@${run.manifest.benchmarkVersion}`,
+      );
       if (!packet?.manifest) {
         addIssue(local, "unknown-task-packet", "benchmarkId does not name a checked-in task packet", "benchmarkId");
       } else {
         if (packet.validationIssues.length > 0) {
           addIssue(local, "invalid-task-packet", "run references an invalid task packet", "benchmarkId");
         }
+        local.push(...validateRequiredOutputBindings(
+          packet.manifest,
+          run.manifest.artifacts,
+        ));
         const availableRoles = new Set(
           (Array.isArray(run.manifest.artifacts) ? run.manifest.artifacts : [])
             .filter((artifact) => artifact.status === "present")
             .map((artifact) => artifact.role),
         );
-        for (const role of packet.manifest.requiredOutputs ?? []) {
+        for (const output of packet.manifest.requiredOutputs ?? []) {
+          const role = typeof output === "string" ? output : output.role;
           if (!availableRoles.has(role)) {
             addIssue(
               local,
@@ -915,7 +1405,10 @@ export async function validateFramework(projectRoot) {
               `artifact ${artifact.id} must be inside seal.bundlePath`,
               artifact.path,
             );
-          } else if (validateArtifact(artifact).length === 0) {
+          } else if (
+            (contractValidators?.validateArtifact ?? validateArtifact)(artifact).length
+              === 0
+          ) {
             await validateArtifactFile(run, artifact, local, checks);
           }
         }
@@ -953,7 +1446,12 @@ export async function validateFramework(projectRoot) {
             readJson(path.join(run.root, run.manifest.processEvidence.initialPlan.path)),
             readJson(path.join(run.root, run.manifest.processEvidence.workRecord.path)),
           ]);
-          const processIssues = validateProcessTrace(plan, workRecord, run.manifest.artifacts ?? []);
+          const processIssues = validateProcessTrace(
+            plan,
+            workRecord,
+            run.manifest.artifacts ?? [],
+            contractValidators,
+          );
           local.push(...processIssues);
           checks.push(check(
             "Design process trace",
@@ -982,7 +1480,7 @@ export async function validateFramework(projectRoot) {
           addIssue(local, "missing-sealed-bundle", "sealed candidate bundle is missing", "seal.bundlePath");
           checks.push(check("Sealed candidate bundle", "fail", "Bundle is unavailable"));
         }
-        await validateSealedSubmission(run, local, checks);
+        await validateSealedSubmission(run, local, checks, contractValidators);
       }
       if (run.manifest.status === "published") {
         await validatePublicationAttestation(run, local, checks);

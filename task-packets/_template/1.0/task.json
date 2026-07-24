@@ -1,0 +1,43 @@
+{
+  "schemaVersion": "3.0",
+  "id": "benchmark-id",
+  "version": "1.0",
+  "title": "Future engineering benchmark",
+  "summary": "Replace this template in a separate Stage 0 draft workspace.",
+  "author": {
+    "id": "author-id",
+    "name": "Task author"
+  },
+  "instructions": {
+    "path": "TASK.md",
+    "mediaType": "text/markdown",
+    "downloadName": "TASK.md"
+  },
+  "inputs": [],
+  "requiredOutputs": [
+    {
+      "id": "OUT-001",
+      "role": "supporting",
+      "description": "Replace with one observable engineering output."
+    }
+  ],
+  "completionCriteria": [
+    {
+      "id": "CRIT-001",
+      "statement": "Replace with a measurable, task-specific criterion.",
+      "requiredOutputRefs": [
+        "OUT-001"
+      ],
+      "evidenceRoles": [
+        "supporting"
+      ]
+    }
+  ],
+  "environment": {
+    "baseline": "Declare the isolated starting workspace.",
+    "cad": "Declare the common CAD environment.",
+    "stepPipeline": "common-occt-import-js"
+  },
+  "engineeringValues": [],
+  "extensions": {}
+}

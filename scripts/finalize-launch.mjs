@@ -1,27 +1,14 @@
-import { writeFile } from "node:fs/promises";
-import path from "node:path";
-import {
-  computeFairnessFingerprint,
-  manifestDigest,
-  readJson,
-} from "./framework-lib.mjs";
+import { issueText, validateLaunchFreeze } from "./stage0-lib.mjs";
 
 const idIndex = process.argv.indexOf("--launch-id");
 const launchId = idIndex >= 0 ? process.argv[idIndex + 1] : "";
-if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(launchId)) {
-  throw new Error("Pass --launch-id using lowercase kebab-case");
+if (!launchId) {
+  throw new Error(
+    "Legacy finalize is check-only. Pass --launch-id, or use `pnpm stage0 -- freeze-launch` to create a new immutable Stage 1 v3 launch.",
+  );
 }
-const launchPath = path.join(process.cwd(), "launches", launchId, "launch.json");
-const launch = await readJson(launchPath);
-const packetPath = path.join(
-  process.cwd(),
-  "task-packets",
-  launch.taskPacket.id,
-  "packet.json",
-);
-const packet = await readJson(packetPath);
-launch.taskPacket.version = packet.version;
-launch.taskPacket.digest = manifestDigest(packet);
-launch.fairnessFingerprint = computeFairnessFingerprint(launch);
-await writeFile(launchPath, `${JSON.stringify(launch, null, 2)}\n`);
-console.log(`Finalized launch ${launch.id} (${launch.fairnessFingerprint}).`);
+const result = await validateLaunchFreeze(process.cwd(), launchId);
+if (result.status !== "valid") {
+  throw new Error(`Frozen launch check failed:\n${issueText(result.issues)}`);
+}
+console.log(`Launch ${launchId} is already frozen and valid; no files changed.`);

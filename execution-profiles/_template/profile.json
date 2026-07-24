@@ -1,0 +1,12 @@
+{
+  "schemaVersion": "3.0",
+  "id": "common-profile",
+  "version": "1.0",
+  "canonicalBaseUrl": "https://naoyamd.github.io/rotorbench",
+  "outputRoot": "candidate-output",
+  "startAction": "checkpoint-initial-plan",
+  "stopConditions": [
+    "Stop only when a declared input is unavailable or its hash does not match."
+  ],
+  "extensions": {}
+}

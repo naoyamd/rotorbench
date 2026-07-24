@@ -15,8 +15,21 @@ export const metadata: Metadata = {
     description: "A static, task-neutral framework for future engineering design benchmark evidence.",
     type: "website",
     locale: "en_US",
+    images: [
+      {
+        url: `${publicBasePath}/og-stage0.png`,
+        width: 1728,
+        height: 909,
+        alt: "Engineering Design Benchmark — Prepare, Design, Publish",
+      },
+    ],
   },
-  twitter: { card: "summary", title: "Engineering Design Benchmark Framework", description: "A static, task-neutral framework for future engineering design benchmark evidence." },
+  twitter: {
+    card: "summary_large_image",
+    title: "Engineering Design Benchmark Framework",
+    description: "A static, task-neutral framework for future engineering design benchmark evidence.",
+    images: [`${publicBasePath}/og-stage0.png`],
+  },
   icons: { icon: `${publicBasePath}/favicon.svg`, shortcut: `${publicBasePath}/favicon.svg` },
 };
 

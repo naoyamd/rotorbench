@@ -19,7 +19,7 @@
   "properties": {
     "schemaVersion": { "const": "1.0" },
     "id": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" },
-    "protocolVersion": { "const": "2.0" },
+    "protocolVersion": { "enum": ["2.0", "3.0"] },
     "taskPacket": {
       "type": "object",
       "additionalProperties": false,
@@ -27,11 +27,17 @@
       "properties": {
         "id": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" },
         "version": { "type": "string", "minLength": 1 },
-        "digest": { "$ref": "artifact.schema.json#/$defs/sha256" }
+        "digest": { "$ref": "artifact.schema.json#/$defs/sha256" },
+        "bundleDigest": { "$ref": "artifact.schema.json#/$defs/sha256" }
       }
     },
     "baselineCommit": { "type": "string", "pattern": "^[a-f0-9]{40}$" },
     "workspaceDigest": { "$ref": "artifact.schema.json#/$defs/sha256" },
+    "canonicalBaseUrl": {
+      "type": "string",
+      "format": "uri",
+      "pattern": "^https://[^/?#]+(?::[0-9]+)?(?:/[A-Za-z0-9._~-]+)*$"
+    },
     "outputRoot": { "const": "candidate-output" },
     "startAction": { "const": "checkpoint-initial-plan" },
     "stopConditions": {
@@ -39,6 +45,57 @@
       "minItems": 1,
       "items": { "type": "string", "minLength": 1 }
     },
+    "executionProfile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "version", "digest"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "version": { "type": "string", "minLength": 1 },
+        "digest": { "$ref": "artifact.schema.json#/$defs/sha256" }
+      }
+    },
+    "baselineAttestationDigest": { "$ref": "artifact.schema.json#/$defs/sha256" },
+    "executionContractDigest": { "$ref": "artifact.schema.json#/$defs/sha256" },
+    "promptSha256": { "$ref": "artifact.schema.json#/$defs/sha256" },
+    "launchDigest": { "$ref": "artifact.schema.json#/$defs/sha256" },
     "fairnessFingerprint": { "$ref": "artifact.schema.json#/$defs/sha256" }
-  }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": { "protocolVersion": { "const": "3.0" } },
+        "required": ["protocolVersion"]
+      },
+      "then": {
+        "required": [
+          "executionProfile",
+          "baselineAttestationDigest",
+          "executionContractDigest",
+          "canonicalBaseUrl",
+          "promptSha256",
+          "launchDigest"
+        ],
+        "properties": {
+          "executionProfile": true,
+          "baselineAttestationDigest": true,
+          "executionContractDigest": true,
+          "canonicalBaseUrl": true,
+          "promptSha256": true,
+          "launchDigest": true,
+          "taskPacket": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "version", "digest", "bundleDigest"],
+            "properties": {
+              "id": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" },
+              "version": { "type": "string", "minLength": 1 },
+              "digest": { "$ref": "artifact.schema.json#/$defs/sha256" },
+              "bundleDigest": { "$ref": "artifact.schema.json#/$defs/sha256" }
+            }
+          }
+        }
+      }
+    }
+  ]
 }

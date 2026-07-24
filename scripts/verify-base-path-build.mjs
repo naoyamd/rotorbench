@@ -52,6 +52,17 @@ try {
   await run(path.join(projectRoot, "scripts", "verify-static-links.mjs"), [], baseEnvironment);
   const baseHome = await readFile(path.join(exportRoot, "index.html"), "utf8");
   assert.match(baseHome, new RegExp(`href="${basePath}/benchmarks/"`));
+  assert.match(baseHome, new RegExp(`href="${basePath}/stage0/"`));
+  const stage0Author = await readFile(
+    path.join(exportRoot, "stage0", "author", "index.html"),
+    "utf8",
+  );
+  assert.match(
+    stage0Author,
+    new RegExp(
+      `https://rotorbench-lab\\.naoyamd\\.chatgpt\\.site${basePath}/stage0/author/`,
+    ),
+  );
 } finally {
   await rm(exportRoot, { recursive: true, force: true });
   if (hadExport) await cp(savedExport, exportRoot, { recursive: true });

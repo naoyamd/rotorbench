@@ -1,4 +1,5 @@
 import catalogJson from "../public/framework/catalog.json";
+import stage0ReportJson from "../public/framework/stage0-report.json";
 
 export type Viewer =
   | { status: "ready"; mesh: string; triangleCount: number }
@@ -29,7 +30,7 @@ export type Benchmark = {
 };
 
 export type TaskPacket = {
-  schemaVersion: "1.0";
+  schemaVersion: "1.0" | "3.0";
   id: string;
   version: string;
   title: string;
@@ -41,25 +42,56 @@ export type TaskPacket = {
     label?: string;
     path: string;
     sha256: string;
+    sizeBytes?: number;
     mediaType?: string;
+    provenance?: string;
+    license?: string;
+    downloadName: string;
     download: string;
   }>;
-  requiredOutputs: Artifact["role"][];
+  requiredOutputs: Array<
+    Artifact["role"]
+    | { id: string; role: Artifact["role"]; description: string }
+  >;
   environment: { baseline: string; cad: string; stepPipeline: string };
-  completionCriteria: string[];
+  completionCriteria: Array<
+    string
+    | {
+      id: string;
+      statement: string;
+      requiredOutputRefs: string[];
+      evidenceRoles: Artifact["role"][];
+    }
+  >;
+  taskDefinitionDigest?: string;
+  authorId?: string;
+  manifestDownload: string;
+  taskDefinitionDownload?: string;
+  lockDownload?: string;
 };
 
 export type Launch = {
   schemaVersion: "1.0";
   id: string;
-  protocolVersion: "2.0";
-  taskPacket: { id: string; version: string; digest: string };
+  protocolVersion: "2.0" | "3.0";
+  taskPacket: { id: string; version: string; digest: string; bundleDigest?: string };
   baselineCommit: string;
   workspaceDigest: string;
+  canonicalBaseUrl?: string;
   outputRoot: "candidate-output";
   startAction: "checkpoint-initial-plan";
   stopConditions: string[];
   fairnessFingerprint: string;
+  executionProfile?: { id: string; version: string; digest: string };
+  baselineAttestationDigest?: string;
+  executionContractDigest?: string;
+  promptSha256?: string;
+  launchDigest?: string;
+  manifestDownload?: string;
+  promptDownload?: string;
+  promptText?: string;
+  executionContractRoot?: string;
+  releaseStatus?: "release-ready" | "live-verified";
 };
 
 export type Cohort = {
@@ -86,6 +118,10 @@ export type Run = {
   launchId: string;
   cohortId: string;
   taskPacketDigest: string;
+  taskPacketBundleDigest?: string;
+  executionContractDigest?: string;
+  promptSha256?: string;
+  launchDigest?: string;
   fairnessFingerprint: string;
   status: "draft" | "submitted" | "validated" | "published" | "failed";
   submittedAt: string;
@@ -133,6 +169,19 @@ const catalog = catalogJson as {
 
 export function getFrameworkCatalog() {
   return catalog;
+}
+
+const stage0Report = stage0ReportJson as {
+  schemaVersion: "1.0";
+  counts: {
+    draftOrHeldRecords: number;
+    recordsWithBlockers: number;
+    liveVerifiedLaunches: number;
+  };
+};
+
+export function getStage0Report() {
+  return stage0Report;
 }
 
 export function getBenchmark(id: string) {

@@ -25,6 +25,11 @@
     "mediaType": { "type": "string", "pattern": "^[A-Za-z0-9!#$&^_.+-]+/[A-Za-z0-9!#$&^_.+-]+$" },
     "label": { "type": "string", "minLength": 1 },
     "status": { "type": "string", "enum": ["present", "processed", "failed"] },
+    "requiredOutputRefs": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "type": "string", "pattern": "^OUT-[0-9]{3,}$" }
+    },
     "extensions": { "type": "object" }
   }
 }

@@ -12,10 +12,32 @@ import {
   computeFairnessFingerprint,
   manifestDigest,
 } from "../scripts/framework-lib.mjs";
+import {
+  MODEL_LAUNCH_MESSAGE,
+  STAGE0_AUTHOR_HANDOFF,
+  STAGE0_COORDINATOR_HANDOFF,
+  STAGE0_RELEASE_HANDOFF,
+  STAGE0_REVIEW_HANDOFF,
+  materializeHandoff,
+  materializeHandoffValues,
+} from "../shared/prompts.mjs";
 
 const execFileAsync = promisify(execFile);
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const digest = (value) => createHash("sha256").update(value).digest("hex");
+const rootSiteUrl = "https://rotorbench-lab.naoyamd.chatgpt.site";
+
+function firstPromptBlock(html) {
+  const match = html.match(/<pre class="prompt-block"><code>([\s\S]*?)<\/code><\/pre>/);
+  assert.ok(match, "prompt block must be rendered");
+  return match[1]
+    .replaceAll("&lt;", "<")
+    .replaceAll("&gt;", ">")
+    .replaceAll("&quot;", "\"")
+    .replaceAll("&#x27;", "'")
+    .replaceAll("&#39;", "'")
+    .replaceAll("&amp;", "&");
+}
 
 async function makeRunFixture(artifact, id = "fixture-run") {
   const root = await mkdtemp(path.join(tmpdir(), "run-fixture-"));
@@ -31,7 +53,7 @@ async function makeRunFixture(artifact, id = "fixture-run") {
       schemaVersion: "1.0",
       id: "neutral-benchmark",
       title: "Neutral benchmark",
-      status: "draft",
+      status: "active",
       version: "1.0",
       extensions: {},
     }),
@@ -68,6 +90,24 @@ async function makeRunFixture(artifact, id = "fixture-run") {
   await writeFile(
     path.join(root, "launches", "neutral-launch", "launch.json"),
     JSON.stringify(launch),
+  );
+  await writeFile(
+    path.join(root, "legacy-v2-grandfather.json"),
+    JSON.stringify({
+      schemaVersion: "1.0",
+      status: "immutable",
+      entries: [{
+        taskPacket: {
+          id: packet.id,
+          version: packet.version,
+          digest: manifestDigest(packet),
+        },
+        launch: {
+          id: launch.id,
+          fairnessFingerprint: launch.fairnessFingerprint,
+        },
+      }],
+    }),
   );
   await writeFile(
     path.join(root, "cohorts", "fixture-cohort", "cohort.json"),
@@ -265,7 +305,18 @@ test("static export counts match the generated catalog and preserves every legac
   assert.match(home, new RegExp(`<strong>${catalog.benchmarks.length}</strong><span>BENCHMARKS</span>`));
   assert.match(home, new RegExp(`<strong>${catalog.launches.length}</strong><span>LAUNCHES</span>`));
   assert.match(home, new RegExp(`<strong>${catalog.runs.length}</strong><span>PUBLISHED RUNS</span>`));
-  for (const route of ["benchmarks", "format", "compare", "legacy", "model-task", "publish-task"]) {
+  for (const route of [
+    "benchmarks",
+    "format",
+    "compare",
+    "legacy",
+    "stage0",
+    "stage0/author",
+    "stage0/review",
+    "stage0/release",
+    "model-task",
+    "publish-task",
+  ]) {
     await readFile(path.join(projectRoot, "out", route, "index.html"), "utf8");
   }
   for (const benchmark of catalog.benchmarks) {
@@ -292,7 +343,83 @@ test("static export counts match the generated catalog and preserves every legac
   );
 });
 
-test("the Stage 1 guide exposes the exact launcher and no candidate identity", async () => {
+test("Stage 0 pages render the exact shared contracts and no task content", async () => {
+  const pages = [
+    {
+      route: "stage0",
+      expected: materializeHandoffValues(STAGE0_COORDINATOR_HANDOFF, {
+        "<stage0-url>": `${rootSiteUrl}/stage0/`,
+        "<stage0-author-url>": `${rootSiteUrl}/stage0/author/`,
+        "<stage0-review-url>": `${rootSiteUrl}/stage0/review/`,
+        "<stage0-release-url>": `${rootSiteUrl}/stage0/release/`,
+      }),
+    },
+    {
+      route: "stage0/author",
+      expected: materializeHandoff(
+        STAGE0_AUTHOR_HANDOFF,
+        "<stage0-author-url>",
+        `${rootSiteUrl}/stage0/author/`,
+      ),
+    },
+    {
+      route: "stage0/review",
+      expected: materializeHandoff(
+        STAGE0_REVIEW_HANDOFF,
+        "<stage0-review-url>",
+        `${rootSiteUrl}/stage0/review/`,
+      ),
+    },
+    {
+      route: "stage0/release",
+      expected: materializeHandoff(
+        STAGE0_RELEASE_HANDOFF,
+        "<stage0-release-url>",
+        `${rootSiteUrl}/stage0/release/`,
+      ),
+    },
+  ];
+  for (const { route, expected } of pages) {
+    const html = await readFile(
+      path.join(projectRoot, "out", ...route.split("/"), "index.html"),
+      "utf8",
+    );
+    assert.equal(firstPromptBlock(html), expected, route);
+    assert.doesNotMatch(html, /neutral-benchmark|neutral-launch|candidate-a/);
+  }
+});
+
+test("the Stage 1 guide stays closed until a launch is live-verified", async () => {
+  const html = await readFile(
+    path.join(projectRoot, "out", "model-task", "index.html"),
+    "utf8",
+  );
+  assert.match(html, /Stage 1 launcher \| Engineering Design Benchmark Framework/);
+  assert.match(html, /STAGE 01/);
+  assert.match(html, /0 LIVE-VERIFIED LAUNCHES/);
+  assert.match(html, /href="\/stage0\/"/);
+  assert.doesNotMatch(html, new RegExp(MODEL_LAUNCH_MESSAGE.slice(0, 24)));
+  assert.doesNotMatch(html, /&lt;launch-url&gt;/);
+  assert.doesNotMatch(html, /runs\/&lt;candidate-id&gt;\//);
+});
+
+test("the three-stage home and publishing guide preserve the candidate boundary", async () => {
+  const home = await readFile(path.join(projectRoot, "out", "index.html"), "utf8");
+  const publish = await readFile(path.join(projectRoot, "out", "publish-task", "index.html"), "utf8");
+  assert.ok(home.indexOf("STAGE 00") < home.indexOf("STAGE 01"));
+  assert.ok(home.indexOf("STAGE 01") < home.indexOf("STAGE 02"));
+  assert.match(home, /STAGE 0 PREP/);
+  assert.match(home, /STAGE 1 DESIGN/);
+  assert.match(home, /STAGE 2 PUBLISH/);
+  assert.match(publish, /Stage 2 cohort publishing \| Engineering Design Benchmark Framework/);
+  assert.match(publish, /byte-for-byte/);
+  assert.match(publish, /publish the cohort together/i);
+  assert.match(publish, /stage2:publish-cohort/);
+  assert.match(publish, /never sent to a candidate model/i);
+});
+
+/*
+test.skip("the retired Stage 1 guide rendering contract", async () => {
   const html = await readFile(
     path.join(projectRoot, "out", "model-task", "index.html"),
     "utf8",
@@ -305,7 +432,7 @@ test("the Stage 1 guide exposes the exact launcher and no candidate identity", a
   assert.doesNotMatch(html, /runs\/&lt;candidate-id&gt;\//);
 });
 
-test("the two-stage home and publishing guide preserve the candidate boundary", async () => {
+test.skip("the retired two-stage home rendering contract", async () => {
   const home = await readFile(path.join(projectRoot, "out", "index.html"), "utf8");
   const publish = await readFile(path.join(projectRoot, "out", "publish-task", "index.html"), "utf8");
   assert.ok(home.indexOf("STAGE 01") < home.indexOf("STAGE 02"));
@@ -320,3 +447,4 @@ test("the two-stage home and publishing guide preserve the candidate boundary", 
   assert.match(publish, /予定候補と完成済み成果/);
   assert.match(publish, /never sent to a candidate model/i);
 });
+*/
