@@ -1,44 +1,37 @@
-# モデル成果ページの反映・公開手順
+# Framework publishing flow
 
-この文書は、完成済みのベンチマーク成果をRotorBenchへ反映する**公開担当向け**の手順です。成果を生成したモデルへは渡さず、生成完了後の別タスクで使用してください。
+Target repository: <https://github.com/naoyamd/rotorbench>. This identifies the
+publication repository only; it does not define or modify benchmark task
+content.
 
-対象リポジトリは [`https://github.com/naoyamd/rotorbench`](https://github.com/naoyamd/rotorbench) です。
+The framework produces a fully static export. It has no runtime API, database,
+or authentication requirement.
 
-## 必要な入力
+## Build stages
 
-- 完成済みの`submissions/<candidate-id>/`が存在する場所、またはその成果を生成したCodexタスク
-- 候補ID
+1. `pnpm framework:validate` applies the Draft 2020-12 schemas with Ajv and
+   validates duplicate IDs, regular-file real paths, and SHA-256 hashes.
+2. `pnpm framework:process-step` uses OpenCascade in Node to triangulate valid
+   STEP files into deterministic viewer mesh JSON and sidecar metadata.
+3. `pnpm framework:index` copies downloadable artifacts and emits the framework
+   catalog used for static route generation.
+4. `pnpm check` performs all stages plus linting, static export, static-link
+   validation, and tests.
 
-## 反映
+An invalid STEP file is an expected per-run processing failure: its run page
+still exports with a validation report and a link to download the original file.
+The report records common manifest/path/hash checks, input hashes, processor
+versions, and derived mesh hashes.
 
-1. 対象リポジトリの最新`main`を使用します。
-2. 完成済みの候補ディレクトリを、同じ候補IDで`submissions/<candidate-id>/`へ取り込みます。
-3. 取り込み前後のファイル内容が一致することを確認します。
-4. 成果ページ、`manifest.json`、`BENCHMARK_PROMPT.md`は改変しません。
-5. 共通サイト側で必要な修正だけを行い、`pnpm check`を通します。
+## Legacy boundary
 
-## 公開
+`submissions/` is the read-only RB-2.0 archive. The legacy catalog build keeps
+existing `/results/<id>/` output URLs available. Do not add it to the framework
+benchmark, run, or comparison catalogs, and do not modify the legacy
+`BENCHMARK_PROMPT.md`.
 
-1. 変更内容を確認し、対象リポジトリへcommit・pushします。
-2. GitHub Pagesの公開処理が成功するまで確認します。
-3. 次の2つがブラウザから開けることを確認します。
-   - `https://naoyamd.github.io/rotorbench/`
-   - `https://naoyamd.github.io/rotorbench/results/<candidate-id>/`
-4. 公開した候補ID、成果ページURL、検証結果を報告します。
+## Hosting
 
-## Codexへの指示例
-
-```text
-次の完成済み成果をRotorBenchへ反映し、公開確認まで完了してください。
-
-反映手順:
-https://naoyamd.github.io/rotorbench/publish-task/
-
-候補ID:
-<candidate-id>
-
-成果物:
-<成果を生成したCodexタスクのリンク、またはsubmissions/<candidate-id>/の絶対パス>
-```
-
-この公開タスクでは、成果物の改善、再設計、評価、ベンチマークの再実行は行いません。
+The static export supports a host root and GitHub Pages repository subpaths via
+the existing `PAGES_BASE_PATH` and `NEXT_PUBLIC_BASE_PATH` settings. Keep
+`.openai/hosting.json` unchanged.

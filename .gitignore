@@ -18,6 +18,10 @@
 /.vinext/
 /out/
 /public/results/
+/public/framework/files/
+/public/framework/meshes/
+/public/framework/reports/
+/public/framework/validation-summary.json
 
 # misc
 .DS_Store

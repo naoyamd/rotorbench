@@ -1,55 +1,72 @@
-# RotorBench
+# Engineering Design Benchmark Framework
 
-RotorBenchは、同じ共通プロンプトから各LLMが生成した独立Webページを収集し、共通のGitHub Pagesから閲覧できるようにする静的アーカイブです。
+This repository is a static, task-neutral publication framework for future
+manufacturing design LLM benchmarks. It provides common manifests, evidence
+validation, STEP preprocessing, static review pages, and downloads. It does not
+contain a benchmark task, reference design, sample engineering answer, scoring
+rules, runtime API, database, or authentication.
 
-現在はホーム画面と成果物登録の仕組みだけを公開しており、実際のベンチマーク結果はまだ含みません。
+## Current catalog
 
-## 構成
+The new `benchmarks/` and `runs/` catalogs intentionally contain **zero**
+published entries. Their `_template/` directories are structural examples only.
 
-- `BENCHMARK_PROMPT.md` — 全モデルへ改変せず渡すRB-2.0の正本
-- `MODEL_TASK.md` — モデルへURLで渡す、内容非干渉の生成・提出手順
-- `PUBLISH_TASK.md` — 完成済み成果を反映・公開する別タスク用手順
-- `submissions/<candidate-id>/` — モデルごとのmanifestと完成済み静的ページ
-- `scripts/build-result-catalog.mjs` — submissionの検証、一覧生成、配信用コピー
-- `RESULT_SPEC.md` — 新しい成果物を追加するための接続仕様
-- `app/` — 共通ホーム画面
+The former RotorBench RB-2.0 material remains under `submissions/` and is
+published separately at its existing `/results/<id>/` URLs. It is read-only
+legacy material and is never included in the framework catalog or comparison
+pages. `BENCHMARK_PROMPT.md` remains unchanged as its legacy source document.
 
-## ローカル実行
+## Common format
 
-Node.js 22以降とpnpm 11を使用します。
+- `schemas/benchmark.schema.json` — shared benchmark metadata
+- `schemas/run.schema.json` — shared run metadata
+- `schemas/artifact.schema.json` — file role, safe path, hash, and status
+- `schemas/validation-report.schema.json` — validation report shape
+- `benchmarks/<benchmark-id>/benchmark.json` — a future definition
+- `runs/<run-id>/run.json` and submitted files — a future run
+
+Accepted artifact roles are `cad-source`, `step`, `drawing`, `bom`,
+`calculation`, and `supporting`. Any task-specific requirements or scoring data
+must stay in a manifest's `extensions` object.
+
+Every benchmark declares a `version`; each run pins it with
+`benchmarkVersion` and records a model `provider`, `name`, and `version`.
+Draft 2020-12 schemas are enforced with Ajv. Artifact paths must resolve to
+regular files inside the run directory, and declared SHA-256 values must match.
+
+Submitted artifacts are copied into the static export for download. STEP is
+validated and triangulated during the Node build with OpenCascade via
+`occt-import-js`; browsers display only generated mesh JSON and never parse the
+original STEP file. A bad STEP file records a failed validation report and keeps
+the result page usable. Reports include manifest/path/hash checks, input hashes,
+processor versions, and derived mesh hashes.
+
+## Local development
+
+Node.js 22+ and pnpm are required.
 
 ```bash
 pnpm install
 pnpm dev
 ```
 
-## 検証
-
 ```bash
+pnpm framework:validate
+pnpm framework:process-step
+pnpm framework:index
 pnpm check
 ```
 
-型検査、Lint、静的ビルド、成果物カタログの契約テストを実行します。
+`pnpm check` includes the framework preparation, legacy archive catalog,
+TypeScript, linting, static export, static-link verification, and tests.
 
-## モデル成果を追加
+The Next configuration supports both a root-hosted site and a GitHub Pages
+subpath through `PAGES_BASE_PATH` / `NEXT_PUBLIC_BASE_PATH`. Do not change
+`.openai/hosting.json` for this static framework.
 
-モデルへは次の公開ページを渡します。ここには成果ページの内容を左右する要件を含めず、配置・記録・検証だけを記載しています。
+## Documentation
 
-- Model task: https://naoyamd.github.io/rotorbench/model-task/
-- Publish task: https://naoyamd.github.io/rotorbench/publish-task/
-- Markdown: [MODEL_TASK.md](./MODEL_TASK.md)
-
-接続仕様の詳細は[RESULT_SPEC.md](./RESULT_SPEC.md)を参照してください。
-
-中央レジストリやホーム画面の編集は不要です。ビルド時に全submissionが自動検出され、GitHub Pagesへ一緒に公開されます。
-
-## 公開
-
-`main`へのpushでGitHub Actionsが静的サイトを検証し、GitHub Pagesへ公開します。
-
-- Site: https://naoyamd.github.io/rotorbench/
-- Repository: https://github.com/naoyamd/rotorbench
-
-## License
-
-MIT
+- [Submission format](./MODEL_TASK.md)
+- [Publishing flow](./PUBLISH_TASK.md)
+- [Framework result specification](./RESULT_SPEC.md)
+- [Legacy RB-2.0 prompt](./BENCHMARK_PROMPT.md)

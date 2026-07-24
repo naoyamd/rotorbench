@@ -1,0 +1,15 @@
+{
+  "schemaVersion": "1.0",
+  "id": "run-id",
+  "benchmarkId": "benchmark-id",
+  "benchmarkVersion": "1.0",
+  "status": "draft",
+  "submittedAt": "2026-01-01T00:00:00Z",
+  "model": {
+    "provider": "Provider name",
+    "name": "Model name",
+    "version": "Model version"
+  },
+  "artifacts": [],
+  "extensions": {}
+}

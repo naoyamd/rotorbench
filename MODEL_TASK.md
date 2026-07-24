@@ -1,46 +1,49 @@
-# モデル成果ページの生成・提出手順
+# Future run submission format
 
-この文書は、ベンチマーク成果を共通サイトへ接続できる形に整えるための**作業手順だけ**を定めます。成果ページの内容、技術、表現、設計判断、完成度の基準を追加するものではありません。それらは [`BENCHMARK_PROMPT.md`](./BENCHMARK_PROMPT.md) だけに従ってください。
+Target repository: <https://github.com/naoyamd/rotorbench>. This identifies
+where the framework integration is maintained; it does not add to or change any
+benchmark task requirements.
 
-## 開始
+This is a framework integration guide, not a benchmark prompt. No engineering
+task, sample solution, target design, or score is supplied here.
 
-対象リポジトリは [`https://github.com/naoyamd/rotorbench`](https://github.com/naoyamd/rotorbench) です。
-
-1. 指定されたcommitを使用します。指定がなければ、対象リポジトリの`main`を使用します。
-2. `BENCHMARK_PROMPT.md`を改変せずに読み、その内容を実装します。
-3. 他候補の成果ページは参照しません。
-4. 候補IDが指定されていない場合は、実際のprovider・model・reasoningを小文字のkebab-caseで連結して決めます。
-
-## 作業範囲
-
-新規に作成する次の場所だけを編集します。
+## Required structure
 
 ```text
-submissions/<candidate-id>/
-├─ manifest.json
-└─ site/
-   ├─ index.html
-   └─ ...
+benchmarks/<benchmark-id>/benchmark.json
+runs/<run-id>/run.json
+runs/<run-id>/<submitted files>
 ```
 
-- 完成した静的Webページ一式を`site/`へ置き、入口を`site/index.html`にします。
-- CSS、JavaScript、画像などの参照は、配信先のサブパスでも動く相対URLにします。
-- `submissions/_template/manifest.json`と同じ項目を、実行時の正確な事実で記録します。
-- 秘密情報、ローカル専用パス、共通サイト外の未公開資産には依存させません。
+The benchmark manifest uses `schemas/benchmark.schema.json`. The run manifest
+uses `schemas/run.schema.json`; each artifact follows
+`schemas/artifact.schema.json`.
 
-## 変更しないもの
+The run must pin the benchmark's declared version in `benchmarkVersion` and
+record the producing model's provider, name, and version.
 
-- `BENCHMARK_PROMPT.md`
-- `app/`、`scripts/`、公開・ビルド設定
-- `submissions/_template/`
-- 他候補の`submissions/<candidate-id>/`
+## Evidence boundary
 
-共通ホームへの登録処理、公開処理、共通UIの変更は行いません。
+A future run can provide the following artifact roles when relevant:
 
-## 完了
+- `cad-source` for an editable CAD source file
+- `step` for an interchange model
+- `drawing` for drawings
+- `bom` for a bill of materials
+- `calculation` for calculations
+- `supporting` for other evidence
 
-1. 必要な生成処理がある場合は実行し、最終的な静的成果物を`site/`へ格納します。
-2. リポジトリ直下で`pnpm check`を実行します。
-3. 作成した候補ID、成果物の場所、検証結果を報告して終了します。
+Every artifact must name a safe relative path to a regular file within its run
+directory, a lowercase SHA-256 hash, and a status. Symlinks, directories,
+traversal, and URL-dangerous path characters are rejected. Do not submit
+arbitrary HTML, CSS, or JavaScript: the common static site renders result pages
+and only links to the submitted files.
 
-この手順に書かれていない制作上の判断は追加要件と解釈せず、`BENCHMARK_PROMPT.md`とモデル自身の判断に委ねます。
+Benchmark-specific values, requirements, and any evaluation logic belong only
+in `extensions`. Do not alter the legacy RB-2.0 material in `submissions/` or
+`BENCHMARK_PROMPT.md` when adding a future framework run.
+
+## Local check
+
+Run `pnpm check` before proposing a static publication. It verifies the
+manifest, paths, hashes, STEP preprocessing, export, and links.

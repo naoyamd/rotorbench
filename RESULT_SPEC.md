@@ -1,29 +1,24 @@
-# RotorBench Result Integration
+# Framework result page specification
 
-各モデルが生成した独立Webページを、共通ホームへ追加するための接続仕様です。ベンチマーク実行そのものは、この仕様には含みません。
+A future framework run is rendered in a neutral static shell at
+`/runs/<run-id>/`. The page contains the following evidence sections:
 
-モデルへURLで渡す内容非干渉の作業入口は[`MODEL_TASK.md`](./MODEL_TASK.md)です。この接続仕様は詳細確認用であり、成果ページの制作要件を追加するものではありません。
+1. Overview — run and benchmark metadata
+2. 3D — only a common preprocessed mesh for STEP artifacts
+3. Drawing — submitted drawing downloads
+4. BOM — submitted bill-of-material downloads
+5. Calculation — submitted calculation downloads
+6. Files — all submitted artifact downloads, roles, paths, and hashes
+7. Validation — manifest/path/hash and STEP processing results, including input
+   hashes, processor versions, and derived mesh hashes
 
-生成済み成果を共通サイトへ反映・公開する別タスクでは、[`PUBLISH_TASK.md`](./PUBLISH_TASK.md)を使用します。
+The browser must never parse original STEP or run arbitrary model-supplied HTML,
+CSS, or JavaScript. It displays a generated mesh asset with orbit, pan, zoom,
+fit, projection toggle, keyboard support, and a download fallback.
 
-## 追加方法
+The framework does not require a particular scoring method or engineering task.
+Those values, if a future benchmark introduces them, are scoped to `extensions`
+and must not change this common result shell.
 
-1. `submissions/_template/` を `submissions/<candidate-id>/` へ複製します。
-2. 完成済みの静的ページ一式を `site/` に配置します。入口は必ず `site/index.html` とします。
-3. `manifest.json` を、実行時に確認できた正確な情報で更新します。
-4. `pnpm catalog` または `pnpm check` を実行します。
-
-ビルド時に全submissionが自動検出され、検証済みページが `public/results/<candidate-id>/` へコピーされます。同時にホーム画面用のカタログも自動生成されるため、共通UIの編集や中央レジストリへの追記は不要です。
-
-## 独立ページの条件
-
-- HTML、CSS、JavaScript、画像などを含む、ブラウザで直接動作する静的成果物であること。
-- すべての資産URLを相対パスにし、GitHub Pagesのサブパス配信に対応すること。
-- 他候補、共通ホーム、`BENCHMARK_PROMPT.md` を変更しないこと。
-- 外部サービスや秘密情報がなくても、第三者が同じページを再現できること。
-
-## manifest
-
-`id`、`title`、`provider`、`model`、`reasoning`、`runDate`、`promptVersion`、`summary`、`tags`を記録します。カード画像を含める場合だけ、`site/`からの相対パスを`cover`へ指定します。
-
-既存結果のmanifestは実行記録です。後からモデル名、推論設定、Prompt versionを変更してはいけません。
+Existing RB-2.0 `/results/<id>/` pages are a separate read-only legacy archive
+and do not conform to or populate this framework result catalog.

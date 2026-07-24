@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rotorbench.example/schemas/run.schema.json",
+  "title": "Engineering Design Benchmark Framework run",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "id", "benchmarkId", "benchmarkVersion", "status", "submittedAt", "model", "artifacts", "extensions"],
+  "properties": {
+    "schemaVersion": { "const": "1.0" },
+    "id": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" },
+    "benchmarkId": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" },
+    "benchmarkVersion": { "type": "string", "minLength": 1 },
+    "status": { "type": "string", "enum": ["draft", "submitted", "validated", "published", "failed"] },
+    "submittedAt": { "type": "string", "format": "date-time" },
+    "model": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provider", "name", "version"],
+      "properties": {
+        "provider": { "type": "string", "minLength": 1 },
+        "name": { "type": "string", "minLength": 1 },
+        "version": { "type": "string", "minLength": 1 }
+      }
+    },
+    "summary": { "type": "string" },
+    "artifacts": {
+      "type": "array",
+      "items": { "$ref": "artifact.schema.json" }
+    },
+    "extensions": { "type": "object" }
+  }
+}
