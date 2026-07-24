@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { ROOT_SITES_ENVIRONMENT } from "./build-sites-root.mjs";
 import { pathExists } from "./framework-lib.mjs";
+import { findInheritedBasePathUrls } from "./sites-build-url-contract.mjs";
 
 const projectRoot = process.cwd();
 for (const relativePath of [
@@ -28,19 +29,14 @@ assert.equal(
   true,
   "Sites output does not use the configured root site URL",
 );
-for (const inheritedValue of [
-  process.env.PAGES_BASE_PATH,
-  process.env.NEXT_PUBLIC_BASE_PATH,
-  process.env.NEXT_PUBLIC_SITE_URL,
-]) {
-  if (inheritedValue && !Object.values(ROOT_SITES_ENVIRONMENT).includes(inheritedValue)) {
-    assert.equal(
-      home.includes(inheritedValue),
-      false,
-      `Sites output inherited ${inheritedValue}`,
-    );
-  }
-}
+const inheritedBasePathUrls = findInheritedBasePathUrls(home);
+assert.equal(
+  inheritedBasePathUrls.length,
+  0,
+  `Sites internal URLs inherited a deployment base path: ${inheritedBasePathUrls
+    .map(({ attribute, url }) => `${attribute}="${url}"`)
+    .join(", ")}`,
+);
 console.log(
   "Verified root-hosted Sites build and absence of public empty-catalog placeholders.",
 );

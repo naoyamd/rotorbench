@@ -5,6 +5,7 @@ import {
   createRootSitesEnvironment,
   verifyRootSitesEnvironment,
 } from "../scripts/build-sites-root.mjs";
+import { findInheritedBasePathUrls } from "../scripts/sites-build-url-contract.mjs";
 
 test("Sites build environment replaces inherited review-base settings", () => {
   const parentEnvironment = {
@@ -35,4 +36,58 @@ test("Sites root environment uses an absolute root URL", () => {
   assert.equal(siteUrl.pathname, "/");
   assert.equal(siteUrl.search, "");
   assert.equal(siteUrl.hash, "");
+});
+
+test("Sites URL verification allows literal external repository and Pages links", () => {
+  const html = [
+    '<link rel="stylesheet" href="/assets/app.css">',
+    '<a href="/benchmarks/">Benchmarks</a>',
+    '<a href="https://github.com/naoyamd/rotorbench">Repository</a>',
+    '<a href="https://naoyamd.github.io/rotorbench">GitHub Pages</a>',
+  ].join("");
+  const inheritedEnvironment = {
+    PAGES_BASE_PATH: "/rotorbench",
+    NEXT_PUBLIC_BASE_PATH: "/rotorbench",
+    NEXT_PUBLIC_SITE_URL: "https://naoyamd.github.io/rotorbench",
+  };
+
+  assert.deepEqual(
+    findInheritedBasePathUrls(html, inheritedEnvironment),
+    [],
+  );
+});
+
+test("Sites URL verification reports inherited prefixes on internal navigation and assets", () => {
+  const html = [
+    '<link data-rsc-css-href="/rotorbench/assets/app.css">',
+    '<a href="/rotorbench/benchmarks/">Benchmarks</a>',
+    '<script src="/rotorbench/assets/app.js"></script>',
+    '<a href="https://github.com/naoyamd/rotorbench">Repository</a>',
+  ].join("");
+  const inheritedEnvironment = {
+    PAGES_BASE_PATH: "/rotorbench/",
+    NEXT_PUBLIC_BASE_PATH: "/rotorbench",
+    NEXT_PUBLIC_SITE_URL: "https://naoyamd.github.io/rotorbench",
+  };
+
+  assert.deepEqual(
+    findInheritedBasePathUrls(html, inheritedEnvironment),
+    [
+      {
+        attribute: "data-rsc-css-href",
+        url: "/rotorbench/assets/app.css",
+        basePath: "/rotorbench",
+      },
+      {
+        attribute: "href",
+        url: "/rotorbench/benchmarks/",
+        basePath: "/rotorbench",
+      },
+      {
+        attribute: "src",
+        url: "/rotorbench/assets/app.js",
+        basePath: "/rotorbench",
+      },
+    ],
+  );
 });
