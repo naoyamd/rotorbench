@@ -162,3 +162,33 @@ test("static export counts match the generated catalog and preserves every legac
     stat(path.join(projectRoot, "public", "og-engineering-framework.png")),
   );
 });
+
+test("the static model-task URL contains only the pinned common execution prompt", async () => {
+  const html = await readFile(
+    path.join(projectRoot, "out", "model-task", "index.html"),
+    "utf8",
+  );
+  assert.match(html, /Common model prompt \| Engineering Design Benchmark Framework/);
+  assert.match(html, /EDBF-COMMON-1\.0/);
+  assert.match(html, /STAGE 01/);
+  assert.match(html, /モデルへ渡す共通実行プロンプト/);
+  assert.match(html, /runs\/&lt;candidate-id&gt;\//);
+  assert.match(html, /github\.com\/naoyamd\/rotorbench/);
+  assert.doesNotMatch(html, /Prepare a framework run/);
+});
+
+test("the home and publishing URL expose the two-stage handoff in order", async () => {
+  const home = await readFile(path.join(projectRoot, "out", "index.html"), "utf8");
+  const publish = await readFile(
+    path.join(projectRoot, "out", "publish-task", "index.html"),
+    "utf8",
+  );
+  assert.ok(home.indexOf("STAGE 01") < home.indexOf("STAGE 02"));
+  assert.match(home, /MODEL RUN PROMPT/);
+  assert.match(home, /PUBLISHING PROMPT/);
+  assert.match(home, /候補モデルにはSTAGE 01だけを渡し/);
+  assert.match(publish, /Publishing prompt \| Engineering Design Benchmark Framework/);
+  assert.match(publish, /EDBF-PUBLISH-1\.0/);
+  assert.match(publish, /STAGE 02/);
+  assert.match(publish, /候補モデルには渡しません/);
+});

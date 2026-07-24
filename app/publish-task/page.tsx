@@ -1,8 +1,38 @@
 import type { Metadata } from "next";
-import { SiteFooter, SiteHeader } from "../components/site-header";
+import { readFileSync } from "node:fs";
+import path from "node:path";
 
-export const metadata: Metadata = { title: "Publishing | Engineering Design Benchmark Framework" };
+export const metadata: Metadata = {
+  title: "Publishing prompt | Engineering Design Benchmark Framework",
+  description:
+    "The immutable integration and publishing prompt used only after a candidate run is complete.",
+};
+
+const prompt = readFileSync(
+  path.join(process.cwd(), "PUBLISH_TASK.md"),
+  "utf8",
+).trim();
 
 export default function PublishTaskPage() {
-  return <><SiteHeader /><main className="listing-page"><section className="page-intro"><p className="eyebrow">STATIC PUBLISHING</p><h1>Publish a validated framework catalog</h1><p>Target repository: <a href="https://github.com/naoyamd/rotorbench">github.com/naoyamd/rotorbench</a>. This identifies the publication repository only; it does not define or modify benchmark task content.</p><p>The build validates manifests, paths, hashes, and static links; it preprocesses STEP in Node and exports a static site without a runtime API, database, or authentication layer.</p></section><section className="content-section"><h2>Build sequence</h2><ol className="plain-list"><li>Run `pnpm framework:validate` for schema, ID, path, and hash checks.</li><li>Run `pnpm framework:process-step` to create viewer meshes and failure reports.</li><li>Run `pnpm framework:index` and `pnpm check` before static export.</li></ol></section><section className="content-section"><h2>Legacy protection</h2><p>The existing RB-2.0 submission archive and its `/results/&lt;id&gt;/` URLs are preserved as read-only legacy content. It must not be mixed into framework comparison or ranking views.</p></section></main><SiteFooter /></>;
+  return (
+    <main className="prompt-page prompt-page-publish" lang="ja">
+      <section aria-labelledby="prompt-title">
+        <p className="eyebrow">STAGE 02 / EDBF-PUBLISH-1.0</p>
+        <h1 id="prompt-title">完成後に渡す反映・公開プロンプト</h1>
+        <p className="prompt-lead">
+          候補モデルには渡しません。成果完成後に開始する別の公開担当タスクへ、
+          完成済み成果の場所とともにこのページのURLを渡します。
+        </p>
+        <pre className="prompt-block">
+          <code>{prompt}</code>
+        </pre>
+        <p className="prompt-source">
+          Canonical source:{" "}
+          <a href="https://github.com/naoyamd/rotorbench/blob/main/PUBLISH_TASK.md">
+            PUBLISH_TASK.md
+          </a>
+        </p>
+      </section>
+    </main>
+  );
 }

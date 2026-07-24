@@ -12,6 +12,8 @@ export function SiteHeader() {
       </a>
       <nav aria-label="Primary navigation">
         <a href={`${basePath}/benchmarks/`}>BENCHMARKS</a>
+        <a href={`${basePath}/model-task/`}>MODEL PROMPT</a>
+        <a href={`${basePath}/publish-task/`}>PUBLISH PROMPT</a>
         <a href={`${basePath}/format/`}>FORMAT</a>
         <a href={`${basePath}/compare/`}>COMPARE</a>
         <a href={`${basePath}/legacy/`}>LEGACY RB-2.0</a>

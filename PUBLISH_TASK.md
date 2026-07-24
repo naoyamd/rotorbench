@@ -1,37 +1,18 @@
-# Framework publishing flow
+# Engineering Design Benchmark — 反映・公開プロンプト
 
-Target repository: <https://github.com/naoyamd/rotorbench>. This identifies the
-publication repository only; it does not define or modify benchmark task
-content.
+Prompt ID: `EDBF-PUBLISH-1.0`
 
-The framework produces a fully static export. It has no runtime API, database,
-or authentication requirement.
+Stage: `2 / 2 — INTEGRATE & PUBLISH`
 
-## Build stages
+この文書は、候補モデルの成果が完成した後、別の公開担当タスクへ渡す改変不可の実行指示です。候補モデルには渡さないでください。
 
-1. `pnpm framework:validate` applies the Draft 2020-12 schemas with Ajv and
-   validates duplicate IDs, regular-file real paths, and SHA-256 hashes.
-2. `pnpm framework:process-step` uses OpenCascade in Node to triangulate valid
-   STEP files into deterministic viewer mesh JSON and sidecar metadata.
-3. `pnpm framework:index` copies downloadable artifacts and emits the framework
-   catalog used for static route generation.
-4. `pnpm check` performs all stages plus linting, static export, static-link
-   validation, and tests.
-
-An invalid STEP file is an expected per-run processing failure: its run page
-still exports with a validation report and a link to download the original file.
-The report records common manifest/path/hash checks, input hashes, processor
-versions, and derived mesh hashes.
-
-## Legacy boundary
-
-`submissions/` is the read-only RB-2.0 archive. The legacy catalog build keeps
-existing `/results/<id>/` output URLs available. Do not add it to the framework
-benchmark, run, or comparison catalogs, and do not modify the legacy
-`BENCHMARK_PROMPT.md`.
-
-## Hosting
-
-The static export supports a host root and GitHub Pages repository subpaths via
-the existing `PAGES_BASE_PATH` and `NEXT_PUBLIC_BASE_PATH` settings. Keep
-`.openai/hosting.json` unchanged.
+- 現在のタスクで提供された候補IDと、完成済みの`runs/<candidate-id>/`が存在する場所を正本として使用してください。
+- 対象リポジトリは <https://github.com/naoyamd/rotorbench> です。最新の`main`を基準に作業してください。
+- 完成済みの候補ディレクトリを、同じ候補IDで対象リポジトリの`runs/<candidate-id>/`へ取り込んでください。
+- 取り込み前後の各ファイルが一致することを確認し、成果物、`run.json`、課題文、入力資料、共通プロンプトを変更しないでください。
+- 必要な変更は、候補の登録、共通カタログ、検証、静的公開に関する範囲だけに限定してください。
+- `pnpm check`を実行し、検証、STEP前処理、静的ページ、リンク、テストが成功することを確認してください。
+- 変更をcommitして`main`へpushし、GitHub Pagesの公開処理が成功するまで確認してください。Sites設定が存在する場合は、同じ確定コミットをSitesにも保存・配備してください。
+- ホーム、候補固有の結果ページ、成果物ダウンロード、検証レポートが公開環境で開けることを確認してください。
+- 候補成果の改善、再設計、再実行、評価、他候補との比較は行わないでください。
+- 候補IDまたは完成済み成果の場所が不足している場合は推測で補わず、不足している項目だけを報告して停止してください。

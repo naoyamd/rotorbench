@@ -36,10 +36,30 @@ export default function Home() {
           </ol>
         </section>
 
+        <section className="content-section handoff-section" aria-labelledby="handoff-title">
+          <p className="eyebrow">TWO-STAGE HANDOFF</p>
+          <h2 id="handoff-title">渡すURLは、実行時と完成後で分ける</h2>
+          <div className="handoff-grid">
+            <article>
+              <span>STAGE 01</span>
+              <h3>候補モデルが設計を実行</h3>
+              <p>実課題、入力資料、候補IDとともに、全候補へ同じ共通実行プロンプトURLを渡します。</p>
+              <a className="button-link" href={`${basePath}/model-task/`}>MODEL RUN PROMPT</a>
+            </article>
+            <article>
+              <span>STAGE 02</span>
+              <h3>別タスクが成果を公開</h3>
+              <p>候補の作業完了後、成果の場所とともに反映・公開プロンプトURLを別タスクへ渡します。</p>
+              <a className="button-link secondary" href={`${basePath}/publish-task/`}>PUBLISHING PROMPT</a>
+            </article>
+          </div>
+          <p className="handoff-rule">候補モデルにはSTAGE 01だけを渡し、STAGE 02は成果完成後の公開担当だけが使用します。</p>
+        </section>
+
         <section className="empty-state" aria-labelledby="empty-title">
           <p className="eyebrow">CATALOG STATUS</p><h2 id="empty-title">{isEmpty ? "Ready for future benchmark definitions" : "Published framework catalog"}</h2>
           <p>{isEmpty ? "No benchmarks or runs are published in the new framework yet." : "Browse the published framework catalog."}</p>
-          <div className="action-row"><a className="button-link" href={`${basePath}/benchmarks/`}>VIEW BENCHMARKS</a><a className="button-link secondary" href={`${basePath}/format/`}>VIEW FORMAT</a></div>
+          <div className="action-row"><a className="button-link" href={`${basePath}/model-task/`}>OPEN MODEL PROMPT</a><a className="button-link secondary" href={`${basePath}/benchmarks/`}>VIEW BENCHMARKS</a><a className="button-link secondary" href={`${basePath}/format/`}>VIEW FORMAT</a></div>
         </section>
 
         <section className="legacy-note" aria-labelledby="legacy-title"><p className="eyebrow">READ-ONLY LEGACY</p><h2 id="legacy-title">RotorBench RB-2.0 archive</h2><p>Existing RB-2.0 results remain available as a separate, read-only archive. They are not part of this framework’s benchmarks, runs, or comparisons.</p><a href={`${basePath}/legacy/`}>Open legacy archive information</a></section>

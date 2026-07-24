@@ -1,8 +1,38 @@
 import type { Metadata } from "next";
-import { SiteFooter, SiteHeader } from "../components/site-header";
+import { readFileSync } from "node:fs";
+import path from "node:path";
 
-export const metadata: Metadata = { title: "Submission format | Engineering Design Benchmark Framework" };
+export const metadata: Metadata = {
+  title: "Common model prompt | Engineering Design Benchmark Framework",
+  description:
+    "The immutable common execution prompt supplied to every candidate model.",
+};
+
+const prompt = readFileSync(
+  path.join(process.cwd(), "MODEL_TASK.md"),
+  "utf8",
+).trim();
 
 export default function ModelTaskPage() {
-  return <><SiteHeader /><main className="listing-page"><section className="page-intro"><p className="eyebrow">FUTURE RUN AUTHORING</p><h1>Prepare a framework run</h1><p>Target repository: <a href="https://github.com/naoyamd/rotorbench">github.com/naoyamd/rotorbench</a>. This identifies where the framework integration is maintained; it does not add to or change benchmark task requirements.</p><p>This repository provides the common evidence and publication contract. It does not provide a benchmark task, reference design, expected solution, or scoring instructions.</p></section><section className="content-section"><h2>Submission boundary</h2><p>Submit structured files and a `run.json` manifest only. Do not submit a standalone HTML page, custom JavaScript, or model-specific CSS: result pages are rendered by this common site.</p></section><section className="content-section"><h2>Accepted evidence</h2><p>Use artifacts with the roles `cad-source`, `step`, `drawing`, `bom`, `calculation`, and `supporting` as applicable. Every file needs a safe relative path and SHA-256 hash.</p></section><section className="content-section"><h2>Before publishing</h2><ol className="plain-list"><li>Add a benchmark definition and run manifest without altering the legacy RB-2.0 archive.</li><li>Run `pnpm check`.</li><li>Review the static run page, downloads, and validation report.</li></ol></section></main><SiteFooter /></>;
+  return (
+    <main className="prompt-page" lang="ja">
+      <section aria-labelledby="prompt-title">
+        <p className="eyebrow">STAGE 01 / EDBF-COMMON-1.0</p>
+        <h1 id="prompt-title">モデルへ渡す共通実行プロンプト</h1>
+        <p className="prompt-lead">
+          第1段階として、このページのURLをすべての候補モデルへ同一条件で渡します。
+          課題固有の内容は現在のタスクで別途提供し、この共通指示は変更しません。
+        </p>
+        <pre className="prompt-block">
+          <code>{prompt}</code>
+        </pre>
+        <p className="prompt-source">
+          Canonical source:{" "}
+          <a href="https://github.com/naoyamd/rotorbench/blob/main/MODEL_TASK.md">
+            MODEL_TASK.md
+          </a>
+        </p>
+      </section>
+    </main>
+  );
 }

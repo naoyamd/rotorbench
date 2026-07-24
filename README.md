@@ -66,7 +66,7 @@ subpath through `PAGES_BASE_PATH` / `NEXT_PUBLIC_BASE_PATH`. Do not change
 
 ## Documentation
 
-- [Submission format](./MODEL_TASK.md)
-- [Publishing flow](./PUBLISH_TASK.md)
+- [Immutable common model prompt](./MODEL_TASK.md)
+- [Immutable integration and publishing prompt](./PUBLISH_TASK.md)
 - [Framework result specification](./RESULT_SPEC.md)
 - [Legacy RB-2.0 prompt](./BENCHMARK_PROMPT.md)

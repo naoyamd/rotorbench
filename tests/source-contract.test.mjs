@@ -240,3 +240,27 @@ test("legacy prompt and submission text remains unchanged across line endings", 
     assert.equal(normalizedTextDigest(text), expectedHash, relativePath);
   }
 });
+
+test("the common candidate prompt is pinned to EDBF-COMMON-1.0", async () => {
+  const prompt = await readFile(path.join(projectRoot, "MODEL_TASK.md"), "utf8");
+  assert.equal(
+    normalizedTextDigest(prompt),
+    "26ed3140850140eb9edb9c737dd043027dddf650d9b46d1be1dccbb10b7a2979",
+  );
+  assert.match(prompt, /Prompt ID: `EDBF-COMMON-1\.0`/);
+  assert.match(prompt, /Stage: `1 \/ 2 — MODEL RUN`/);
+  assert.match(prompt, /変更は`runs\/<candidate-id>\/`内に限定/);
+  assert.match(prompt, /候補固有のビューワー、Webページ、公開処理は実装しない/);
+});
+
+test("the publishing prompt is pinned to EDBF-PUBLISH-1.0", async () => {
+  const prompt = await readFile(path.join(projectRoot, "PUBLISH_TASK.md"), "utf8");
+  assert.equal(
+    normalizedTextDigest(prompt),
+    "c20a61a4eddcb8291d4d77f50b7571597caed89ea5d85aab6f380cf22bed14d4",
+  );
+  assert.match(prompt, /Prompt ID: `EDBF-PUBLISH-1\.0`/);
+  assert.match(prompt, /Stage: `2 \/ 2 — INTEGRATE & PUBLISH`/);
+  assert.match(prompt, /候補モデルには渡さない/);
+  assert.match(prompt, /候補成果の改善、再設計、再実行、評価、他候補との比較は行わない/);
+});

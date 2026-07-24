@@ -1,49 +1,17 @@
-# Future run submission format
+# Engineering Design Benchmark — 共通実行プロンプト
 
-Target repository: <https://github.com/naoyamd/rotorbench>. This identifies
-where the framework integration is maintained; it does not add to or change any
-benchmark task requirements.
+Prompt ID: `EDBF-COMMON-1.0`
 
-This is a framework integration guide, not a benchmark prompt. No engineering
-task, sample solution, target design, or score is supplied here.
+Stage: `1 / 2 — MODEL RUN`
 
-## Required structure
+この文書を、すべての候補モデルに共通する改変不可の実行指示として扱ってください。
 
-```text
-benchmarks/<benchmark-id>/benchmark.json
-runs/<run-id>/run.json
-runs/<run-id>/<submitted files>
-```
-
-The benchmark manifest uses `schemas/benchmark.schema.json`. The run manifest
-uses `schemas/run.schema.json`; each artifact follows
-`schemas/artifact.schema.json`.
-
-The run must pin the benchmark's declared version in `benchmarkVersion` and
-record the producing model's provider, name, and version.
-
-## Evidence boundary
-
-A future run can provide the following artifact roles when relevant:
-
-- `cad-source` for an editable CAD source file
-- `step` for an interchange model
-- `drawing` for drawings
-- `bom` for a bill of materials
-- `calculation` for calculations
-- `supporting` for other evidence
-
-Every artifact must name a safe relative path to a regular file within its run
-directory, a lowercase SHA-256 hash, and a status. Symlinks, directories,
-traversal, and URL-dangerous path characters are rejected. Do not submit
-arbitrary HTML, CSS, or JavaScript: the common static site renders result pages
-and only links to the submitted files.
-
-Benchmark-specific values, requirements, and any evaluation logic belong only
-in `extensions`. Do not alter the legacy RB-2.0 material in `submissions/` or
-`BENCHMARK_PROMPT.md` when adding a future framework run.
-
-## Local check
-
-Run `pnpm check` before proposing a static publication. It verifies the
-manifest, paths, hashes, STEP preprocessing, export, and links.
+- 現在のタスクで提供されたエンジニアリング課題、入力資料、候補IDを正本として、課題を独立に完了してください。
+- 課題の解釈、調査、計画、設計判断、検証、改善を自律的に行い、提出形式を満たしただけの状態を完成とはみなさないでください。
+- 他候補の成果、`runs/`内の他候補、`submissions/`、`BENCHMARK_PROMPT.md`は閲覧、参照、流用しないでください。
+- 対象リポジトリは <https://github.com/naoyamd/rotorbench> です。変更は`runs/<candidate-id>/`内に限定し、共通サイト、スキーマ、検証処理、公開設定は変更しないでください。
+- `run.json`に、指定されたベンチマークIDとバージョン、実際のモデル情報、成果物一覧を記録してください。
+- 編集可能なCADソース、STEP、図面、BOM、計算書、補足資料など、課題に対する設計判断と検証を確認できる成果物を必要に応じて提出してください。各成果物には安全な相対パスとSHA-256を記録してください。
+- STEPの解析・表示や結果ページは共通基盤が担当します。候補固有のビューワー、Webページ、公開処理は実装しないでください。
+- `pnpm check`を実行し、自分の提出物に起因する問題を解消してください。公開、他候補との比較、評価は行わないでください。
+- 課題、入力資料、候補IDのいずれかが不足している場合は推測で補わず、不足している項目だけを報告して停止してください。
