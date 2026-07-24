@@ -1,17 +1,11 @@
 import type { Metadata } from "next";
-import { readFileSync } from "node:fs";
-import path from "node:path";
+import { MODEL_TASK_PROMPT } from "../../shared/prompts.mjs";
 
 export const metadata: Metadata = {
   title: "Common model prompt | Engineering Design Benchmark Framework",
   description:
     "The immutable common execution prompt supplied to every candidate model.",
 };
-
-const prompt = readFileSync(
-  path.join(process.cwd(), "MODEL_TASK.md"),
-  "utf8",
-).trim();
 
 export default function ModelTaskPage() {
   return (
@@ -24,7 +18,7 @@ export default function ModelTaskPage() {
           課題固有の内容は現在のタスクで別途提供し、この共通指示は変更しません。
         </p>
         <pre className="prompt-block">
-          <code>{prompt}</code>
+          <code>{MODEL_TASK_PROMPT}</code>
         </pre>
         <p className="prompt-source">
           Canonical source:{" "}

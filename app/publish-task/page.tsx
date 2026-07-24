@@ -1,17 +1,11 @@
 import type { Metadata } from "next";
-import { readFileSync } from "node:fs";
-import path from "node:path";
+import { PUBLISH_TASK_PROMPT } from "../../shared/prompts.mjs";
 
 export const metadata: Metadata = {
   title: "Publishing prompt | Engineering Design Benchmark Framework",
   description:
     "The immutable integration and publishing prompt used only after a candidate run is complete.",
 };
-
-const prompt = readFileSync(
-  path.join(process.cwd(), "PUBLISH_TASK.md"),
-  "utf8",
-).trim();
 
 export default function PublishTaskPage() {
   return (
@@ -24,7 +18,7 @@ export default function PublishTaskPage() {
           完成済み成果の場所とともにこのページのURLを渡します。
         </p>
         <pre className="prompt-block">
-          <code>{prompt}</code>
+          <code>{PUBLISH_TASK_PROMPT}</code>
         </pre>
         <p className="prompt-source">
           Canonical source:{" "}

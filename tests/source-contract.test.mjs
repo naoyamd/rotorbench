@@ -20,6 +20,10 @@ import {
   validateFramework,
   validateRun,
 } from "../scripts/framework-lib.mjs";
+import {
+  MODEL_TASK_PROMPT,
+  PUBLISH_TASK_PROMPT,
+} from "../shared/prompts.mjs";
 
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const digest = (value) => createHash("sha256").update(value).digest("hex");
@@ -243,6 +247,7 @@ test("legacy prompt and submission text remains unchanged across line endings", 
 
 test("the common candidate prompt is pinned to EDBF-COMMON-1.0", async () => {
   const prompt = await readFile(path.join(projectRoot, "MODEL_TASK.md"), "utf8");
+  assert.equal(prompt.replace(/\r\n?/g, "\n").trimEnd(), MODEL_TASK_PROMPT);
   assert.equal(
     normalizedTextDigest(prompt),
     "26ed3140850140eb9edb9c737dd043027dddf650d9b46d1be1dccbb10b7a2979",
@@ -255,6 +260,7 @@ test("the common candidate prompt is pinned to EDBF-COMMON-1.0", async () => {
 
 test("the publishing prompt is pinned to EDBF-PUBLISH-1.0", async () => {
   const prompt = await readFile(path.join(projectRoot, "PUBLISH_TASK.md"), "utf8");
+  assert.equal(prompt.replace(/\r\n?/g, "\n").trimEnd(), PUBLISH_TASK_PROMPT);
   assert.equal(
     normalizedTextDigest(prompt),
     "c20a61a4eddcb8291d4d77f50b7571597caed89ea5d85aab6f380cf22bed14d4",
@@ -263,4 +269,15 @@ test("the publishing prompt is pinned to EDBF-PUBLISH-1.0", async () => {
   assert.match(prompt, /Stage: `2 \/ 2 — INTEGRATE & PUBLISH`/);
   assert.match(prompt, /候補モデルには渡さない/);
   assert.match(prompt, /候補成果の改善、再設計、再実行、評価、他候補との比較は行わない/);
+});
+
+test("prompt pages bundle their content without runtime filesystem reads", async () => {
+  for (const relativePath of [
+    "app/model-task/page.tsx",
+    "app/publish-task/page.tsx",
+  ]) {
+    const source = await readFile(path.join(projectRoot, relativePath), "utf8");
+    assert.doesNotMatch(source, /node:fs|readFileSync|process\.cwd/);
+    assert.match(source, /shared\/prompts\.mjs/);
+  }
 });
