@@ -7,11 +7,13 @@ import path from "node:path";
 const projectRoot = process.cwd();
 const exportRoot = path.join(projectRoot, "out");
 const basePath = "/framework-base-path";
+const baseSiteUrl = "https://rotorbench-lab.naoyamd.chatgpt.site";
 const nextCli = path.join(projectRoot, "node_modules", "next", "dist", "bin", "next");
 const baseEnvironment = {
   ...process.env,
   PAGES_BASE_PATH: basePath,
   NEXT_PUBLIC_BASE_PATH: basePath,
+  NEXT_PUBLIC_SITE_URL: baseSiteUrl,
 };
 
 function run(script, argumentsList, env) {
@@ -60,7 +62,7 @@ try {
   assert.match(
     stage0Author,
     new RegExp(
-      `https://rotorbench-lab\\.naoyamd\\.chatgpt\\.site${basePath}/stage0/author/`,
+      `${baseSiteUrl.replaceAll(".", "\\.")}${basePath}/stage0/author/`,
     ),
   );
 } finally {
