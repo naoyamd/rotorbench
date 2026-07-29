@@ -147,6 +147,9 @@ export type Launch = {
     sha256: string;
   };
   releaseStatus?: "release-ready" | "live-verified";
+  activationVerified?: boolean;
+  handoffEligible?: boolean;
+  activationVerificationDigest?: string;
 };
 
 export type Cohort = {

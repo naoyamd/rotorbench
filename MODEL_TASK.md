@@ -2,8 +2,13 @@
 
 Protocol: `EDBF-STAGE1-4.0`
 
-Stage 1 begins only after Stage 0 has produced a `live-verified` launch and the
-operator has frozen the cohort and common run conditions.
+Stage 1 begins only after Stage 0 has produced a `live-verified` launch, the
+detached post-activation verification is valid, and the operator has frozen
+the cohort and common run conditions.
+
+This workflow assumes one trusted operator running a personal comparison. Its
+integrity records are practical reproducibility checks, not cryptographic proof
+against that operator or a manufacturing-release certification.
 
 ## What the operator sends
 
@@ -44,7 +49,7 @@ Start a new model task with the generated directory as its working directory.
 Then open `/model-task/` and copy one complete launch-specific block. The block
 contains the fixed authorization sentence and one canonical
 `/launch/<launch-id>/` URL. It has no placeholders. If the page lists no
-live-verified launches, Stage 1 is closed and the operator returns to
+activation-verified handoffs, Stage 1 is closed and the operator returns to
 `/stage0/`.
 
 ## What the launch URL guarantees
@@ -63,6 +68,14 @@ live-verified launches, Stage 1 is closed and the operator returns to
 - Live verification rejects redirects and cross-origin or base-path drift,
   compares remote `launch.json` and `prompt.txt` to the exact frozen bytes,
   and requires the launch digest markers on the rendered page.
+- A detached, create-only post-activation record binds those markers and exact
+  bytes to the current v3 live-verification digest. Its observed whole-page
+  hash is forensic history only; a read-only audit rechecks the published
+  activation record, final-only marker, and rendered prompt bytes after every
+  deployment.
+- Operators use only the documented package commands. Those commands recheck
+  activation before entering the immutable runtime; directly invoking a file
+  inside `execution-contract/` does not constitute an authorized benchmark run.
 - The candidate works only in the operator-created isolated project and writes
   `candidate-output/`. It never receives or chooses a candidate ID. The
   candidate first runs the local receipt preflight and stops on any mismatch.
@@ -70,6 +83,10 @@ live-verified launches, Stage 1 is closed and the operator returns to
   valid, hash-bound pre-run operator authorization created after cohort
   opening and before execution, and the submitted workspace receipt exactly
   matches that authorization.
+- Root validation also requires current-protocol cohort opening and candidate
+  workspace creation to occur at or after the detached launch activation.
+  State created before Stage B cannot become measurable merely because an
+  activation record is added later.
 - `plan.json` is written before design work. Its exact bytes are checkpointed
   in `initial-plan.sha256` and neither file is changed afterward.
 - `submission.json` binds the packet manifest and bundle, execution contract,

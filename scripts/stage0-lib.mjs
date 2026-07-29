@@ -24,6 +24,7 @@ import {
   readJson,
   sha256,
   validateBaselineAttestation,
+  validateActivationVerification,
   validateEngineeringReview,
   validateExecutionProfile,
   validateLaunch,
@@ -170,6 +171,10 @@ export function packetVersionRoot(projectRoot, packetId, version) {
 
 export function launchRoot(projectRoot, launchId) {
   return path.join(projectRoot, "launches", launchId);
+}
+
+export function activationRoot(projectRoot, launchId) {
+  return path.join(projectRoot, "activations", launchId);
 }
 
 export function issueText(issues) {
@@ -822,6 +827,7 @@ export const executionContractFiles = [
   "schemas/protocol-review.schema.json",
   "schemas/launch-release.schema.json",
   "schemas/live-verification.schema.json",
+  "schemas/activation-verification.schema.json",
   "schemas/stage-contract-v4.schema.json",
   "schemas/evaluation-record.schema.json",
   "schemas/assessment-evidence.schema.json",
@@ -1558,19 +1564,30 @@ async function transitionReleaseState(root, expectedPrior, next, auxiliary = nul
   await rm(journalPath, { force: true });
 }
 
-export async function validateLaunchFreeze(projectRoot, launchId) {
+export async function validateLaunchFreeze(projectRoot, launchId, { recover = true } = {}) {
   const root = launchRoot(projectRoot, launchId);
   const issues = [];
-  try {
-    await recoverReleaseTransition(root);
-  } catch (error) {
+  if (recover) {
+    try {
+      await recoverReleaseTransition(root);
+    } catch (error) {
+      return {
+        status: "invalid",
+        issues: [{
+          code: "release-transition-invalid",
+          message: error instanceof Error
+            ? error.message
+            : "Release transition journal cannot be recovered",
+        }],
+        root,
+      };
+    }
+  } else if (await pathExists(path.join(root, releaseTransitionFile))) {
     return {
       status: "invalid",
       issues: [{
-        code: "release-transition-invalid",
-        message: error instanceof Error
-          ? error.message
-          : "Release transition journal cannot be recovered",
+        code: "release-transition-pending",
+        message: "Release transition recovery is pending; a read-only audit will not modify release state",
       }],
       root,
     };
@@ -1758,8 +1775,8 @@ export async function validateLaunchFreeze(projectRoot, launchId) {
   };
 }
 
-export async function validateReviews(projectRoot, launchId) {
-  const frozen = await validateLaunchFreeze(projectRoot, launchId);
+export async function validateReviews(projectRoot, launchId, options = {}) {
+  const frozen = await validateLaunchFreeze(projectRoot, launchId, options);
   const issues = [...frozen.issues];
   if (!frozen.launch) return { ...frozen, issues, status: "invalid" };
   const packetRoot = packetVersionRoot(
@@ -2084,22 +2101,145 @@ export async function validateLiveVerificationBindings(root, launch, verificatio
   return issues;
 }
 
-export async function markLiveVerified({
-  projectRoot,
+const htmlNamespace = "http://www.w3.org/1999/xhtml";
+const markerInertHtmlElements = new Set([
+  "iframe", "noembed", "noframes", "noscript", "plaintext", "script", "style",
+  "template", "textarea", "title", "xmp",
+]);
+const launchPageMarkerNames = [
+  "data-stage1-launch-id",
+  "data-launch-digest",
+  "data-prompt-sha256",
+];
+const finalHandoffMarker = "data-stage1-handoff";
+const finalHandoffValue = "executable";
+const activationVerificationMarker = "data-activation-verification-digest";
+
+function activeHtmlContext(node, parentContext) {
+  if (!node.tagName) return parentContext;
+  const foreign = parentContext.foreign || node.namespaceURI !== htmlNamespace;
+  return {
+    foreign,
+    inert: parentContext.inert || foreign || markerInertHtmlElements.has(node.tagName),
+  };
+}
+
+function activeHtmlText(node, parentContext = { foreign: false, inert: false }) {
+  if (node.nodeName === "#text") return parentContext.inert ? "" : node.value;
+  const context = activeHtmlContext(node, parentContext);
+  if (context.inert) return "";
+  if (node.tagName === "br") return "\n";
+  return (node.childNodes ?? []).map((child) => activeHtmlText(child, context)).join("");
+}
+
+async function inspectStrictLaunchPage(
+  pageText,
+  {
+    launchId,
+    launchDigest,
+    promptSha256,
+    expectedPromptBytes = null,
+    activationVerificationDigest = null,
+    requireFinalHandoff = false,
+  },
+) {
+  // Keep parse5 loaded only for operations that inspect a deployed launch page. Frozen
+  // execution-contract scripts import this module for non-live checks and must stay
+  // independently runnable from their snapshot.
+  const { parse } = await import("parse5");
+  const document = parse(pageText, { scriptingEnabled: true });
+  const markerOccurrences = new Map(launchPageMarkerNames.map((name) => [name, []]));
+  const markerSections = [];
+  const finalHandoffs = [];
+  const activationVerificationDigests = [];
+  const visit = (node, parentContext = { foreign: false, inert: false }) => {
+    const context = activeHtmlContext(node, parentContext);
+    if (node.tagName && !context.inert) {
+      const attributes = new Map((node.attrs ?? []).map(({ name, value }) => [name, value]));
+      for (const name of launchPageMarkerNames) {
+        if (attributes.has(name)) {
+          markerOccurrences.get(name).push({ value: attributes.get(name), node });
+        }
+      }
+      if (attributes.has(finalHandoffMarker)) {
+        finalHandoffs.push({ value: attributes.get(finalHandoffMarker), node });
+      }
+      if (attributes.has(activationVerificationMarker)) {
+        activationVerificationDigests.push({ value: attributes.get(activationVerificationMarker), node });
+      }
+      if (node.tagName === "section") {
+        const byName = new Map();
+        for (const name of launchPageMarkerNames) {
+          if (attributes.has(name)) byName.set(name, [attributes.get(name)]);
+        }
+        markerSections.push({ node, byName });
+      }
+    }
+    if (context.inert) return;
+    for (const child of node.childNodes ?? []) visit(child, context);
+  };
+  visit(document);
+
+  const expected = new Map([
+    ["data-stage1-launch-id", launchId],
+    ["data-launch-digest", launchDigest],
+    ["data-prompt-sha256", promptSha256],
+  ]);
+  for (const [name, expectedValue] of expected) {
+    const occurrences = markerOccurrences.get(name) ?? [];
+    if (occurrences.length !== 1) {
+      throw new Error(`Launch page must contain exactly one ${name} marker`);
+    }
+    if (occurrences[0].value !== expectedValue) {
+      throw new Error(`Launch page ${name} marker does not exactly match the frozen launch`);
+    }
+  }
+  const matchingSections = markerSections.filter(({ byName }) => (
+    [...expected].every(([name, value]) => {
+      const values = byName.get(name) ?? [];
+      return values.length === 1 && values[0] === value;
+    })
+  ));
+  if (matchingSections.length !== 1) {
+    throw new Error("Launch page markers must occur together exactly once on an active section start tag");
+  }
+  if (requireFinalHandoff) {
+    if (finalHandoffs.length !== 1) {
+      throw new Error(`Launch page must contain exactly one ${finalHandoffMarker} marker`);
+    }
+    const handoff = finalHandoffs[0];
+    if (
+      handoff.value !== finalHandoffValue
+      || handoff.node.tagName !== "pre"
+      || !Buffer.from(activeHtmlText(handoff.node), "utf8").equals(expectedPromptBytes)
+    ) {
+      throw new Error("Launch page final handoff marker or rendered prompt does not exactly match prompt.txt");
+    }
+    if (
+      activationVerificationDigests.length !== 1
+      || activationVerificationDigests[0].value !== activationVerificationDigest
+      || activationVerificationDigests[0].node !== matchingSections[0].node
+    ) {
+      throw new Error("Launch page activation verification marker does not bind the create-only record");
+    }
+  }
+  return { launchId, launchDigest, promptSha256 };
+}
+
+async function collectCanonicalLiveArtifacts({
+  root,
+  launch,
   launchId,
   launchUrl,
   launchJsonUrl,
   promptUrl,
-  now = new Date().toISOString(),
-  fetchImpl = globalThis.fetch,
+  fetchImpl,
+  requireFinalHandoff = false,
+  activationVerificationDigest = null,
 }) {
-  const frozen = await validateReviews(projectRoot, launchId);
-  if (frozen.status !== "valid" || frozen.release.status !== "release-ready") {
-    throw new Error(`Launch is not release-ready:\n${issueText(frozen.issues)}`);
-  }
   const urls = validateCanonicalLiveUrls({
     launchId,
-    canonicalBaseUrl: frozen.launch.canonicalBaseUrl,
+    canonicalBaseUrl: launch.canonicalBaseUrl,
     launchUrl,
     launchJsonUrl,
     promptUrl,
@@ -2109,8 +2249,8 @@ export async function markLiveVerified({
       fetchCanonicalBytes(fetchImpl, "launch page", urls.launchUrl),
       fetchCanonicalBytes(fetchImpl, "launch.json", urls.launchJsonUrl),
       fetchCanonicalBytes(fetchImpl, "prompt.txt", urls.promptUrl),
-      readFile(path.join(frozen.root, "launch.json")),
-      readFile(path.join(frozen.root, "prompt.txt")),
+      readFile(path.join(root, "launch.json")),
+      readFile(path.join(root, "prompt.txt")),
     ]);
   if (!remoteLaunchBytes.equals(localLaunchBytes)) {
     throw new Error("Remote launch.json bytes differ from the frozen launch.json");
@@ -2118,24 +2258,50 @@ export async function markLiveVerified({
   if (!remotePromptBytes.equals(localPromptBytes)) {
     throw new Error("Remote prompt.txt bytes differ from the frozen prompt.txt");
   }
-  if (sha256(remotePromptBytes) !== frozen.launch.promptSha256) {
+  if (sha256(remotePromptBytes) !== launch.promptSha256) {
     throw new Error("Remote prompt.txt hash differs from the frozen launch binding");
   }
   const pageText = pageBytes.toString("utf8");
-  for (const marker of [
-    `data-stage1-launch-id="${launchId}"`,
-    `data-launch-digest="${frozen.launch.launchDigest}"`,
-    `data-prompt-sha256="${frozen.launch.promptSha256}"`,
-  ]) {
-    if (!pageText.includes(marker)) {
-      throw new Error(`Launch page is missing required marker ${marker}`);
-    }
+  if (!Buffer.from(pageText, "utf8").equals(pageBytes)) {
+    throw new Error("Launch page is not valid UTF-8 HTML");
   }
+  const markerProjection = await inspectStrictLaunchPage(pageText, {
+    launchId,
+    launchDigest: launch.launchDigest,
+    promptSha256: launch.promptSha256,
+    ...(requireFinalHandoff ? {
+      requireFinalHandoff: true,
+      expectedPromptBytes: localPromptBytes,
+      activationVerificationDigest,
+    } : {}),
+  });
+  return { urls, pageBytes, localLaunchBytes, localPromptBytes, markerProjection };
+}
+
+async function collectLiveVerification({
+  root,
+  launch,
+  launchId,
+  launchUrl,
+  launchJsonUrl,
+  promptUrl,
+  now,
+  fetchImpl,
+}) {
+  const { urls, pageBytes, localLaunchBytes } = await collectCanonicalLiveArtifacts({
+    root,
+    launch,
+    launchId,
+    launchUrl,
+    launchJsonUrl,
+    promptUrl,
+    fetchImpl,
+  });
   const verification = {
     schemaVersion: "3.0",
     launchId,
-    launchDigest: frozen.launch.launchDigest,
-    promptSha256: frozen.launch.promptSha256,
+    launchDigest: launch.launchDigest,
+    promptSha256: launch.promptSha256,
     launchJsonSha256: sha256(localLaunchBytes),
     pageSha256: sha256(pageBytes),
     canonicalBaseUrl: urls.canonicalBaseUrl,
@@ -2157,11 +2323,336 @@ export async function markLiveVerified({
   };
   const verificationIssues = [
     ...validateLiveVerification(verification),
-    ...await validateLiveVerificationBindings(frozen.root, frozen.launch, verification),
+    ...await validateLiveVerificationBindings(root, launch, verification),
   ];
   if (verificationIssues.length > 0) {
     throw new Error(`Live verification is invalid:\n${issueText(verificationIssues)}`);
   }
+  return verification;
+}
+
+async function requireCurrentLiveVerification(frozen) {
+  const verificationPath = path.join(frozen.root, "live-verification.json");
+  let verification;
+  try {
+    verification = await readRegularJsonFile(
+      verificationPath,
+      "live-verification.json",
+    );
+  } catch (error) {
+    throw new Error(
+      `Existing live verification cannot be read: ${error instanceof Error ? error.message : "unknown error"}`,
+    );
+  }
+  const issues = [
+    ...validateLiveVerification(verification),
+    ...await validateLiveVerificationBindings(frozen.root, frozen.launch, verification),
+  ];
+  if (manifestDigest(verification) !== frozen.release.liveVerificationDigest) {
+    addIssue(
+      issues,
+      "live-verification-digest-mismatch",
+      "live verification digest differs from release.json",
+    );
+  }
+  if (issues.length > 0) {
+    throw new Error(`Existing live verification is invalid:\n${issueText(issues)}`);
+  }
+  return verification;
+}
+
+export async function validateActivationVerificationBindings(root, launch, release, verification) {
+  const issues = [];
+  try {
+    const urls = validateCanonicalLiveUrls({
+      launchId: launch.id,
+      canonicalBaseUrl: launch.canonicalBaseUrl,
+      launchUrl: verification.launchUrl,
+      launchJsonUrl: verification.launchJsonUrl,
+      promptUrl: verification.promptUrl,
+    });
+    if (
+      verification.canonicalBaseUrl !== urls.canonicalBaseUrl
+      || verification.canonicalOrigin !== urls.canonicalOrigin
+      || verification.basePath !== urls.basePath
+    ) {
+      addIssue(issues, "activation-url-binding", "Activation verification origin or base path differs");
+    }
+  } catch (error) {
+    addIssue(
+      issues,
+      "activation-url-invalid",
+      error instanceof Error ? error.message : "Activation verification URLs are invalid",
+    );
+  }
+  let localLaunchSha256 = null;
+  try {
+    localLaunchSha256 = sha256(await readFile(path.join(root, "launch.json")));
+  } catch {
+    // The local-file validation below reports this with the normal issue code.
+  }
+  const markerProjection = {
+    schemaVersion: "1.0",
+    algorithm: "sha256-canonical-launch-markers-v1",
+    launchId: launch.id,
+    launchDigest: launch.launchDigest,
+    promptSha256: launch.promptSha256,
+    launchJsonSha256: localLaunchSha256,
+  };
+  if (
+    canonicalJson(verification.markerProjection) !== canonicalJson(markerProjection)
+    || verification.markerProjectionDigest !== manifestDigest(markerProjection)
+  ) {
+    addIssue(
+      issues,
+      "activation-marker-binding",
+      "Activation verification does not bind the canonical launch marker projection",
+    );
+  }
+  if (verification.liveVerificationDigest !== release.liveVerificationDigest) {
+    addIssue(
+      issues,
+      "activation-live-verification-binding",
+      "Activation verification does not bind the current v3 live-verification digest",
+    );
+  }
+  try {
+    const [launchBytes, promptBytes] = await Promise.all([
+      readFile(path.join(root, "launch.json")),
+      readFile(path.join(root, "prompt.txt")),
+    ]);
+    if (verification.launchJsonSha256 !== sha256(launchBytes)) {
+      addIssue(issues, "activation-launch-json-binding", "Activation launch.json hash differs from frozen bytes");
+    }
+    if (
+      verification.promptSha256 !== sha256(promptBytes)
+      || verification.promptSha256 !== launch.promptSha256
+    ) {
+      addIssue(issues, "activation-prompt-binding", "Activation prompt hash differs from frozen prompt bytes");
+    }
+  } catch {
+    addIssue(issues, "activation-local-files", "Frozen launch.json or prompt.txt cannot be read");
+  }
+  if (
+    verification.launchId !== launch.id
+    || verification.launchDigest !== launch.launchDigest
+  ) {
+    addIssue(issues, "activation-launch-binding", "Activation verification does not bind the frozen launch");
+  }
+  return issues;
+}
+
+function activationVerificationPath(projectRoot, launchId) {
+  return path.join(activationRoot(projectRoot, launchId), "verification.json");
+}
+
+async function readActivationVerification(projectRoot, launchId) {
+  return readRegularJsonFile(
+    activationVerificationPath(projectRoot, launchId),
+    "activation verification",
+  );
+}
+
+async function resolveActivationVerificationIssues(root, launch, release, verification) {
+  return [
+    ...validateActivationVerification(verification),
+    ...await validateActivationVerificationBindings(root, launch, release, verification),
+  ];
+}
+
+export async function activateLive({
+  projectRoot,
+  launchId,
+  launchUrl,
+  launchJsonUrl,
+  promptUrl,
+  now = new Date().toISOString(),
+  fetchImpl = globalThis.fetch,
+}) {
+  const frozen = await validateReviews(projectRoot, launchId);
+  if (frozen.status !== "valid") {
+    throw new Error(`Launch is not valid for activation:\n${issueText(frozen.issues)}`);
+  }
+  if (frozen.release.status !== "live-verified") {
+    throw new Error("Launch is not already live-verified");
+  }
+  await requireCurrentLiveVerification(frozen);
+  const { urls, pageBytes, localLaunchBytes, markerProjection: observedMarkers } = await collectCanonicalLiveArtifacts({
+    root: frozen.root,
+    launch: frozen.launch,
+    launchId,
+    launchUrl,
+    launchJsonUrl,
+    promptUrl,
+    fetchImpl,
+  });
+  const markerProjection = {
+    schemaVersion: "1.0",
+    algorithm: "sha256-canonical-launch-markers-v1",
+    ...observedMarkers,
+    launchJsonSha256: sha256(localLaunchBytes),
+  };
+  const verification = {
+    schemaVersion: "1.0",
+    algorithm: "sha256-canonical-launch-markers-v1",
+    launchId,
+    launchDigest: frozen.launch.launchDigest,
+    promptSha256: frozen.launch.promptSha256,
+    launchJsonSha256: sha256(localLaunchBytes),
+    liveVerificationDigest: frozen.release.liveVerificationDigest,
+    markerProjection,
+    markerProjectionDigest: manifestDigest(markerProjection),
+    // This is a forensic observation. Audits validate the stable markers, not this value.
+    observedPageSha256: sha256(pageBytes),
+    canonicalBaseUrl: urls.canonicalBaseUrl,
+    canonicalOrigin: urls.canonicalOrigin,
+    basePath: urls.basePath,
+    launchUrl: urls.launchUrl,
+    launchJsonUrl: urls.launchJsonUrl,
+    promptUrl: urls.promptUrl,
+    checks: {
+      redirectFree: true,
+      sameOrigin: true,
+      basePathMatched: true,
+      launchJsonExact: true,
+      promptExact: true,
+      pageMarkerMatched: true,
+    },
+    status: "activated",
+    activatedAt: now,
+  };
+  const issues = await resolveActivationVerificationIssues(
+    frozen.root,
+    frozen.launch,
+    frozen.release,
+    verification,
+  );
+  if (issues.length > 0) {
+    throw new Error(`Activation verification is invalid:\n${issueText(issues)}`);
+  }
+  const destination = activationVerificationPath(projectRoot, launchId);
+  await mkdir(path.dirname(destination), { recursive: true });
+  try {
+    await durableCreate(destination, releaseBytes(verification));
+  } catch (error) {
+    if (error && typeof error === "object" && error.code === "EEXIST") {
+      throw new Error("Activation verification already exists and is create-only");
+    }
+    throw error;
+  }
+  return verification;
+}
+
+export async function auditLive({
+  projectRoot,
+  launchId,
+  launchUrl,
+  launchJsonUrl,
+  promptUrl,
+  now = new Date().toISOString(),
+  fetchImpl = globalThis.fetch,
+}) {
+  const frozen = await validateReviews(projectRoot, launchId, { recover: false });
+  if (frozen.status !== "valid") {
+    throw new Error(`Launch is not valid for read-only activation audit:\n${issueText(frozen.issues)}`);
+  }
+  if (frozen.release.status !== "live-verified") {
+    throw new Error("Launch is not already live-verified");
+  }
+  await requireCurrentLiveVerification(frozen);
+  let verification;
+  try {
+    verification = await readActivationVerification(projectRoot, launchId);
+  } catch (error) {
+    throw new Error(
+      `Activation verification cannot be read: ${error instanceof Error ? error.message : "unknown error"}`,
+    );
+  }
+  const issues = await resolveActivationVerificationIssues(
+    frozen.root,
+    frozen.launch,
+    frozen.release,
+    verification,
+  );
+  if (issues.length > 0) {
+    throw new Error(`Activation verification is invalid:\n${issueText(issues)}`);
+  }
+  const canonicalUrls = validateCanonicalLiveUrls({
+    launchId,
+    canonicalBaseUrl: frozen.launch.canonicalBaseUrl,
+    launchUrl,
+    launchJsonUrl,
+    promptUrl,
+  });
+  const activationUrl = publicUrl(
+    canonicalUrls.canonicalBaseUrl,
+    `framework/activations/${launchId}/verification.json`,
+  );
+  let localActivationBytes;
+  try {
+    localActivationBytes = await readFile(activationVerificationPath(projectRoot, launchId));
+  } catch (error) {
+    throw new Error(
+      `Activation verification bytes cannot be read: ${error instanceof Error ? error.message : "unknown error"}`,
+    );
+  }
+  const remoteActivationBytes = await fetchCanonicalBytes(
+    fetchImpl,
+    "activation verification",
+    activationUrl,
+  );
+  if (!remoteActivationBytes.equals(localActivationBytes)) {
+    throw new Error("Remote activation verification bytes differ from the create-only record");
+  }
+  const { urls, pageBytes } = await collectCanonicalLiveArtifacts({
+    root: frozen.root,
+    launch: frozen.launch,
+    launchId,
+    launchUrl,
+    launchJsonUrl,
+    promptUrl,
+    fetchImpl,
+    requireFinalHandoff: true,
+    activationVerificationDigest: manifestDigest(verification),
+  });
+  if (
+    verification.launchUrl !== urls.launchUrl
+    || verification.launchJsonUrl !== urls.launchJsonUrl
+    || verification.promptUrl !== urls.promptUrl
+  ) {
+    throw new Error("Activation audit URLs differ from the create-only activation verification");
+  }
+  return {
+    activation: verification,
+    activationUrl,
+    observedPageSha256: sha256(pageBytes),
+    auditedAt: now,
+  };
+}
+
+export async function markLiveVerified({
+  projectRoot,
+  launchId,
+  launchUrl,
+  launchJsonUrl,
+  promptUrl,
+  now = new Date().toISOString(),
+  fetchImpl = globalThis.fetch,
+}) {
+  const frozen = await validateReviews(projectRoot, launchId);
+  if (frozen.status !== "valid" || frozen.release.status !== "release-ready") {
+    throw new Error(`Launch is not release-ready:\n${issueText(frozen.issues)}`);
+  }
+  const verification = await collectLiveVerification({
+    root: frozen.root,
+    launch: frozen.launch,
+    launchId,
+    launchUrl,
+    launchJsonUrl,
+    promptUrl,
+    now,
+    fetchImpl,
+  });
   const verificationPath = path.join(frozen.root, "live-verification.json");
   if (await pathExists(verificationPath)) {
     throw new Error("live-verification.json already exists");

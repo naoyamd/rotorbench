@@ -9,6 +9,11 @@ This repository prepares, freezes, launches, evaluates, and publishes the
 benchmark. It does **not** contain a candidate answer, and no model run is
 performed merely by building or deploying the site.
 
+The intended use is a trusted operator's personal, longitudinal model
+comparison. Receipts, hashes, and isolated workspaces make runs reproducible
+and catch ordinary setup drift; they are not a commercial certification,
+an adversarial security boundary, or approval for safety-critical manufacture.
+
 ## Public entry points
 
 - Home: <https://naoyamd.github.io/rotorbench/>
@@ -181,7 +186,35 @@ edited. Stage 0 binds:
 - the canonical page, `launch.json`, and `prompt.txt` bytes observed after
   deployment.
 
-Only a `live-verified` launch appears on the Stage 1 launcher.
+Only a `live-verified` launch with a valid detached activation verification
+appears on the Stage 1 launcher. Release-ready and activation-pending launches
+remain available only as non-executable inspection pages.
+
+### Required deployment and live-verification sequence
+
+For every release, use this exact order. The first verification observes the
+release-ready page. A post-activation attestation is then stored outside the
+immutable launch directory in `activations/<launch-id>/verification.json`.
+Its page SHA is forensic evidence only; the canonical marker projection and
+the exact `launch.json` and `prompt.txt` bytes remain the integrity checks.
+
+1. Deploy the `release-ready` launch.
+2. Run `live-verify` against its canonical page, `launch.json`, and `prompt.txt` URLs.
+3. Deploy the resulting `live-verified` state.
+4. Run create-only `activate-live` against the same canonical URLs.
+5. Perform the final deploy, then run read-only `audit-live` to confirm the
+   remote activation record and frozen-file bytes, the final-only activation
+   marker, and byte-exact rendered prompt text before opening Stage 1.
+6. Open each cohort and create every candidate workspace only after activation.
+   Root validation rejects current-protocol cohort or workspace timestamps that
+   predate the activation record, so pre-activation state cannot later become a
+   measurable run.
+
+Only the package commands documented below are valid operator entrypoints.
+They recheck the detached activation before delegating to the immutable launch
+runtime. Direct execution of files below a frozen `execution-contract/`
+directory bypasses that operational gate and is therefore an invalid,
+non-measurable run.
 
 ## Local validation
 
@@ -203,6 +236,8 @@ pnpm stage0 -- review --launch-id <launch-id>
 pnpm stage0 -- approve --launch-id <launch-id> --expected-launch-digest <digest> --approval "APPROVE RELEASE <digest>"
 pnpm stage0 -- release-ready --launch-id <launch-id> --expected-launch-digest <digest> --approval "APPROVE RELEASE <digest>"
 pnpm stage0 -- live-verify --launch-id <launch-id> --launch-url <https-url> --launch-json-url <https-url> --prompt-url <https-url>
+pnpm stage0 -- activate-live --launch-id <launch-id> --launch-url <https-url> --launch-json-url <https-url> --prompt-url <https-url>
+pnpm stage0 -- audit-live --launch-id <launch-id> --launch-url <https-url> --launch-json-url <https-url> --prompt-url <https-url>
 ```
 
 ## Public rubric and private boundaries
