@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rotorbench.example/schemas/live-verification.schema.json",
+  "title": "Stage 0 live launch verification",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "launchId",
+    "launchDigest",
+    "promptSha256",
+    "launchJsonSha256",
+    "pageSha256",
+    "canonicalBaseUrl",
+    "canonicalOrigin",
+    "basePath",
+    "launchUrl",
+    "launchJsonUrl",
+    "promptUrl",
+    "checks",
+    "status",
+    "verifiedAt"
+  ],
+  "properties": {
+    "schemaVersion": { "const": "3.0" },
+    "launchId": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" },
+    "launchDigest": { "$ref": "artifact.schema.json#/$defs/sha256" },
+    "promptSha256": { "$ref": "artifact.schema.json#/$defs/sha256" },
+    "launchJsonSha256": { "$ref": "artifact.schema.json#/$defs/sha256" },
+    "pageSha256": { "$ref": "artifact.schema.json#/$defs/sha256" },
+    "canonicalBaseUrl": {
+      "type": "string",
+      "format": "uri",
+      "pattern": "^https://[^/?#]+(?::[0-9]+)?(?:/[A-Za-z0-9._~-]+)*$"
+    },
+    "canonicalOrigin": {
+      "type": "string",
+      "pattern": "^https://[^/?#]+(?::[0-9]+)?$"
+    },
+    "basePath": {
+      "type": "string",
+      "pattern": "^(?:|/(?:[A-Za-z0-9._~-]+/?)*)$"
+    },
+    "launchUrl": { "type": "string", "format": "uri" },
+    "launchJsonUrl": { "type": "string", "format": "uri" },
+    "promptUrl": { "type": "string", "format": "uri" },
+    "checks": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "redirectFree",
+        "sameOrigin",
+        "basePathMatched",
+        "launchJsonExact",
+        "promptExact",
+        "pageMarkerMatched"
+      ],
+      "properties": {
+        "redirectFree": { "const": true },
+        "sameOrigin": { "const": true },
+        "basePathMatched": { "const": true },
+        "launchJsonExact": { "const": true },
+        "promptExact": { "const": true },
+        "pageMarkerMatched": { "const": true }
+      }
+    },
+    "status": { "const": "verified" },
+    "verifiedAt": { "type": "string", "format": "date-time" }
+  }
+}
