@@ -407,13 +407,22 @@ test("Stage 0 v3 freezes immutable versions and gates public release", async () 
         "2026-01-02T00:00:00Z",
       ),
     ]);
+    const concurrentApprovalSummary = concurrentApprovals.map((outcome) => (
+      outcome.status === "fulfilled"
+        ? "fulfilled"
+        : `rejected: ${outcome.reason instanceof Error
+          ? outcome.reason.message
+          : String(outcome.reason)}`
+    )).join("; ");
     assert.equal(
       concurrentApprovals.filter(({ status }) => status === "fulfilled").length,
       1,
+      concurrentApprovalSummary,
     );
     assert.equal(
       concurrentApprovals.filter(({ status }) => status === "rejected").length,
       1,
+      concurrentApprovalSummary,
     );
     const approvedRelease = concurrentApprovals.find(
       ({ status }) => status === "fulfilled",

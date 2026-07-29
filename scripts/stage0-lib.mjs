@@ -1431,6 +1431,7 @@ const releaseTransitionPairs = new Set([
   "approved:release-ready",
   "release-ready:live-verified",
 ]);
+const releaseTransitionLocks = new Map();
 const releaseImmutableKeys = [
   "schemaVersion",
   "launchId",
@@ -1477,6 +1478,25 @@ async function durableOverwriteExisting(filePath, bytes) {
     await handle.sync();
   } finally {
     await handle.close();
+  }
+}
+
+async function withReleaseTransitionLock(root, operation) {
+  const key = await realpath(root);
+  const predecessor = releaseTransitionLocks.get(key) ?? Promise.resolve();
+  let unlock;
+  const successor = new Promise((resolve) => {
+    unlock = resolve;
+  });
+  releaseTransitionLocks.set(key, successor);
+  await predecessor;
+  try {
+    return await operation();
+  } finally {
+    unlock();
+    if (releaseTransitionLocks.get(key) === successor) {
+      releaseTransitionLocks.delete(key);
+    }
   }
 }
 
@@ -1652,56 +1672,58 @@ export async function recoverReleaseTransition(root) {
 }
 
 async function transitionReleaseState(root, expectedPrior, next, auxiliary = null) {
-  await recoverReleaseTransition(root);
-  const releasePath = path.join(root, "release.json");
-  const current = await readRegularJsonFile(releasePath, "release.json");
-  const expectedDigest = manifestDigest(expectedPrior);
-  if (
-    manifestDigest(current) !== expectedDigest
-    || canonicalJson(current) !== canonicalJson(expectedPrior)
-  ) {
-    throw new Error("Release transition compare-and-swap failed: prior state changed");
-  }
-  const journal = {
-    schemaVersion: "1.0",
-    algorithm: releaseTransitionAlgorithm,
-    releasePath: "release.json",
-    prior: stateRecord(expectedPrior),
-    next: stateRecord(next),
-    auxiliary: auxiliary ? {
-      path: auxiliary.path,
-      digest: manifestDigest(auxiliary.value),
-      value: auxiliary.value,
-    } : null,
-  };
-  validateReleaseTransitionJournal(journal);
-  const journalPath = path.join(root, releaseTransitionFile);
-  await durableCreate(journalPath, releaseBytes(journal));
-  const compared = await readRegularJsonFile(releasePath, "release.json");
-  if (
-    manifestDigest(compared) === journal.next.digest
-    && canonicalJson(compared) === canonicalJson(next)
-  ) {
+  return withReleaseTransitionLock(root, async () => {
+    await recoverReleaseTransition(root);
+    const releasePath = path.join(root, "release.json");
+    const current = await readRegularJsonFile(releasePath, "release.json");
+    const expectedDigest = manifestDigest(expectedPrior);
+    if (
+      manifestDigest(current) !== expectedDigest
+      || canonicalJson(current) !== canonicalJson(expectedPrior)
+    ) {
+      throw new Error("Release transition compare-and-swap failed: prior state changed");
+    }
+    const journal = {
+      schemaVersion: "1.0",
+      algorithm: releaseTransitionAlgorithm,
+      releasePath: "release.json",
+      prior: stateRecord(expectedPrior),
+      next: stateRecord(next),
+      auxiliary: auxiliary ? {
+        path: auxiliary.path,
+        digest: manifestDigest(auxiliary.value),
+        value: auxiliary.value,
+      } : null,
+    };
+    validateReleaseTransitionJournal(journal);
+    const journalPath = path.join(root, releaseTransitionFile);
+    await durableCreate(journalPath, releaseBytes(journal));
+    const compared = await readRegularJsonFile(releasePath, "release.json");
+    if (
+      manifestDigest(compared) === journal.next.digest
+      && canonicalJson(compared) === canonicalJson(next)
+    ) {
+      await ensureTransitionAuxiliary(root, journal.auxiliary);
+      await rm(journalPath, { force: true });
+      return;
+    }
+    if (
+      manifestDigest(compared) !== expectedDigest
+      || canonicalJson(compared) !== canonicalJson(expectedPrior)
+    ) {
+      throw new Error("Release transition compare-and-swap failed after journal creation");
+    }
     await ensureTransitionAuxiliary(root, journal.auxiliary);
+    await durableOverwriteExisting(releasePath, releaseBytes(next));
+    const written = await readRegularJsonFile(releasePath, "release.json");
+    if (
+      manifestDigest(written) !== journal.next.digest
+      || canonicalJson(written) !== canonicalJson(next)
+    ) {
+      throw new Error("Release transition write verification failed");
+    }
     await rm(journalPath, { force: true });
-    return;
-  }
-  if (
-    manifestDigest(compared) !== expectedDigest
-    || canonicalJson(compared) !== canonicalJson(expectedPrior)
-  ) {
-    throw new Error("Release transition compare-and-swap failed after journal creation");
-  }
-  await ensureTransitionAuxiliary(root, journal.auxiliary);
-  await durableOverwriteExisting(releasePath, releaseBytes(next));
-  const written = await readRegularJsonFile(releasePath, "release.json");
-  if (
-    manifestDigest(written) !== journal.next.digest
-    || canonicalJson(written) !== canonicalJson(next)
-  ) {
-    throw new Error("Release transition write verification failed");
-  }
-  await rm(journalPath, { force: true });
+  });
 }
 
 export async function validateLaunchFreeze(projectRoot, launchId, { recover = true } = {}) {
