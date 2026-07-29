@@ -1,14 +1,14 @@
 {
   "schemaVersion": "3.0",
   "launchId": "integrated-robotic-handling-v2",
-  "status": "release-ready",
+  "status": "live-verified",
   "launchDigest": "2e8ff79e7f9e7456a89e7fbffe85d5f069e0147bca9f3f0c16c5149069a25fb0",
   "packetDigest": "32c169c24142a4c366569cf9d6737f985d87b20bae6363f79f649c0e5573b613",
   "packetBundleDigest": "9411e75e55eb29f5ef459a1c9170815a99f3d4efc63f8ce76b45bcfb423bf98c",
   "executionContractDigest": "b1387f6cff81f8643a5ecb1f968d16ec59be1cc6be8b9fe3373f6b396472bd27",
   "canonicalBaseUrl": "https://naoyamd.github.io/rotorbench",
   "promptSha256": "f9e03424d5c6328e876cde8c63905f98ccd791634760d6acd001e641ff45ff4f",
-  "updatedAt": "2026-07-29T20:03:04.529Z",
+  "updatedAt": "2026-07-29T20:23:04.163Z",
   "engineeringReviewDigest": "5b206f260d38f8b02fd905bf7218c0930a9222cbfba1069e2a924188d85cf432",
   "protocolReviewDigest": "d23fafdc7838084fe4005e1a61eeefe9d322cdf138321c973b7d123b997c6ebb",
   "approvalAttestation": {
@@ -18,5 +18,6 @@
     "statement": "APPROVE RELEASE 2e8ff79e7f9e7456a89e7fbffe85d5f069e0147bca9f3f0c16c5149069a25fb0",
     "attestedAt": "2026-07-29T20:03:02.145Z"
   },
-  "approvalAttestationDigest": "96a15ac0f344dde04e903805cf84731d669b30fa5118e3435ee0b5e7e3f9cf64"
+  "approvalAttestationDigest": "96a15ac0f344dde04e903805cf84731d669b30fa5118e3435ee0b5e7e3f9cf64",
+  "liveVerificationDigest": "b133bbb90f0a981d740980ee027d80925d6aad4de7185192ae623a424213c16b"
 }

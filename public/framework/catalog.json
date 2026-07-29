@@ -1692,7 +1692,7 @@
         "location": "https://naoyamd.github.io/rotorbench/framework/workspaces/integrated-robotic-handling-v1.json",
         "sha256": "9ad7c0f812921287f60d045518f6f6d83fce09fd10d9337fcb4fe63ec60ca44b"
       },
-      "releaseStatus": "release-ready",
+      "releaseStatus": "live-verified",
       "activationVerified": false,
       "handoffEligible": false,
       "manifestDownload": "framework/launches/integrated-robotic-handling-v2/launch.json"

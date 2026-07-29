@@ -1,8 +1,8 @@
 {
   "schemaVersion": "1.0",
   "counts": {
-    "draftOrHeldRecords": 0,
-    "recordsWithBlockers": 0,
+    "draftOrHeldRecords": 1,
+    "recordsWithBlockers": 1,
     "liveVerifiedLaunches": 1
   }
 }
