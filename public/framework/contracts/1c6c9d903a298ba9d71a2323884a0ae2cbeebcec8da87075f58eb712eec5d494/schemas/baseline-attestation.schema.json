@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rotorbench.example/schemas/baseline-attestation.schema.json",
+  "title": "Verified Git workspace baseline attestation",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "algorithm",
+    "baselineCommit",
+    "workspaceDigest",
+    "clean",
+    "symlinkFree",
+    "submoduleFree",
+    "verifiedAt"
+  ],
+  "properties": {
+    "schemaVersion": { "const": "3.0" },
+    "algorithm": { "const": "sha256-git-worktree-v1" },
+    "baselineCommit": {
+      "type": "string",
+      "pattern": "^(?!0{40}$)[a-f0-9]{40}$"
+    },
+    "workspaceDigest": {
+      "type": "string",
+      "pattern": "^(?!0{64}$)[a-f0-9]{64}$"
+    },
+    "clean": { "const": true },
+    "symlinkFree": { "const": true },
+    "submoduleFree": { "const": true },
+    "verifiedAt": { "type": "string", "format": "date-time" }
+  }
+}

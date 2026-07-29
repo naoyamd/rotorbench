@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rotorbench.example/schemas/engineering-review.schema.json",
+  "title": "Stage 0 engineering review",
+  "$ref": "#/$defs/review",
+  "$defs": {
+    "review": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "kind",
+        "reviewer",
+        "authorId",
+        "packetDigest",
+        "bundleDigest",
+        "status",
+        "blockingIssues",
+        "reviewedAt"
+      ],
+      "properties": {
+        "schemaVersion": { "const": "3.0" },
+        "kind": { "const": "engineering" },
+        "reviewer": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["id", "name"],
+          "properties": {
+            "id": { "type": "string", "minLength": 1 },
+            "name": { "type": "string", "minLength": 1 }
+          }
+        },
+        "authorId": { "type": "string", "minLength": 1 },
+        "packetDigest": { "$ref": "artifact.schema.json#/$defs/sha256" },
+        "bundleDigest": { "$ref": "artifact.schema.json#/$defs/sha256" },
+        "status": { "enum": ["approved", "changes-requested"] },
+        "blockingIssues": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "reviewedAt": { "type": "string", "format": "date-time" }
+      }
+    }
+  }
+}

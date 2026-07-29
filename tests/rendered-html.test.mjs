@@ -419,18 +419,38 @@ test("Stage 0 pages render the exact shared contracts and no task content", asyn
   }
 });
 
-test("the Stage 1 guide stays closed until a launch is live-verified", async () => {
+test("the Stage 1 guide exposes only live-verified launch handoffs", async () => {
   const html = await readFile(
     path.join(projectRoot, "out", "model-task", "index.html"),
     "utf8",
   );
+  const catalog = JSON.parse(await readFile(
+    path.join(projectRoot, "public", "framework", "catalog.json"),
+    "utf8",
+  ));
+  const liveLaunches = catalog.launches.filter(
+    ({ releaseStatus }) => releaseStatus === "live-verified",
+  );
   assert.match(html, /Stage 1 launcher \| Engineering Design Benchmark Framework/);
   assert.match(html, /STAGE 01/);
-  assert.match(html, /0 LIVE-VERIFIED LAUNCHES/);
-  assert.ok(html.includes(`href="${renderedSitePath("stage0/")}"`));
-  assert.doesNotMatch(html, new RegExp(MODEL_LAUNCH_MESSAGE.slice(0, 24)));
   assert.doesNotMatch(html, /&lt;launch-url&gt;/);
   assert.doesNotMatch(html, /runs\/&lt;candidate-id&gt;\//);
+  if (liveLaunches.length === 0) {
+    assert.match(html, /0 LIVE-VERIFIED LAUNCHES/);
+    assert.ok(html.includes(`href="${renderedSitePath("stage0/")}"`));
+    assert.doesNotMatch(html, new RegExp(MODEL_LAUNCH_MESSAGE.slice(0, 24)));
+    return;
+  }
+  assert.doesNotMatch(html, /0 LIVE-VERIFIED LAUNCHES/);
+  assert.match(html, /Stage A — prepare and authorize the run/);
+  assert.match(html, /Stage B — paste one launch prompt/);
+  assert.match(html, /external-run-configuration-sha256/);
+  const firstLaunch = liveLaunches[0];
+  const launchUrl = `${firstLaunch.canonicalBaseUrl.replace(/\/+$/, "")}/launch/${firstLaunch.id}/`;
+  assert.equal(
+    firstPromptBlock(html),
+    materializeHandoff(MODEL_LAUNCH_MESSAGE, "<launch-url>", launchUrl),
+  );
 });
 
 test("the three-stage home and publishing guide preserve the candidate boundary", async () => {
