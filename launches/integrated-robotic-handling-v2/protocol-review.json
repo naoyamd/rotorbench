@@ -1,0 +1,15 @@
+{
+  "schemaVersion": "3.0",
+  "kind": "protocol",
+  "reviewer": {
+    "id": "sol-protocol-release-reviewer-v2",
+    "name": "Sol xhigh independent protocol release reviewer"
+  },
+  "authorId": "rotorbench-engineering-benchmark",
+  "launchDigest": "2e8ff79e7f9e7456a89e7fbffe85d5f069e0147bca9f3f0c16c5149069a25fb0",
+  "executionContractDigest": "b1387f6cff81f8643a5ecb1f968d16ec59be1cc6be8b9fe3373f6b396472bd27",
+  "promptSha256": "f9e03424d5c6328e876cde8c63905f98ccd791634760d6acd001e641ff45ff4f",
+  "status": "approved",
+  "blockingIssues": [],
+  "reviewedAt": "2026-07-29T20:02:45.3703136Z"
+}

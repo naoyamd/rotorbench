@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rotorbench.example/schemas/assessment-evidence.schema.json",
+  "title": "Evaluator-owned assessment evidence declaration",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "runId", "panelId", "sourceClass", "status", "records"],
+  "properties": {
+    "schemaVersion": { "const": "1.0" },
+    "runId": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" },
+    "panelId": { "enum": ["public-demonstration", "fixed-anchor-baseline", "hidden-robustness", "change-response", "fresh-generalization"] },
+    "sourceClass": { "enum": ["candidate-public", "run-private-instance", "evaluator-hidden-robustness", "event-private-change", "evaluator-secret"] },
+    "status": { "enum": ["pending", "complete", "invalid", "uncertain"] },
+    "records": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "metricId", "valueStatus", "evidenceDigest"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^EVD-[0-9]{3,}$" },
+          "metricId": { "type": "string", "minLength": 1 },
+          "valueStatus": { "enum": ["measured", "derived", "manual", "unsupported", "uncertain"] },
+          "evidenceDigest": { "$ref": "artifact.schema.json#/$defs/sha256" },
+          "value": {},
+          "unit": { "type": "string" }
+        }
+      }
+    }
+  }
+}

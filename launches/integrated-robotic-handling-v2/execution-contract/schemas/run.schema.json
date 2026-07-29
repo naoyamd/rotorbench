@@ -1,0 +1,236 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rotorbench.example/schemas/run.schema.json",
+  "title": "Engineering Design Benchmark Framework run",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "id",
+    "benchmarkId",
+    "benchmarkVersion",
+    "launchId",
+    "cohortId",
+    "taskPacketDigest",
+    "fairnessFingerprint",
+    "status",
+    "submittedAt",
+    "model",
+    "seal",
+    "processEvidence",
+    "artifacts",
+    "extensions"
+  ],
+  "properties": {
+    "schemaVersion": { "const": "1.0" },
+    "id": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" },
+    "benchmarkId": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" },
+    "benchmarkVersion": { "type": "string", "minLength": 1 },
+    "launchId": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" },
+    "cohortId": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" },
+    "taskPacketDigest": { "$ref": "artifact.schema.json#/$defs/sha256" },
+    "taskPacketBundleDigest": { "$ref": "artifact.schema.json#/$defs/sha256" },
+    "executionContractDigest": { "$ref": "artifact.schema.json#/$defs/sha256" },
+    "promptSha256": { "$ref": "artifact.schema.json#/$defs/sha256" },
+    "launchDigest": { "$ref": "artifact.schema.json#/$defs/sha256" },
+    "fairnessFingerprint": { "$ref": "artifact.schema.json#/$defs/sha256" },
+    "status": { "type": "string", "enum": ["draft", "submitted", "validated", "published", "failed"] },
+    "submittedAt": { "type": "string", "format": "date-time" },
+    "model": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provider", "name", "version"],
+      "properties": {
+        "provider": { "type": "string", "minLength": 1 },
+        "name": { "type": "string", "minLength": 1 },
+        "version": { "type": "string", "minLength": 1 }
+      }
+    },
+    "summary": { "type": "string" },
+    "seal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sealed", "bundlePath", "bundleSha256", "algorithm"],
+      "properties": {
+        "sealed": { "const": true },
+        "bundlePath": { "const": "submitted" },
+        "bundleSha256": { "$ref": "artifact.schema.json#/$defs/sha256" },
+        "algorithm": { "const": "sha256-tree-v1" }
+      }
+    },
+    "processEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["initialPlan", "workRecord"],
+      "properties": {
+        "initialPlan": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["path", "sha256"],
+          "properties": {
+            "path": { "$ref": "artifact.schema.json#/$defs/safePath" },
+            "sha256": { "$ref": "artifact.schema.json#/$defs/sha256" }
+          }
+        },
+        "workRecord": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["path", "sha256"],
+          "properties": {
+            "path": { "$ref": "artifact.schema.json#/$defs/safePath" },
+            "sha256": { "$ref": "artifact.schema.json#/$defs/sha256" }
+          }
+        }
+      }
+    },
+    "artifacts": {
+      "type": "array",
+      "items": { "$ref": "artifact.schema.json" }
+    },
+    "publicationReport": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256"],
+      "properties": {
+        "path": { "const": "publication-report.json" },
+        "sha256": { "$ref": "artifact.schema.json#/$defs/sha256" }
+      }
+    },
+    "authorization": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256", "assurance", "issuedAt"],
+      "properties": {
+        "path": { "const": "run-authorization.json" },
+        "sha256": { "$ref": "artifact.schema.json#/$defs/sha256" },
+        "assurance": { "const": "operator-attested-pre-run" },
+        "issuedAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "extensions": { "type": "object" },
+    "checkpointReceipts": {
+      "type": "array",
+      "items": { "$ref": "stage-contract-v4.schema.json#/$defs/checkpointReceipt" }
+    },
+    "partialAttainment": { "$ref": "stage-contract-v4.schema.json#/$defs/partialAttainment" },
+    "sanitization": { "$ref": "stage-contract-v4.schema.json#/$defs/sanitizationAttestation" },
+    "evaluation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["contractDigest", "scoringVersion", "recordPath"],
+      "properties": {
+        "contractDigest": { "$ref": "artifact.schema.json#/$defs/sha256" },
+        "scoringVersion": { "type": "string", "minLength": 1 },
+        "recordPath": { "$ref": "artifact.schema.json#/$defs/safePath" }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "extensions": {
+            "type": "object",
+            "properties": {
+              "preRunAuthorizationAssurance": {
+                "const": "operator-attested-pre-run"
+              }
+            },
+            "required": ["preRunAuthorizationAssurance"]
+          }
+        },
+        "required": ["extensions"]
+      },
+      "then": {
+        "properties": { "authorization": true },
+        "required": ["authorization"]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "extensions": {
+            "type": "object",
+            "properties": { "protocolVersion": { "const": "3.0" } },
+            "required": ["protocolVersion"]
+          }
+        },
+        "required": ["extensions"]
+      },
+      "then": {
+        "required": [
+          "taskPacketBundleDigest",
+          "executionContractDigest",
+          "promptSha256",
+          "launchDigest"
+        ],
+        "properties": {
+          "taskPacketBundleDigest": true,
+          "executionContractDigest": true,
+          "promptSha256": true,
+          "launchDigest": true,
+          "artifacts": {
+            "type": "array",
+            "items": {
+              "allOf": [
+                { "$ref": "artifact.schema.json" },
+                {
+                  "type": "object",
+                  "required": ["requiredOutputRefs"],
+                  "properties": {
+                    "requiredOutputRefs": {
+                      "type": "array",
+                      "minItems": 1,
+                      "uniqueItems": true,
+                      "items": { "type": "string", "pattern": "^OUT-[0-9]{3,}$" }
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "extensions": {
+            "type": "object",
+            "properties": { "protocolVersion": { "const": "4.0" } },
+            "required": ["protocolVersion"]
+          }
+        },
+        "required": ["extensions"]
+      },
+      "then": {
+        "required": [
+          "taskPacketBundleDigest",
+          "executionContractDigest",
+          "promptSha256",
+          "launchDigest",
+          "checkpointReceipts",
+          "partialAttainment",
+          "sanitization",
+          "evaluation"
+        ],
+        "properties": {
+          "checkpointReceipts": { "type": "array", "minItems": 1, "items": { "$ref": "stage-contract-v4.schema.json#/$defs/checkpointReceipt" } },
+          "partialAttainment": true,
+          "sanitization": true,
+          "evaluation": true
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": { "status": { "const": "published" } },
+        "required": ["status"]
+      },
+      "then": {
+        "properties": { "publicationReport": true },
+        "required": ["publicationReport"]
+      }
+    }
+  ]
+}

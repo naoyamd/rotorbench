@@ -1,0 +1,168 @@
+{
+  "document": "Public machine-tending cell layout",
+  "version": "1.0",
+  "coordinateFrameRef": "inputs/interface-dimensions.json:W",
+  "cellPurpose": "Load a raw workpiece to a CNC fixture, unload the completed workpiece, place it in an inspection nest, then transfer it to the finished tray. The candidate design supplies the robot and gripper only.",
+  "candidateDesignEnvelope": {
+    "name": "permitted-operating-envelope",
+    "x": [-450, 1580],
+    "y": [-1050, 1050],
+    "z": [0, 1880],
+    "rule": "All candidate solid geometry, swept volumes, cable/utility routes, and carried workpiece envelopes shall remain within this envelope except during explicitly declared service access outside automated operation."
+  },
+  "keepOutVolumes": [
+    {
+      "id": "KOV-001",
+      "name": "CNC machine body",
+      "type": "axis-aligned-box",
+      "x": [1040, 1580],
+      "y": [-700, 700],
+      "z": [0, 1680],
+      "exception": "The tool and carried workpiece may enter the declared fixture approach corridor only."
+    },
+    {
+      "id": "KOV-002",
+      "name": "CNC fixture approach corridor",
+      "type": "axis-aligned-box",
+      "x": [1020, 1230],
+      "y": [-140, 140],
+      "z": [820, 1080],
+      "rule": "Only the gripper, permitted workpiece envelope, and a candidate-declared compliant alignment feature may enter. All other candidate structure shall remain outside."
+    },
+    {
+      "id": "KOV-003",
+      "name": "operator access zone",
+      "type": "axis-aligned-box",
+      "x": [250, 1050],
+      "y": [-1050, -760],
+      "z": [0, 1800],
+      "rule": "No candidate geometry or swept payload envelope may enter during automatic operation."
+    },
+    {
+      "id": "KOV-004",
+      "name": "controller and utility cabinet",
+      "type": "axis-aligned-box",
+      "x": [-450, -170],
+      "y": [390, 900],
+      "z": [0, 1600],
+      "rule": "No candidate geometry may enter."
+    },
+    {
+      "id": "KOV-005",
+      "name": "overhead guarding beam",
+      "type": "axis-aligned-box",
+      "x": [-450, 1580],
+      "y": [-1050, 1050],
+      "z": [1730, 1880],
+      "rule": "No candidate geometry or swept payload envelope may enter."
+    }
+  ],
+  "stations": [
+    {
+      "id": "STA-RAW-001",
+      "name": "raw-parts tray",
+      "location": [770, -610, 790],
+      "workingArea": { "x": [570, 970], "y": [-810, -410], "z": [740, 900] },
+      "requiredPoses": ["POSE-RAW-PICK"],
+      "note": "Workpiece fixture does not clamp the part. Candidate shall account for allowable approach direction and gripper clearance."
+    },
+    {
+      "id": "STA-CNC-001",
+      "name": "CNC load/unload fixture",
+      "location": [1220, 0, 945],
+      "workingArea": { "x": [1020, 1230], "y": [-140, 140], "z": [820, 1080] },
+      "requiredPoses": ["POSE-CNC-APPROACH", "POSE-CNC-SEAT", "POSE-CNC-RETRACT"],
+      "note": "The path to the fixture must honor the approach axis and keep-out corridor."
+    },
+    {
+      "id": "STA-INS-001",
+      "name": "inspection nest",
+      "location": [700, 560, 875],
+      "workingArea": { "x": [520, 880], "y": [370, 760], "z": [760, 1110] },
+      "requiredPoses": ["POSE-INS-APPROACH", "POSE-INS-SEAT", "POSE-INS-RETRACT"],
+      "note": "The cell has only passive lead-ins; the candidate must plan alignment and placement compliance."
+    },
+    {
+      "id": "STA-FIN-001",
+      "name": "finished-parts tray",
+      "location": [770, 800, 790],
+      "workingArea": { "x": [570, 970], "y": [600, 1000], "z": [740, 900] },
+      "requiredPoses": ["POSE-FIN-PLACE"],
+      "note": "Finished part cosmetic surfaces must remain protected."
+    }
+  ],
+  "requiredProcessPoses": [
+    {
+      "id": "POSE-RAW-PICK",
+      "tcpPosition": [770, -610, 910],
+      "tcpToolAxis": [0, 0, -1],
+      "payloadState": "empty-to-WP",
+      "toleranceIntent": "Tray position tolerance only; candidate must declare final grasp approach and allowed workpiece orientation."
+    },
+    {
+      "id": "POSE-CNC-APPROACH",
+      "tcpPosition": [1040, 0, 945],
+      "tcpToolAxis": [-1, 0, 0],
+      "payloadState": "WP-loaded",
+      "toleranceIntent": "Approach axis within 2 degrees; all other geometry must remain outside KOV-002."
+    },
+    {
+      "id": "POSE-CNC-SEAT",
+      "tcpPosition": [1220, 0, 945],
+      "tcpToolAxis": [-1, 0, 0],
+      "payloadState": "WP-loaded-or-unloaded",
+      "toleranceIntent": "Fixture seating interface per IFC-CNC-001."
+    },
+    {
+      "id": "POSE-CNC-RETRACT",
+      "tcpPosition": [1040, 0, 945],
+      "tcpToolAxis": [-1, 0, 0],
+      "payloadState": "WP-loaded",
+      "toleranceIntent": "Clearance re-established before movement outside corridor."
+    },
+    {
+      "id": "POSE-INS-APPROACH",
+      "tcpPosition": [700, 560, 1035],
+      "tcpToolAxis": [0, 0, -1],
+      "payloadState": "WP-loaded",
+      "toleranceIntent": "Vertical approach with candidate-declared alignment/compliance strategy."
+    },
+    {
+      "id": "POSE-INS-SEAT",
+      "tcpPosition": [700, 560, 875],
+      "tcpToolAxis": [0, 0, -1],
+      "payloadState": "WP-loaded-or-unloaded",
+      "toleranceIntent": "Nest seating interface per IFC-INS-001."
+    },
+    {
+      "id": "POSE-INS-RETRACT",
+      "tcpPosition": [700, 560, 1035],
+      "tcpToolAxis": [0, 0, -1],
+      "payloadState": "empty",
+      "toleranceIntent": "Clearance re-established before movement outside nest envelope."
+    },
+    {
+      "id": "POSE-FIN-PLACE",
+      "tcpPosition": [770, 800, 910],
+      "tcpToolAxis": [0, 0, -1],
+      "payloadState": "WP-loaded-to-empty",
+      "toleranceIntent": "Tray position tolerance only; candidate must protect cosmetic surfaces."
+    }
+  ],
+  "commonEvidenceMotionLimits": {
+    "policy": "These are fixed comparative evidence inputs, not a supplied dynamic host, controller, collision solver, or automatic qualification model. Candidates use them in declared motion/load reasoning; reviewers apply inputs/common-evaluation-method.json consistently across architectures.",
+    "benchmarkDesignValues": {
+      "maximumTcpSpeed": { "value": 1.6, "unit": "m/s", "source": "inputs/calibration-provenance.json:VAL-004", "uncertainty": "No dynamic-host correlation is claimed; calibration boundary recorded in VAL-004.", "status": "resolved-benchmark-design-basis" },
+      "maximumTcpAcceleration": { "value": 6.0, "unit": "m/s^2", "source": "inputs/calibration-provenance.json:VAL-004", "uncertainty": "No dynamic-host correlation is claimed; calibration boundary recorded in VAL-004.", "status": "resolved-benchmark-design-basis" },
+      "maximumTcpJerk": { "value": 35, "unit": "m/s^3", "source": "inputs/calibration-provenance.json:VAL-004", "uncertainty": "No dynamic-host correlation is claimed; calibration boundary recorded in VAL-004.", "status": "resolved-benchmark-design-basis" },
+      "gravity": { "value": 9.80665, "unit": "m/s^2", "status": "resolved-standard" }
+    }
+  },
+  "provenance": {
+    "status": "resolved-benchmark-design-basis",
+    "sourceClass": "benchmark-design-basis",
+    "basis": "Benchmark-author representative machine-tending geometry, fixed for v1.0 to force integrated reach, insertion, clearance, service, and safety trade-offs.",
+    "applicability": "All public demonstration and fixed-anchor v1.0 calculations. Private instances may perturb only categories committed in inputs/instance-bank-commitment.json.",
+    "uncertainty": "No physical as-built cell has been surveyed. Coordinate values are fixed input data with ±2 mm authoring tolerance except where an interface tolerance is stated."
+  }
+}

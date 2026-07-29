@@ -32,6 +32,7 @@ import {
   executionContractFiles,
   freezeLaunch,
   freezePacket,
+  lintTaskDefinition,
   markLiveVerified,
   markReleaseReady,
   validateCanonicalLiveUrls,
@@ -1412,6 +1413,55 @@ test("multiple packet versions coexist through their compound packet and launch 
     const validation = await validateFramework(root);
     assert.ok(validation.launches.find(({ manifest }) => manifest?.id === "launch-one")
       .stage0Issues.some(({ code }) => code === "task-packet-digest-mismatch" || code === "launch-packet-binding"));
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("Stage 0 requires every declared output-contract artefact to have a compatible checkpoint assignment", async () => {
+  const root = await mkdtemp(path.join(tmpdir(), "stage0-output-contract-"));
+  try {
+    const source = path.join(root, "integrated-robotic-handling-v1.8");
+    await cp(
+      path.join(repositoryRoot, "stage0-drafts", "integrated-robotic-handling-v1.8"),
+      source,
+      { recursive: true },
+    );
+    const valid = await lintTaskDefinition(source);
+    assert.equal(valid.status, "valid", valid.issues.map(({ code, message }) => `${code}: ${message}`).join("\n"));
+    const frozen = await freezePacket({
+      projectRoot: root,
+      sourceRoot: source,
+      packetId: "integrated-robotic-handling",
+      version: "1.8",
+    });
+    assert.equal((await validateFrozenPacket(frozen.root)).status, "valid");
+
+    const outputContractPath = path.join(source, "inputs", "output-contract.json");
+    const outputContract = JSON.parse(await readFile(outputContractPath, "utf8"));
+    for (const checkpoint of outputContract.candidateCheckpoints) {
+      checkpoint.requiredArtefacts = checkpoint.requiredArtefacts
+        .filter((artefactPath) => artefactPath !== "artifacts/safety/service-and-utility-plan.md");
+    }
+    await writeJson(outputContractPath, outputContract);
+
+    const invalid = await lintTaskDefinition(source);
+    assert.equal(invalid.status, "invalid");
+    assert.ok(
+      invalid.issues.some(({ code, message }) => (
+        code === "unassigned-output-contract-artefact"
+        && message.includes("ART-012")
+      )),
+    );
+    await assert.rejects(
+      freezePacket({
+        projectRoot: root,
+        sourceRoot: source,
+        packetId: "integrated-robotic-handling",
+        version: "1.8",
+      }),
+      /unassigned-output-contract-artefact/,
+    );
   } finally {
     await rm(root, { recursive: true, force: true });
   }

@@ -648,6 +648,620 @@
       "taskDefinitionDownload": "framework/task-packets/integrated-robotic-handling/1.7/task.json",
       "lockDownload": "framework/task-packets/integrated-robotic-handling/1.7/packet-lock.json",
       "instructionsText": "# Integrated robotic handling system design\n\n## Your assignment\n\nDesign and document a fixed-base industrial robot and its powered\nopening/closing mechanical gripper for the supplied machine-tending cell. The\nsystem runs from the floor mounting interface through the base, manipulator,\nwrist, end-effector interface, gripper actuation, fingers, and workpiece\ncontact surfaces.\n\nThis is an engineering-design benchmark. Treat the supplied values as the\nauthoritative public baseline for this run. Select and justify reasonable\nassumptions where the brief leaves design freedom, but do not silently change a\nrequirement or invent unavailable input data.\n\nThis is a full Stage 1 design task. Before design work, the execution protocol\nwill require an immutable `plan.json` checkpoint. That checkpoint is process\nevidence, not a substitute for the engineering deliverables below. Then carry\nout the design, test your own artefacts, correct defects you find, and submit\nthe complete evidence package. Do not stop at a concept, a rendered image, or\na partial CAD assembly.\n\n## Public inputs\n\nRead every file declared in `task.json` and use its IDs when you\nrefer to a requirement or input. In particular:\n\n- `inputs/requirements.json` defines what the handling system must achieve.\n- `inputs/cell-layout.json`, `inputs/interface-dimensions.json`, and\n  `inputs/fixed-geometry.json` define the coordinate frame, complete fixed\n  cell/fixture solids, insertion/seating interfaces, workpiece geometry,\n  grasp-region surfaces, clearances, and the fixed FND-ANCH-001\n  foundation/anchor model. Do not recreate geometry from prose or add fixed\n  cell features that are not in those inputs.\n- `inputs/workpieces.json` defines the three parts' mass/contact inputs and,\n  for WP-C, the mandatory WP-C-CONTACT-001 pad, pressure, damage, and\n  inspection acceptance method.\n- `inputs/component-catalog-snapshot.json` and\n  `inputs/component-interface-cards.json` are the closed source for purchased\n  motors, reducers, brakes, bearings, and gripper transmissions. Every such\n  component in CAD, BOM, or an engineering claim must be a supported ID with\n  its matching frozen interface/envelope card; unlisted components in those\n  classes are prohibited. You may design custom structural parts, adapters,\n  couplings, fingers, and linkages. Pneumatic primary actuation is not a\n  supported class in this packet; the gripper's primary powered mechanism must\n  use the supplied electrical motor/reducer/transmission classes.\n- `inputs/neutral-handoff-contract.json` and the hash-bound,\n  benchmark-owned `inputs/neutral-handoff-validator.mjs` define the exact\n  static STEP/kinematics preflight. You may run the validator against your\n  static artefacts, but it neither imports candidate code nor proves\n  reachability, collision, cycle feasibility, or physical repeatability; make\n  those claims only with your submitted engineering evidence.\n- `inputs/calibration-provenance.json` identifies values whose uncertainty or\n  calibration method must be carried into the design plan.\n- `inputs/evaluation-commitments.json` and `inputs/output-contract.json`\n  explain the later evidence and evaluation boundary. They are not a design\n  solution.\n\n## Required system boundary\n\nThe Stage 1 design must be a single integrated handling system. The candidate\nis free to select serial, parallel, hybrid, or other mechanically defensible\nmanipulator architecture, provided it can be represented by the neutral\nkinematic and CAD handoff. An off-the-shelf complete robot arm may not be used\nas the candidate's designed system.\n\nThe end effector must include a powered mechanical opening/closing mechanism\nand at least two opposing mechanical contact paths. Vacuum, magnetic adhesion,\nor a fixture may be an auxiliary retention feature, but may not be the primary\nload path. One common installed gripper configuration must handle all three\nbaseline workpieces; automatic tool change and changing fingers between the\nthree baseline cycles are not permitted.\n\nControl software, PLC logic, certification, and electrical cabinet design are\noutside the candidate's implementation scope. They remain design interfaces:\ndeclare the mechanical-control handoff, motion assumptions, sensing needs,\nbrake behavior, and safety concept needed for the mechanical design to be\nevaluated through the frozen evidence-only common evaluation method.\n\n## Required engineering deliverables\n\nWrite only under `candidate-output/`. Before any design work, write the\nimmutable `plan.json` checkpoint required by the execution profile. Then\nproduce the following files using the paths, schemas, and evidence roles in\n`inputs/output-contract.json`:\n\n1. A requirement trace and concept-selection record, including at least three\n   feasible integrated arm-and-gripper architectures, rejection reasons, and\n   the design decision trail to the selected concept.\n2. Native CAD source or a reproducible parametric CAD source, plus a neutral\n   assembly STEP AP242 export. The assembly must contain the base,\n   manipulator, wrist, gripper body, actuation/transmission, fingers, relevant\n   purchased components, and workpiece interfaces.\n3. A neutral kinematic and motion manifest with joint topology, limits,\n   coordinate transforms, payload states, required waypoints, carried\n   workpiece envelopes, and collision-relevant geometry references.\n4. A complete BOM separating candidate-designed, catalogue, fastener, and\n   consumable parts, with quantity, mass, material/process, catalogue source,\n   and cost basis or uncertainty.\n5. System calculations covering workspace/cycle, load cases, drive/reducer/\n   brake sizing, structural load path and deflection, gripper force and contact\n   retention, life/duty, tolerance/accuracy budget, and energy/power estimate.\n6. Controlled drawings and PMI for the critical design set: base/column,\n   governing high-load joint or link, complete gripper assembly, all finger\n   contact components, and any part governing accuracy or safety. Every file\n   named by `critical-drawing-index.csv` (drawing or PMI) must exist below the\n   candidate output root, be declared as a drawing artefact, and pass the\n   static file validation in the output contract; an index by itself is not a\n   drawing release.\n7. A gripper design package that exposes the opening/closing mechanism,\n   transmission, force/displacement characteristic, contacts, retention path,\n   sensing interface, loss-of-power behavior, and all three workpiece grasp\n   configurations.\n8. A safety and reliability package containing a requirement-linked risk\n   register/FMEA, fault load cases, end-stop/brake/retention concept,\n   pinch/crush mitigation, cable/utility routing, and service procedure.\n9. A verification report and evidence manifest that identify the source,\n   method, model scope, units, output, acceptance result, and uncertainty for\n   every claimed requirement result.\n10. A change-readiness record mapping each major interface and calculation to\n    the type of later workpiece, cell, cycle, or safety change that would\n    require rework. If a change event is attempted, first create the required\n    change-impact record. Any affected CAD source, STEP, BOM, or drawing/PMI\n    output must be reissued at CKPT-050 and named in that record. A missing or\n    unsuccessful CKPT-050 does not alter the sealed CKPT-040 baseline.\n\nUse no information from other candidates or benchmark runs. Do not alter the\ntask inputs, shared framework, task definition, or evaluation rules. If an\ninput is missing or its integrity cannot be verified, stop and record the\nblocker rather than substituting a private data set.\n\n## What good Stage 1 work looks like\n\nA strong submission turns the cell, workpiece, safety, manufacturing, and\nevidence requirements into a coherent, manufacturable and verifiable system.\nIt distinguishes facts from assumptions; makes conflicts visible; identifies\nthe governing load cases and design decisions; and leaves an independent\nevaluator a clear path from each requirement to inspectable evidence. It does\nnot optimise for prose volume or pretend that a simulation, CAD image, or\nspreadsheet is evidence without a defined model, input, output, and acceptance\nmethod.\n"
+    },
+    {
+      "schemaVersion": "4.0",
+      "id": "integrated-robotic-handling",
+      "version": "1.8",
+      "title": "Integrated robotic handling system design",
+      "summary": "A fixed-base manipulator and powered mechanical gripper design for a three-workpiece machine-tending cell, authored as a one-year-forward engineering benchmark.",
+      "taskDefinitionDigest": "e6fcf3e32c6d66746fb920e84439e4d01e7bf602ecdcc4535175feb6c6838a32",
+      "authorId": "rotorbench-engineering-benchmark",
+      "instructions": {
+        "path": "TASK.md",
+        "mediaType": "text/markdown",
+        "downloadName": "TASK.md",
+        "sha256": "efd8293894c3546c990a10d4618632e53efc15189019a592209ebcc813493d5f",
+        "sizeBytes": 8246
+      },
+      "inputs": [
+        {
+          "id": "requirements",
+          "path": "inputs/requirements.json",
+          "mediaType": "application/json",
+          "provenance": "Benchmark-author requirement baseline v1.0; every requirement is traceable by REQ ID.",
+          "license": "CC-BY-4.0",
+          "downloadName": "requirements.json",
+          "sha256": "5a9cbab00237de0d071c852546a4f48c8ea9481ffbb272f03ad999de33fa787f",
+          "sizeBytes": 14407,
+          "download": "framework/task-packets/integrated-robotic-handling/1.8/inputs/requirements.json"
+        },
+        {
+          "id": "cell-layout",
+          "path": "inputs/cell-layout.json",
+          "mediaType": "application/json",
+          "provenance": "Benchmark-owned synthetic cell geometry; coordinates are in mm in the world frame declared in the file.",
+          "license": "CC-BY-4.0",
+          "downloadName": "cell-layout.json",
+          "sha256": "1bff3dc60daa210a4c791c8e7bccb76b647604c9b7668efdc15bbfd6995355b6",
+          "sizeBytes": 7544,
+          "download": "framework/task-packets/integrated-robotic-handling/1.8/inputs/cell-layout.json"
+        },
+        {
+          "id": "fixed-geometry",
+          "path": "inputs/fixed-geometry.json",
+          "mediaType": "application/json",
+          "provenance": "Benchmark-owned exact neutral CSG/interface definition for every evaluator-relevant fixed cell object, workpiece, and grasp region.",
+          "license": "CC-BY-4.0",
+          "downloadName": "fixed-geometry.json",
+          "sha256": "2d4b9c96605f32d26845517fc316ace0f487357db49a834d51b5f4ae1e442267",
+          "sizeBytes": 11587,
+          "download": "framework/task-packets/integrated-robotic-handling/1.8/inputs/fixed-geometry.json"
+        },
+        {
+          "id": "grasp-surface-validator",
+          "path": "inputs/grasp-surface-validator.mjs",
+          "mediaType": "text/javascript",
+          "provenance": "Hash-bound benchmark-owned static checker for fixed planar grasp-surface CSG exposure and coordinate parameterization.",
+          "license": "CC-BY-4.0",
+          "downloadName": "grasp-surface-validator.mjs",
+          "sha256": "5534790861c03b53166ac77deaa7186997bc5d732933f68a4490c3c24513005d",
+          "sizeBytes": 6708,
+          "download": "framework/task-packets/integrated-robotic-handling/1.8/inputs/grasp-surface-validator.mjs"
+        },
+        {
+          "id": "workpieces",
+          "path": "inputs/workpieces.json",
+          "mediaType": "application/json",
+          "provenance": "Benchmark-owned representative manufacturing workpieces; dimensions and contact data are fixed design inputs, with non-physical uncertainty explicitly recorded.",
+          "license": "CC-BY-4.0",
+          "downloadName": "workpieces.json",
+          "sha256": "eddd40d6badf8c712eadad763aa033130f38c3384cc5243b14e0cb803808afbc",
+          "sizeBytes": 8994,
+          "download": "framework/task-packets/integrated-robotic-handling/1.8/inputs/workpieces.json"
+        },
+        {
+          "id": "interface-dimensions",
+          "path": "inputs/interface-dimensions.json",
+          "mediaType": "application/json",
+          "provenance": "Benchmark-owned mechanical interface definition derived from industrial machine-tending conventions.",
+          "license": "CC-BY-4.0",
+          "downloadName": "interface-dimensions.json",
+          "sha256": "4811e629093c5ded7c92c3211e9ecd2c3f16259fdce374cc2470903d6bf83fa7",
+          "sizeBytes": 6599,
+          "download": "framework/task-packets/integrated-robotic-handling/1.8/inputs/interface-dimensions.json"
+        },
+        {
+          "id": "component-catalog",
+          "path": "inputs/component-catalog-snapshot.json",
+          "mediaType": "application/json",
+          "provenance": "Benchmark-owned neutral component catalogue snapshot; values are fixed benchmark design inputs with source class, applicability, and uncertainty recorded in calibration provenance.",
+          "license": "CC-BY-4.0",
+          "downloadName": "component-catalog-snapshot.json",
+          "sha256": "8083be7703aef6d373f2ec1b57dfe0e4dfbbe3c1c275e7101199064f6afaf482",
+          "sizeBytes": 19336,
+          "download": "framework/task-packets/integrated-robotic-handling/1.8/inputs/component-catalog-snapshot.json"
+        },
+        {
+          "id": "component-interface-cards",
+          "path": "inputs/component-interface-cards.json",
+          "mediaType": "application/json",
+          "provenance": "Benchmark-owned closed-catalogue mounting, envelope, interface, centre-of-mass, inertia, and service cards.",
+          "license": "CC-BY-4.0",
+          "downloadName": "component-interface-cards.json",
+          "sha256": "5d6b4bf46068ab960e057ebbb50653263c87e16a1bfbf4166b1515ee28fd31c8",
+          "sizeBytes": 11676,
+          "download": "framework/task-packets/integrated-robotic-handling/1.8/inputs/component-interface-cards.json"
+        },
+        {
+          "id": "calibration-provenance",
+          "path": "inputs/calibration-provenance.json",
+          "mediaType": "application/json",
+          "provenance": "Authoring provenance and uncertainty record for quantitative baseline values.",
+          "license": "CC-BY-4.0",
+          "downloadName": "calibration-provenance.json",
+          "sha256": "04454a20a421c92934832c15920c41fdacbe59d11533dac13b21479446af630c",
+          "sizeBytes": 15298,
+          "download": "framework/task-packets/integrated-robotic-handling/1.8/inputs/calibration-provenance.json"
+        },
+        {
+          "id": "evaluation-commitments",
+          "path": "inputs/evaluation-commitments.json",
+          "mediaType": "application/json",
+          "provenance": "Public evaluator commitments. Hidden instances are represented only by commitment, never by concealed requirements in this contract.",
+          "license": "CC-BY-4.0",
+          "downloadName": "evaluation-commitments.json",
+          "sha256": "ea7b1c56f6a4c7bf2473de211ee4e7ed0fa6b19c90eae19afa1bd0e02171a8a8",
+          "sizeBytes": 6783,
+          "download": "framework/task-packets/integrated-robotic-handling/1.8/inputs/evaluation-commitments.json"
+        },
+        {
+          "id": "output-contract",
+          "path": "inputs/output-contract.json",
+          "mediaType": "application/json",
+          "provenance": "Benchmark-owned neutral output and evidence contract.",
+          "license": "CC-BY-4.0",
+          "downloadName": "output-contract.json",
+          "sha256": "da795a215d817766c186df37069e97bccdef3ca42eaf58bef708f3cbbe31a851",
+          "sizeBytes": 12737,
+          "download": "framework/task-packets/integrated-robotic-handling/1.8/inputs/output-contract.json"
+        },
+        {
+          "id": "neutral-handoff-contract",
+          "path": "inputs/neutral-handoff-contract.json",
+          "mediaType": "application/json",
+          "provenance": "Benchmark-owned deterministic static STEP/kinematics contract, scope, limits, and calibration-coverage boundary.",
+          "license": "CC-BY-4.0",
+          "downloadName": "neutral-handoff-contract.json",
+          "sha256": "785b1d4564b36a12d720d491e41127cd043aa4cbc6205b3f9ce9151a67cee749",
+          "sizeBytes": 8528,
+          "download": "framework/task-packets/integrated-robotic-handling/1.8/inputs/neutral-handoff-contract.json"
+        },
+        {
+          "id": "neutral-handoff-validator",
+          "path": "inputs/neutral-handoff-validator.mjs",
+          "mediaType": "text/javascript",
+          "provenance": "Hash-bound benchmark-owned evaluator tool. It reads static candidate artefacts only, performs no network access, and never imports or executes candidate code.",
+          "license": "CC-BY-4.0",
+          "downloadName": "neutral-handoff-validator.mjs",
+          "sha256": "af9b60bfeb1db396bf8a742992cbf94c337242285fdef1141378e6048e52a856",
+          "sizeBytes": 23556,
+          "download": "framework/task-packets/integrated-robotic-handling/1.8/inputs/neutral-handoff-validator.mjs"
+        },
+        {
+          "id": "common-evaluation-method",
+          "path": "inputs/common-evaluation-method.json",
+          "mediaType": "application/json",
+          "provenance": "Frozen common evidence-only method and calibration boundary for cycle, collision, and accuracy assessment across architectures.",
+          "license": "CC-BY-4.0",
+          "downloadName": "common-evaluation-method.json",
+          "sha256": "5b0bb51cc74bfa24d2a5748d763159f7663587733ff4a5512367f5383e97cc87",
+          "sizeBytes": 7509,
+          "download": "framework/task-packets/integrated-robotic-handling/1.8/inputs/common-evaluation-method.json"
+        },
+        {
+          "id": "instance-bank-commitment",
+          "path": "inputs/instance-bank-commitment.json",
+          "mediaType": "application/json",
+          "provenance": "Public fixed-anchor baseline instance manifest; the complete candidate-visible baseline is hash-bound in this packet before a run begins.",
+          "license": "CC-BY-4.0",
+          "downloadName": "instance-bank-commitment.json",
+          "sha256": "a0fd5811d9345c3338d5960c0d37cd4434177c4f311c37a5166756491ecdb46f",
+          "sizeBytes": 1275,
+          "download": "framework/task-packets/integrated-robotic-handling/1.8/inputs/instance-bank-commitment.json"
+        },
+        {
+          "id": "change-event-commitment",
+          "path": "inputs/change-event-commitment.json",
+          "mediaType": "application/json",
+          "provenance": "Public commitment to the event-private change payload; the payload remains separately sealed until its defined disclosure point.",
+          "license": "CC-BY-4.0",
+          "downloadName": "change-event-commitment.json",
+          "sha256": "2ea63470d48f36949c92ee77409e10836322045f7130d9c05c5e3d9000d1199f",
+          "sizeBytes": 1617,
+          "download": "framework/task-packets/integrated-robotic-handling/1.8/inputs/change-event-commitment.json"
+        },
+        {
+          "id": "sanitization-profile",
+          "path": "inputs/sanitization-profile.json",
+          "mediaType": "application/json",
+          "provenance": "Public candidate-artifact safety boundary; the corresponding enforcement profile is hash-bound at packet freeze.",
+          "license": "CC-BY-4.0",
+          "downloadName": "sanitization-profile.json",
+          "sha256": "a6a822d1dcacf3a04a3b977cc228da65bc5d381e2b3afc3150a0074dfcb36ca6",
+          "sizeBytes": 1376,
+          "download": "framework/task-packets/integrated-robotic-handling/1.8/inputs/sanitization-profile.json"
+        },
+        {
+          "id": "disclosure-schedule",
+          "path": "inputs/disclosure-schedule.json",
+          "mediaType": "application/json",
+          "provenance": "Public disclosure and embargo commitment.",
+          "license": "CC-BY-4.0",
+          "downloadName": "disclosure-schedule.json",
+          "sha256": "b60be0ebb662bb256128fda7918100031d233f3957c61cd999267a1f4d70f9b3",
+          "sizeBytes": 1293,
+          "download": "framework/task-packets/integrated-robotic-handling/1.8/inputs/disclosure-schedule.json"
+        },
+        {
+          "id": "scoring-contract",
+          "path": "inputs/scoring-contract.json",
+          "mediaType": "application/json",
+          "provenance": "Byte-identical public scoring contract copied from evaluation/integrated-robotic-handling-v1/scoring-contract.json and hash-bound in this task contract.",
+          "license": "CC-BY-4.0",
+          "downloadName": "scoring-contract.json",
+          "sha256": "d4bfa4a46f4daa0c0b1dd02080509e31fc6c8d8081a5b940095d44294857cca9",
+          "sizeBytes": 13857,
+          "download": "framework/task-packets/integrated-robotic-handling/1.8/inputs/scoring-contract.json"
+        }
+      ],
+      "requiredOutputs": [
+        {
+          "id": "OUT-001",
+          "role": "cad-source",
+          "description": "Native or reproducible parametric CAD source for the complete integrated system, with an assembly manifest."
+        },
+        {
+          "id": "OUT-002",
+          "role": "step",
+          "description": "Neutral STEP AP242 assembly export containing the complete candidate-designed mechanical system and declared purchased components."
+        },
+        {
+          "id": "OUT-003",
+          "role": "supporting",
+          "description": "Neutral kinematic and motion manifest, required-pose evidence, requirement trace, and concept-selection record."
+        },
+        {
+          "id": "OUT-004",
+          "role": "bom",
+          "description": "Complete structured BOM with provenance, quantities, mass, material/process, and cost basis or uncertainty."
+        },
+        {
+          "id": "OUT-005",
+          "role": "calculation",
+          "description": "System calculation package covering motion, loads, drives, gripper retention, structure, life, accuracy, and energy."
+        },
+        {
+          "id": "OUT-006",
+          "role": "drawing",
+          "description": "Controlled critical-part and gripper drawings/PMI with datum, tolerance, material, and inspection information."
+        },
+        {
+          "id": "OUT-007",
+          "role": "supporting",
+          "description": "Full powered-gripper mechanism and all-workpiece grasp package, including force/displacement, contacts, sensing, retention, and fault behavior."
+        },
+        {
+          "id": "OUT-008",
+          "role": "supporting",
+          "description": "Mechanical safety, reliability, risk/FMEA, service, and utility-routing package."
+        },
+        {
+          "id": "OUT-009",
+          "role": "supporting",
+          "description": "Requirement-linked verification report, evidence manifest, uncertainty register, and change-readiness record."
+        }
+      ],
+      "environment": {
+        "baseline": "Isolated clean benchmark workspace containing only this frozen task packet and the launch-bound execution profile.",
+        "cad": "Candidate-selected CAD environment. The later neutral handoff is ISO 10303 STEP AP242 where supported, with explicit topology and PMI limitations declared.",
+        "stepPipeline": "hash-bound-static-neutral-handoff-validator-v1; automatic claims are limited exactly as stated in inputs/neutral-handoff-contract.json"
+      },
+      "completionCriteria": [
+        {
+          "id": "CRIT-001",
+          "statement": "Every applicable public requirement is mapped to a completed design decision, verification method, evidence artefact, acceptance measure, result, and known uncertainty.",
+          "requiredOutputRefs": [
+            "OUT-003",
+            "OUT-005",
+            "OUT-009"
+          ],
+          "evidenceRoles": [
+            "supporting",
+            "calculation"
+          ]
+        },
+        {
+          "id": "CRIT-002",
+          "statement": "The finished design treats the base, manipulator, wrist, powered gripper, and workpiece contact load path as one integrated system, and its complete geometry can be independently imported through the neutral handoff.",
+          "requiredOutputRefs": [
+            "OUT-001",
+            "OUT-002",
+            "OUT-003",
+            "OUT-007"
+          ],
+          "evidenceRoles": [
+            "cad-source",
+            "step",
+            "supporting"
+          ]
+        },
+        {
+          "id": "CRIT-003",
+          "statement": "The complete submission provides inspectable CAD, STEP, drawing, BOM, calculation, motion, gripper, safety, verification, and change-readiness evidence, all traceable to the immutable protocol-owned initial-plan checkpoint.",
+          "requiredOutputRefs": [
+            "OUT-001",
+            "OUT-002",
+            "OUT-004",
+            "OUT-005",
+            "OUT-006",
+            "OUT-008",
+            "OUT-009"
+          ],
+          "evidenceRoles": [
+            "cad-source",
+            "step",
+            "drawing",
+            "bom",
+            "calculation",
+            "supporting"
+          ]
+        }
+      ],
+      "v4Contract": {
+        "scoringVersion": "1.1",
+        "instanceBankManifest": {
+          "id": "INSTANCE-BANK",
+          "visibilityClass": "candidate-public",
+          "disclosedAt": "before-run",
+          "requirementRefs": [
+            "REQ-004",
+            "REQ-005",
+            "REQ-006",
+            "REQ-007",
+            "REQ-008",
+            "REQ-011",
+            "REQ-012"
+          ],
+          "digest": "a0fd5811d9345c3338d5960c0d37cd4434177c4f311c37a5166756491ecdb46f"
+        },
+        "visibilityPolicy": {
+          "id": "VISIBILITY-POLICY",
+          "visibilityClass": "candidate-public",
+          "disclosedAt": "before-run",
+          "requirementRefs": [
+            "REQ-001",
+            "REQ-022",
+            "REQ-023",
+            "REQ-024"
+          ],
+          "digest": "ea7b1c56f6a4c7bf2473de211ee4e7ed0fa6b19c90eae19afa1bd0e02171a8a8"
+        },
+        "checkpointContract": {
+          "id": "CHECKPOINT-CONTRACT",
+          "visibilityClass": "candidate-public",
+          "disclosedAt": "before-run",
+          "requirementRefs": [
+            "REQ-001",
+            "REQ-011",
+            "REQ-022",
+            "REQ-023"
+          ],
+          "digest": "da795a215d817766c186df37069e97bccdef3ca42eaf58bef708f3cbbe31a851"
+        },
+        "changeEventContract": {
+          "id": "CHANGE-EVENT-CONTRACT",
+          "visibilityClass": "event-private-change",
+          "disclosedAt": "after-prior-receipt",
+          "requirementRefs": [
+            "REQ-006",
+            "REQ-007",
+            "REQ-012",
+            "REQ-018",
+            "REQ-024"
+          ],
+          "digest": "2ea63470d48f36949c92ee77409e10836322045f7130d9c05c5e3d9000d1199f"
+        },
+        "evaluationContract": {
+          "id": "EVALUATION-CONTRACT",
+          "visibilityClass": "candidate-public",
+          "disclosedAt": "before-run",
+          "requirementRefs": [
+            "REQ-001",
+            "REQ-005",
+            "REQ-007",
+            "REQ-015",
+            "REQ-018",
+            "REQ-022"
+          ],
+          "digest": "d4bfa4a46f4daa0c0b1dd02080509e31fc6c8d8081a5b940095d44294857cca9"
+        },
+        "sanitizationProfile": {
+          "id": "SANITIZATION-PROFILE",
+          "visibilityClass": "candidate-public",
+          "disclosedAt": "before-run",
+          "requirementRefs": [
+            "REQ-022",
+            "REQ-023"
+          ],
+          "digest": "a6a822d1dcacf3a04a3b977cc228da65bc5d381e2b3afc3150a0074dfcb36ca6"
+        },
+        "sealedAssetCommitments": [
+          {
+            "id": "FIXED-GEOMETRY",
+            "visibilityClass": "candidate-public",
+            "disclosedAt": "before-run",
+            "requirementRefs": [
+              "REQ-004",
+              "REQ-005",
+              "REQ-007",
+              "REQ-008",
+              "REQ-009",
+              "REQ-014"
+            ],
+            "digest": "2d4b9c96605f32d26845517fc316ace0f487357db49a834d51b5f4ae1e442267"
+          },
+          {
+            "id": "COMPONENT-INTERFACE-CARDS",
+            "visibilityClass": "candidate-public",
+            "disclosedAt": "before-run",
+            "requirementRefs": [
+              "REQ-003",
+              "REQ-006",
+              "REQ-015",
+              "REQ-016",
+              "REQ-021"
+            ],
+            "digest": "5d6b4bf46068ab960e057ebbb50653263c87e16a1bfbf4166b1515ee28fd31c8"
+          },
+          {
+            "id": "NEUTRAL-HANDOFF-CONTRACT",
+            "visibilityClass": "candidate-public",
+            "disclosedAt": "before-run",
+            "requirementRefs": [
+              "REQ-002",
+              "REQ-005",
+              "REQ-011",
+              "REQ-012",
+              "REQ-013",
+              "REQ-022"
+            ],
+            "digest": "785b1d4564b36a12d720d491e41127cd043aa4cbc6205b3f9ce9151a67cee749"
+          },
+          {
+            "id": "NEUTRAL-HANDOFF-VALIDATOR",
+            "visibilityClass": "candidate-public",
+            "disclosedAt": "before-run",
+            "requirementRefs": [
+              "REQ-002",
+              "REQ-005",
+              "REQ-011",
+              "REQ-012",
+              "REQ-013",
+              "REQ-022"
+            ],
+            "digest": "af9b60bfeb1db396bf8a742992cbf94c337242285fdef1141378e6048e52a856"
+          },
+          {
+            "id": "GRASP-SURFACE-VALIDATOR",
+            "visibilityClass": "candidate-public",
+            "disclosedAt": "before-run",
+            "requirementRefs": [
+              "REQ-007",
+              "REQ-008",
+              "REQ-009"
+            ],
+            "digest": "5534790861c03b53166ac77deaa7186997bc5d732933f68a4490c3c24513005d"
+          },
+          {
+            "id": "COMMON-EVALUATION-METHOD",
+            "visibilityClass": "candidate-public",
+            "disclosedAt": "before-run",
+            "requirementRefs": [
+              "REQ-002",
+              "REQ-005",
+              "REQ-011",
+              "REQ-012",
+              "REQ-013"
+            ],
+            "digest": "5b0bb51cc74bfa24d2a5748d763159f7663587733ff4a5512367f5383e97cc87"
+          }
+        ],
+        "disclosureSchedule": [
+          {
+            "id": "DISCLOSURE-SCHEDULE",
+            "visibilityClass": "candidate-public",
+            "disclosedAt": "before-run",
+            "requirementRefs": [
+              "REQ-001",
+              "REQ-022",
+              "REQ-023",
+              "REQ-024"
+            ],
+            "digest": "b60be0ebb662bb256128fda7918100031d233f3957c61cd999267a1f4d70f9b3"
+          }
+        ]
+      },
+      "checkpoints": [
+        {
+          "id": "CKPT-000",
+          "sequence": 0,
+          "title": "Immutable initial plan",
+          "phase": "initial-plan",
+          "requiredOutputRefs": [],
+          "requiresPriorCheckpointIds": []
+        },
+        {
+          "id": "CKPT-010",
+          "sequence": 10,
+          "title": "Integrated system concept selected",
+          "phase": "concept",
+          "requiredOutputRefs": [
+            "OUT-003",
+            "OUT-007"
+          ],
+          "requiresPriorCheckpointIds": [
+            "CKPT-000"
+          ]
+        },
+        {
+          "id": "CKPT-020",
+          "sequence": 20,
+          "title": "Embodiment and neutral kinematic model established",
+          "phase": "embodiment",
+          "requiredOutputRefs": [
+            "OUT-001",
+            "OUT-002",
+            "OUT-003",
+            "OUT-004"
+          ],
+          "requiresPriorCheckpointIds": [
+            "CKPT-010"
+          ]
+        },
+        {
+          "id": "CKPT-030",
+          "sequence": 30,
+          "title": "Critical verification evidence established",
+          "phase": "verification",
+          "requiredOutputRefs": [
+            "OUT-004",
+            "OUT-005",
+            "OUT-006",
+            "OUT-008"
+          ],
+          "requiresPriorCheckpointIds": [
+            "CKPT-020"
+          ]
+        },
+        {
+          "id": "CKPT-040",
+          "sequence": 40,
+          "title": "Baseline submission sealed",
+          "phase": "submission",
+          "requiredOutputRefs": [
+            "OUT-001",
+            "OUT-002",
+            "OUT-003",
+            "OUT-004",
+            "OUT-005",
+            "OUT-006",
+            "OUT-007",
+            "OUT-008",
+            "OUT-009"
+          ],
+          "requiresPriorCheckpointIds": [
+            "CKPT-030"
+          ]
+        },
+        {
+          "id": "CKPT-050",
+          "sequence": 50,
+          "title": "Conditional affected-artifact change response sealed",
+          "phase": "change-response",
+          "requiredForBaseline": false,
+          "requiredOutputRefs": [
+            "OUT-003",
+            "OUT-005",
+            "OUT-007",
+            "OUT-008",
+            "OUT-009"
+          ],
+          "requiresPriorCheckpointIds": [
+            "CKPT-040"
+          ]
+        }
+      ],
+      "changeEvents": [
+        {
+          "id": "CHG-001",
+          "visibilityClass": "event-private-change",
+          "triggerAfterCheckpointId": "CKPT-040",
+          "responseCheckpointId": "CKPT-050",
+          "requirementRefs": [
+            "REQ-006",
+            "REQ-007",
+            "REQ-012",
+            "REQ-018",
+            "REQ-024"
+          ],
+          "digest": "2ea63470d48f36949c92ee77409e10836322045f7130d9c05c5e3d9000d1199f"
+        }
+      ],
+      "manifestDownload": "framework/task-packets/integrated-robotic-handling/1.8/packet.json",
+      "taskDefinitionDownload": "framework/task-packets/integrated-robotic-handling/1.8/task.json",
+      "lockDownload": "framework/task-packets/integrated-robotic-handling/1.8/packet-lock.json",
+      "instructionsText": "# Integrated robotic handling system design\n\n## Your assignment\n\nDesign and document a fixed-base industrial robot and its powered\nopening/closing mechanical gripper for the supplied machine-tending cell. The\nsystem runs from the floor mounting interface through the base, manipulator,\nwrist, end-effector interface, gripper actuation, fingers, and workpiece\ncontact surfaces.\n\nThis is an engineering-design benchmark. Treat the supplied values as the\nauthoritative public baseline for this run. Select and justify reasonable\nassumptions where the brief leaves design freedom, but do not silently change a\nrequirement or invent unavailable input data.\n\nThis is a full Stage 1 design task. Before design work, the execution protocol\nwill require an immutable `plan.json` checkpoint. That checkpoint is process\nevidence, not a substitute for the engineering deliverables below. Then carry\nout the design, test your own artefacts, correct defects you find, and submit\nthe complete evidence package. Do not stop at a concept, a rendered image, or\na partial CAD assembly.\n\n## Public inputs\n\nRead every file declared in `task.json` and use its IDs when you\nrefer to a requirement or input. In particular:\n\n- `inputs/requirements.json` defines what the handling system must achieve.\n- `inputs/cell-layout.json`, `inputs/interface-dimensions.json`, and\n  `inputs/fixed-geometry.json` define the coordinate frame, complete fixed\n  cell/fixture solids, insertion/seating interfaces, workpiece geometry,\n  grasp-region surfaces, clearances, and the fixed FND-ANCH-001\n  foundation/anchor model. Do not recreate geometry from prose or add fixed\n  cell features that are not in those inputs.\n- `inputs/workpieces.json` defines the three parts' mass/contact inputs and,\n  for WP-C, the mandatory WP-C-CONTACT-001 pad, pressure, damage, and\n  inspection acceptance method.\n- `inputs/component-catalog-snapshot.json` and\n  `inputs/component-interface-cards.json` are the closed source for purchased\n  motors, reducers, brakes, bearings, and gripper transmissions. Every such\n  component in CAD, BOM, or an engineering claim must be a supported ID with\n  its matching frozen interface/envelope card; unlisted components in those\n  classes are prohibited. You may design custom structural parts, adapters,\n  couplings, fingers, and linkages. Pneumatic primary actuation is not a\n  supported class in this packet; the gripper's primary powered mechanism must\n  use the supplied electrical motor/reducer/transmission classes.\n- `inputs/neutral-handoff-contract.json` and the hash-bound,\n  benchmark-owned `inputs/neutral-handoff-validator.mjs` define the exact\n  static STEP/kinematics preflight. You may run the validator against your\n  static artefacts, but it neither imports candidate code nor proves\n  reachability, collision, cycle feasibility, or physical repeatability; make\n  those claims only with your submitted engineering evidence.\n- `inputs/calibration-provenance.json` identifies values whose uncertainty or\n  calibration method must be carried into the design plan.\n- `inputs/evaluation-commitments.json` and `inputs/output-contract.json`\n  explain the later evidence and evaluation boundary. They are not a design\n  solution.\n\n## Required system boundary\n\nThe Stage 1 design must be a single integrated handling system. The candidate\nis free to select serial, parallel, hybrid, or other mechanically defensible\nmanipulator architecture, provided it can be represented by the neutral\nkinematic and CAD handoff. An off-the-shelf complete robot arm may not be used\nas the candidate's designed system.\n\nThe end effector must include a powered mechanical opening/closing mechanism\nand at least two opposing mechanical contact paths. Vacuum, magnetic adhesion,\nor a fixture may be an auxiliary retention feature, but may not be the primary\nload path. One common installed gripper configuration must handle all three\nbaseline workpieces; automatic tool change and changing fingers between the\nthree baseline cycles are not permitted.\n\nControl software, PLC logic, certification, and electrical cabinet design are\noutside the candidate's implementation scope. They remain design interfaces:\ndeclare the mechanical-control handoff, motion assumptions, sensing needs,\nbrake behavior, and safety concept needed for the mechanical design to be\nevaluated through the frozen evidence-only common evaluation method.\n\n## Required engineering deliverables\n\nWrite only under `candidate-output/`. Before any design work, write the\nimmutable `plan.json` checkpoint required by the execution profile. Then\nproduce the following files using the paths, schemas, and evidence roles in\n`inputs/output-contract.json`:\n\n1. A requirement trace and concept-selection record, including at least three\n   feasible integrated arm-and-gripper architectures, rejection reasons, and\n   the design decision trail to the selected concept.\n2. Native CAD source or a reproducible parametric CAD source, plus a neutral\n   assembly STEP AP242 export. The assembly must contain the base,\n   manipulator, wrist, gripper body, actuation/transmission, fingers, relevant\n   purchased components, and workpiece interfaces.\n3. A neutral kinematic and motion manifest with joint topology, limits,\n   coordinate transforms, payload states, required waypoints, carried\n   workpiece envelopes, and collision-relevant geometry references.\n4. A complete BOM separating candidate-designed, catalogue, fastener, and\n   consumable parts, with quantity, mass, material/process, catalogue source,\n   and cost basis or uncertainty.\n5. System calculations covering workspace/cycle, load cases, drive/reducer/\n   brake sizing, structural load path and deflection, gripper force and contact\n   retention, life/duty, tolerance/accuracy budget, and energy/power estimate.\n6. Controlled drawings and PMI for the critical design set: base/column,\n   governing high-load joint or link, complete gripper assembly, all finger\n   contact components, and any part governing accuracy or safety. Every file\n   named by `critical-drawing-index.csv` (drawing or PMI) must exist below the\n   candidate output root, be declared as a drawing artefact, and pass the\n   static file validation in the output contract; an index by itself is not a\n   drawing release.\n7. A gripper design package that exposes the opening/closing mechanism,\n   transmission, force/displacement characteristic, contacts, retention path,\n   sensing interface, loss-of-power behavior, and all three workpiece grasp\n   configurations.\n8. A safety and reliability package containing a requirement-linked risk\n   register/FMEA, fault load cases, end-stop/brake/retention concept,\n   pinch/crush mitigation, cable/utility routing, and service procedure.\n9. A verification report and evidence manifest that identify the source,\n   method, model scope, units, output, acceptance result, and uncertainty for\n   every claimed requirement result.\n10. A change-readiness record mapping each major interface and calculation to\n    the type of later workpiece, cell, cycle, or safety change that would\n    require rework. If a change event is attempted, first create the required\n    change-impact record. Any affected CAD source, STEP, BOM, or drawing/PMI\n    output must be reissued at CKPT-050 and named in that record. A missing or\n    unsuccessful CKPT-050 does not alter the sealed CKPT-040 baseline.\n\nUse no information from other candidates or benchmark runs. Do not alter the\ntask inputs, shared framework, task definition, or evaluation rules. If an\ninput is missing or its integrity cannot be verified, stop and record the\nblocker rather than substituting a private data set.\n\n## What good Stage 1 work looks like\n\nA strong submission turns the cell, workpiece, safety, manufacturing, and\nevidence requirements into a coherent, manufacturable and verifiable system.\nIt distinguishes facts from assumptions; makes conflicts visible; identifies\nthe governing load cases and design decisions; and leaves an independent\nevaluator a clear path from each requirement to inspectable evidence. It does\nnot optimise for prose volume or pretend that a simulation, CAD image, or\nspreadsheet is evidence without a defined model, input, output, and acceptance\nmethod.\n"
     }
   ],
   "launches": [
@@ -868,6 +1482,220 @@
       "manifestDownload": "framework/launches/integrated-robotic-handling-v1/launch.json",
       "promptDownload": "framework/launches/integrated-robotic-handling-v1/prompt.txt",
       "executionContractRoot": "framework/contracts/1c6c9d903a298ba9d71a2323884a0ae2cbeebcec8da87075f58eb712eec5d494"
+    },
+    {
+      "schemaVersion": "1.0",
+      "id": "integrated-robotic-handling-v2",
+      "protocolVersion": "4.0",
+      "taskPacket": {
+        "id": "integrated-robotic-handling",
+        "version": "1.8",
+        "digest": "32c169c24142a4c366569cf9d6737f985d87b20bae6363f79f649c0e5573b613",
+        "bundleDigest": "9411e75e55eb29f5ef459a1c9170815a99f3d4efc63f8ce76b45bcfb423bf98c"
+      },
+      "baselineCommit": "a0324bb474198fe493d5bc12cf682e5b0616788f",
+      "workspaceDigest": "0f3f86f1e402a8ca24991d0a1b3fc1e27966f7e1680fe12478a4d9ea91858aa9",
+      "canonicalBaseUrl": "https://naoyamd.github.io/rotorbench",
+      "executionProfile": {
+        "id": "integrated-robotic-handling-common",
+        "version": "1.0",
+        "digest": "786cdc738e8983dc75f296afd68aa59af7c4f42b73f3faac3deeeff75b591bea"
+      },
+      "baselineAttestationDigest": "a8212b7595276620f86f2572e347775108f0f2b068edfd740134d711426120e9",
+      "executionContractDigest": "b1387f6cff81f8643a5ecb1f968d16ec59be1cc6be8b9fe3373f6b396472bd27",
+      "outputRoot": "candidate-output",
+      "startAction": "checkpoint-initial-plan",
+      "stopConditions": [
+        "Stop before engineering work if a declared public input is unavailable or its SHA-256 does not match the launch.",
+        "If a tool or time limit prevents completion, preserve all verified checkpoint receipts and submit a schema-valid partial result instead of fabricating evidence.",
+        "Do not claim a calculation, inspection, simulation, or physical test that was not actually performed."
+      ],
+      "fairnessFingerprint": "ec2fb299a636c1e9fbe8d4609f5dcd74b4f5a8036c91cf9d947079cec3938d71",
+      "launchDigest": "2e8ff79e7f9e7456a89e7fbffe85d5f069e0147bca9f3f0c16c5149069a25fb0",
+      "promptSha256": "f9e03424d5c6328e876cde8c63905f98ccd791634760d6acd001e641ff45ff4f",
+      "v4Contract": {
+        "scoringVersion": "1.1",
+        "instanceBankManifest": {
+          "id": "INSTANCE-BANK",
+          "visibilityClass": "candidate-public",
+          "disclosedAt": "before-run",
+          "requirementRefs": [
+            "REQ-004",
+            "REQ-005",
+            "REQ-006",
+            "REQ-007",
+            "REQ-008",
+            "REQ-011",
+            "REQ-012"
+          ],
+          "digest": "a0fd5811d9345c3338d5960c0d37cd4434177c4f311c37a5166756491ecdb46f"
+        },
+        "visibilityPolicy": {
+          "id": "VISIBILITY-POLICY",
+          "visibilityClass": "candidate-public",
+          "disclosedAt": "before-run",
+          "requirementRefs": [
+            "REQ-001",
+            "REQ-022",
+            "REQ-023",
+            "REQ-024"
+          ],
+          "digest": "ea7b1c56f6a4c7bf2473de211ee4e7ed0fa6b19c90eae19afa1bd0e02171a8a8"
+        },
+        "checkpointContract": {
+          "id": "CHECKPOINT-CONTRACT",
+          "visibilityClass": "candidate-public",
+          "disclosedAt": "before-run",
+          "requirementRefs": [
+            "REQ-001",
+            "REQ-011",
+            "REQ-022",
+            "REQ-023"
+          ],
+          "digest": "da795a215d817766c186df37069e97bccdef3ca42eaf58bef708f3cbbe31a851"
+        },
+        "changeEventContract": {
+          "id": "CHANGE-EVENT-CONTRACT",
+          "visibilityClass": "event-private-change",
+          "disclosedAt": "after-prior-receipt",
+          "requirementRefs": [
+            "REQ-006",
+            "REQ-007",
+            "REQ-012",
+            "REQ-018",
+            "REQ-024"
+          ],
+          "digest": "2ea63470d48f36949c92ee77409e10836322045f7130d9c05c5e3d9000d1199f"
+        },
+        "evaluationContract": {
+          "id": "EVALUATION-CONTRACT",
+          "visibilityClass": "candidate-public",
+          "disclosedAt": "before-run",
+          "requirementRefs": [
+            "REQ-001",
+            "REQ-005",
+            "REQ-007",
+            "REQ-015",
+            "REQ-018",
+            "REQ-022"
+          ],
+          "digest": "d4bfa4a46f4daa0c0b1dd02080509e31fc6c8d8081a5b940095d44294857cca9"
+        },
+        "sanitizationProfile": {
+          "id": "SANITIZATION-PROFILE",
+          "visibilityClass": "candidate-public",
+          "disclosedAt": "before-run",
+          "requirementRefs": [
+            "REQ-022",
+            "REQ-023"
+          ],
+          "digest": "a6a822d1dcacf3a04a3b977cc228da65bc5d381e2b3afc3150a0074dfcb36ca6"
+        },
+        "sealedAssetCommitments": [
+          {
+            "id": "FIXED-GEOMETRY",
+            "visibilityClass": "candidate-public",
+            "disclosedAt": "before-run",
+            "requirementRefs": [
+              "REQ-004",
+              "REQ-005",
+              "REQ-007",
+              "REQ-008",
+              "REQ-009",
+              "REQ-014"
+            ],
+            "digest": "2d4b9c96605f32d26845517fc316ace0f487357db49a834d51b5f4ae1e442267"
+          },
+          {
+            "id": "COMPONENT-INTERFACE-CARDS",
+            "visibilityClass": "candidate-public",
+            "disclosedAt": "before-run",
+            "requirementRefs": [
+              "REQ-003",
+              "REQ-006",
+              "REQ-015",
+              "REQ-016",
+              "REQ-021"
+            ],
+            "digest": "5d6b4bf46068ab960e057ebbb50653263c87e16a1bfbf4166b1515ee28fd31c8"
+          },
+          {
+            "id": "NEUTRAL-HANDOFF-CONTRACT",
+            "visibilityClass": "candidate-public",
+            "disclosedAt": "before-run",
+            "requirementRefs": [
+              "REQ-002",
+              "REQ-005",
+              "REQ-011",
+              "REQ-012",
+              "REQ-013",
+              "REQ-022"
+            ],
+            "digest": "785b1d4564b36a12d720d491e41127cd043aa4cbc6205b3f9ce9151a67cee749"
+          },
+          {
+            "id": "NEUTRAL-HANDOFF-VALIDATOR",
+            "visibilityClass": "candidate-public",
+            "disclosedAt": "before-run",
+            "requirementRefs": [
+              "REQ-002",
+              "REQ-005",
+              "REQ-011",
+              "REQ-012",
+              "REQ-013",
+              "REQ-022"
+            ],
+            "digest": "af9b60bfeb1db396bf8a742992cbf94c337242285fdef1141378e6048e52a856"
+          },
+          {
+            "id": "GRASP-SURFACE-VALIDATOR",
+            "visibilityClass": "candidate-public",
+            "disclosedAt": "before-run",
+            "requirementRefs": [
+              "REQ-007",
+              "REQ-008",
+              "REQ-009"
+            ],
+            "digest": "5534790861c03b53166ac77deaa7186997bc5d732933f68a4490c3c24513005d"
+          },
+          {
+            "id": "COMMON-EVALUATION-METHOD",
+            "visibilityClass": "candidate-public",
+            "disclosedAt": "before-run",
+            "requirementRefs": [
+              "REQ-002",
+              "REQ-005",
+              "REQ-011",
+              "REQ-012",
+              "REQ-013"
+            ],
+            "digest": "5b0bb51cc74bfa24d2a5748d763159f7663587733ff4a5512367f5383e97cc87"
+          }
+        ],
+        "disclosureSchedule": [
+          {
+            "id": "DISCLOSURE-SCHEDULE",
+            "visibilityClass": "candidate-public",
+            "disclosedAt": "before-run",
+            "requirementRefs": [
+              "REQ-001",
+              "REQ-022",
+              "REQ-023",
+              "REQ-024"
+            ],
+            "digest": "b60be0ebb662bb256128fda7918100031d233f3957c61cd999267a1f4d70f9b3"
+          }
+        ]
+      },
+      "workspaceBootstrap": {
+        "kind": "public-bundle",
+        "location": "https://naoyamd.github.io/rotorbench/framework/workspaces/integrated-robotic-handling-v1.json",
+        "sha256": "9ad7c0f812921287f60d045518f6f6d83fce09fd10d9337fcb4fe63ec60ca44b"
+      },
+      "releaseStatus": "release-ready",
+      "activationVerified": false,
+      "handoffEligible": false,
+      "manifestDownload": "framework/launches/integrated-robotic-handling-v2/launch.json"
     }
   ],
   "cohorts": [],

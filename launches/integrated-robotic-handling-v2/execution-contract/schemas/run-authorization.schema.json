@@ -1,0 +1,79 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rotorbench.example/schemas/run-authorization.schema.json",
+  "title": "Pre-run operator authorization for one opaque benchmark run",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "assurance",
+    "runId",
+    "cohortId",
+    "launchId",
+    "issuedAt",
+    "measurementConditionsSha256",
+    "runConditionsSha256",
+    "launchDigest",
+    "fairnessFingerprint",
+    "executionProfileDigest",
+    "operatorPseudonym",
+    "attestations"
+  ],
+  "properties": {
+    "schemaVersion": { "const": "1.0" },
+    "assurance": { "const": "operator-attested-pre-run" },
+    "runId": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+    },
+    "cohortId": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+    },
+    "launchId": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+    },
+    "issuedAt": { "type": "string", "format": "date-time" },
+    "measurementConditionsSha256": {
+      "$ref": "artifact.schema.json#/$defs/sha256"
+    },
+    "runConditionsSha256": {
+      "$ref": "artifact.schema.json#/$defs/sha256"
+    },
+    "launchDigest": {
+      "$ref": "artifact.schema.json#/$defs/sha256"
+    },
+    "fairnessFingerprint": {
+      "$ref": "artifact.schema.json#/$defs/sha256"
+    },
+    "executionProfileDigest": {
+      "$ref": "artifact.schema.json#/$defs/sha256"
+    },
+    "operatorPseudonym": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+    },
+    "externalRunConfigurationSha256": {
+      "$ref": "artifact.schema.json#/$defs/sha256"
+    },
+    "attestations": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "conditionsFrozenBeforeRun",
+        "candidateReceivedOnlyLaunchHandoff",
+        "candidateHadNoHumanDesignIntervention",
+        "statement"
+      ],
+      "properties": {
+        "conditionsFrozenBeforeRun": { "const": true },
+        "candidateReceivedOnlyLaunchHandoff": { "const": true },
+        "candidateHadNoHumanDesignIntervention": { "const": true },
+        "statement": {
+          "const": "The operator attests that this authorization was created before the named external candidate run began. This is an auditable operator record, not cryptographic proof of external execution time."
+        }
+      }
+    }
+  }
+}
