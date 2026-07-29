@@ -1,0 +1,117 @@
+{
+  "document": "Baseline workpieces and approved mechanical grasp regions",
+  "version": "1.0",
+  "policy": "All dimensions and masses are baseline engineering inputs. The candidate may create a common gripper and compliant contact geometry, but primary contacts must remain inside an approved grasp region. Cosmetic or metrology surfaces are excluded from primary load-bearing contact.",
+  "workpieces": [
+    {
+      "id": "WP-A",
+      "name": "Machined aluminium valve housing",
+      "material": "Aluminium alloy casting, machined",
+      "mass": { "nominal": 2.35, "tolerance": 0.12, "unit": "kg" },
+      "boundingEnvelope": { "x": 162, "y": 98, "z": 64, "unit": "mm" },
+      "centreOfMass": { "relativeToPartDatum": [2, -4, 31], "uncertainty": 4, "unit": "mm" },
+      "surfaceCondition": "Machined datum faces and as-cast sidewalls. Coolant film possible after CNC unload.",
+      "frictionAssumption": { "dry": 0.42, "coolantFilm": 0.18, "source": "inputs/calibration-provenance.json:VAL-006", "uncertainty": "Coupon and representative-part test not performed; use coolantFilm as the design minimum.", "status": "resolved-benchmark-design-basis" },
+      "approvedGraspRegions": [
+        {
+          "id": "WP-A-GR-1",
+          "type": "opposed external rail faces",
+          "description": "Two cast side rails, nominal separation 96 mm, each 18 mm high × 52 mm long. Contact may use conformal or compliant pads.",
+          "contactNormalPair": [[0, 1, 0], [0, -1, 0]],
+          "surfaceClass": "functional-grasp"
+        }
+      ],
+      "prohibitedContactRegions": ["top machined sealing face", "bore datums", "part identification surface"],
+      "processOrientation": "Base face downward at tray, CNC, inspection, and finished-tray stations."
+    },
+    {
+      "id": "WP-B",
+      "name": "Ductile-iron bearing carrier",
+      "material": "Ductile iron, phosphate-coated",
+      "mass": { "nominal": 4.2, "tolerance": 0.18, "unit": "kg" },
+      "boundingEnvelope": { "diameter": 156, "height": 50, "unit": "mm" },
+      "centreOfMass": { "relativeToPartDatum": [0, 0, 25], "uncertainty": 3, "unit": "mm" },
+      "surfaceCondition": "Coated outer diameter with residual oil film; internal bore is a datum and may not be primary gripped.",
+      "frictionAssumption": { "dry": 0.34, "oilFilm": 0.14, "source": "inputs/calibration-provenance.json:VAL-006", "uncertainty": "Coupon and representative-part test not performed; use oilFilm as the design minimum.", "status": "resolved-benchmark-design-basis" },
+      "approvedGraspRegions": [
+        {
+          "id": "WP-B-GR-1",
+          "type": "opposed outer-diameter arcs",
+          "description": "Two 35 degree outer-diameter arc zones centred at ±Y. Candidate may use V, curved, or compliant mechanical contact geometry.",
+          "contactNormalPair": [[0, 1, 0], [0, -1, 0]],
+          "surfaceClass": "functional-grasp"
+        }
+      ],
+      "prohibitedContactRegions": ["central bore", "bearing-seat diameter", "inspection datum face"],
+      "processOrientation": "Central axis vertical at tray, CNC, inspection, and finished-tray stations."
+    },
+    {
+      "id": "WP-C",
+      "name": "Die-cast aluminium electronics cover",
+      "material": "Aluminium alloy die casting with cosmetic coated exterior",
+      "mass": { "nominal": 0.78, "tolerance": 0.06, "unit": "kg" },
+      "boundingEnvelope": { "x": 210, "y": 138, "z": 22, "unit": "mm" },
+      "centreOfMass": { "relativeToPartDatum": [0, 0, 11], "uncertainty": 5, "unit": "mm" },
+      "surfaceCondition": "Cosmetic coated outer face; internal flange and two reinforced side pads are available for mechanical contact.",
+      "frictionAssumption": { "dry": 0.30, "coolantFilm": 0.16, "source": "inputs/calibration-provenance.json:VAL-006", "uncertainty": "Coupon and representative-part test not performed; use coolantFilm as the design minimum.", "status": "resolved-benchmark-design-basis" },
+      "approvedGraspRegions": [
+        {
+          "id": "WP-C-GR-1",
+          "type": "opposed reinforced side pads",
+          "description": "Two inner-side pads, nominal separation 132 mm, each 24 mm wide × 38 mm long. Their wall thickness is 4.5 mm and the candidate shall limit local contact stress.",
+          "contactNormalPair": [[0, 1, 0], [0, -1, 0]],
+          "surfaceClass": "functional-grasp"
+        },
+        {
+          "id": "WP-C-GR-2",
+          "type": "under-flange support ledges",
+          "description": "Two 7 mm under-flange ledges on the long sides may provide secondary anti-drop support but do not replace opposing powered mechanical contact.",
+          "contactNormalPair": [[0, 0, 1]],
+          "surfaceClass": "secondary-retention"
+        }
+      ],
+      "prohibitedContactRegions": ["coated exterior face", "window opening", "locating bosses", "inspection label zone"],
+      "processOrientation": "Coated face upward at tray, CNC, inspection, and finished-tray stations."
+    }
+  ],
+  "commonHandlingCases": [
+    {
+      "id": "LC-HND-001",
+      "name": "nominal transfer",
+      "linearAcceleration": 6.0,
+      "angularAcceleration": 8.0,
+      "units": { "linearAcceleration": "m/s^2", "angularAcceleration": "rad/s^2" },
+      "source": "inputs/calibration-provenance.json:VAL-005",
+      "uncertainty": "Common-host fault envelope uncertainty recorded in VAL-005.",
+      "status": "resolved-benchmark-design-basis"
+    },
+    {
+      "id": "LC-HND-002",
+      "name": "emergency stop",
+      "linearAcceleration": 10.0,
+      "angularAcceleration": 14.0,
+      "units": { "linearAcceleration": "m/s^2", "angularAcceleration": "rad/s^2" },
+      "source": "inputs/calibration-provenance.json:VAL-005",
+      "uncertainty": "Common-host fault envelope uncertainty recorded in VAL-005.",
+      "status": "resolved-benchmark-design-basis"
+    },
+    {
+      "id": "LC-HND-003",
+      "name": "loss-of-power hold",
+      "linearAcceleration": 0.0,
+      "angularAcceleration": 0.0,
+      "units": { "linearAcceleration": "m/s^2", "angularAcceleration": "rad/s^2" },
+      "status": "public-fixed",
+      "note": "Gravity, declared residual energy, and any released actuator force must be considered."
+    }
+  ],
+  "provenance": {
+    "status": "resolved-benchmark-design-basis",
+    "sourceClass": "benchmark-design-basis",
+    "basis": "Benchmark-owned representative manufacturing parts selected to require common-gripper adaptability without tool changing while keeping primary contacts and forbidden surfaces explicit.",
+    "applicability": "All v1.0 public and fixed-anchor handling calculations and grasp evaluation.",
+    "physicalTested": false,
+    "uncertainty": "Mass, centre of mass, friction, and contact-damage values are fixed conservative v1.0 inputs but have not been validated through physical part testing. Per-value uncertainty remains in each workpiece record.",
+    "futureValidation": ["weigh representative parts", "measure centre of mass and grasp geometry", "characterize friction under dry and coolant/oil states", "measure allowable contact stress or damage threshold for WP-C"]
+  }
+}

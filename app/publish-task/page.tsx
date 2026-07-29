@@ -1,14 +1,11 @@
 import type { Metadata } from "next";
 import { SiteFooter, SiteHeader } from "../components/site-header";
-import {
-  PUBLISH_LAUNCH_MESSAGE,
-  PUBLISH_TASK_PROMPT,
-} from "../../shared/prompts.mjs";
+import { sitePath } from "../site-url";
 
 export const metadata: Metadata = {
-  title: "Stage 2 cohort publishing | Engineering Design Benchmark Framework",
+  title: "Stage 2 handoff moved | Engineering Design Benchmark",
   description:
-    "The separate Stage 2 workflow that seals candidate bundles and publishes a complete cohort together.",
+    "Compatibility entry for the current sealed evaluation and cohort publication workflow.",
 };
 
 export default function PublishTaskPage() {
@@ -17,38 +14,27 @@ export default function PublishTaskPage() {
       <SiteHeader />
       <main className="listing-page">
         <section className="page-intro">
-          <p className="eyebrow">STAGE 02 / COHORT INTEGRATION &amp; PUBLICATION</p>
-          <h1>Seal candidates separately, publish the cohort together</h1>
+          <p className="eyebrow">STAGE 02 / CURRENT PROTOCOL V4</p>
+          <h1>Evaluation and publication now share one handoff</h1>
           <p>
-            This operator-only task receives completed <code>candidate-output/</code>{" "}
-            bundles. It never changes candidate work and is never sent to a candidate
-            model.
+            The former publish-only procedure is obsolete. Version 4 freezes the
+            cohort and equal run conditions before Stage 1, then evaluates each
+            sealed result before the complete cohort can be published.
           </p>
+          <a className="button-link" href={sitePath("evaluate-task/")}>
+            OPEN CURRENT STAGE 2 HANDOFF
+          </a>
         </section>
         <section className="content-section">
-          <h2>公開担当のCodexへ貼る全文</h2>
-          <pre className="prompt-block"><code>{PUBLISH_LAUNCH_MESSAGE}</code></pre>
+          <h2>Why this page remains</h2>
           <p>
-            候補行は予定した全候補分を列挙します。候補が揃う前には、このStage 2を開始しません。
-          </p>
-        </section>
-        <section className="content-section">
-          <h2>Canonical handoff prompt</h2>
-          <pre className="prompt-block"><code>{PUBLISH_TASK_PROMPT}</code></pre>
-        </section>
-        <section className="content-section">
-          <h2>Fail-closed publication sequence</h2>
-          <ol className="plain-list">
-            <li>Define one open cohort with its launch, fairness fingerprint, and complete candidate ID list.</li>
-            <li>Validate and byte-seal every candidate bundle into a cohort-bound run at <code>validated</code>.</li>
-            <li>Run common validation and STEP preprocessing while derived evidence remains outside the public site.</li>
-            <li>Publish the complete cohort in one rollback-protected transition after every member has a successful sealed report.</li>
-            <li>Build the public catalog and verify downloads, viewer output, static links, GitHub Pages, and Sites.</li>
-          </ol>
-          <p>
-            <a href="https://github.com/naoyamd/rotorbench/blob/main/PUBLISH_TASK.md">
-              Canonical Stage 2 contract
+            Existing links continue to resolve, but no old command or prompt is
+            executable here. The current procedure is maintained only at the Stage
+            2 evaluation URL and in{" "}
+            <a href="https://github.com/naoyamd/rotorbench/blob/main/EVALUATE_TASK.md">
+              EVALUATE_TASK.md
             </a>
+            .
           </p>
         </section>
       </main>

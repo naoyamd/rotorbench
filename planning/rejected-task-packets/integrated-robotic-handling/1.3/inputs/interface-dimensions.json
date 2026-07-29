@@ -1,0 +1,74 @@
+{
+  "document": "Mechanical interfaces and datum system",
+  "version": "1.0",
+  "coordinateSystem": {
+    "name": "W",
+    "units": "mm",
+    "origin": "Centre of the candidate base mounting pattern on the finished cell floor.",
+    "axes": {
+      "x": "positive toward CNC loading station",
+      "y": "positive toward finished-tray and inspection side",
+      "z": "positive vertically upward"
+    },
+    "orientationConvention": "Right-handed. Pose rotations are XYZ intrinsic degrees unless a neutral motion manifest declares an equivalent unambiguous convention."
+  },
+  "floorMounting": {
+    "id": "IFC-FLR-001",
+    "anchorPattern": {
+      "fasteners": "8 × M16 property class 10.9 anchors supplied by cell integrator; candidate shall design the mating base and state preload and foundation assumptions.",
+      "holeCentres": [[-180, -180], [-180, 180], [180, -180], [180, 180], [-180, -60], [-180, 60], [180, -60], [180, 60]],
+      "anchorPlaneZ": 0,
+      "allowedFootprint": {
+        "x": [-300, 300],
+        "y": [-300, 300],
+        "z": [0, 950]
+      }
+    },
+    "floorAssumption": "Reinforced concrete foundation. Candidate shall not assume an infinite-rigid foundation; it shall declare the base/foundation stiffness and anchoring model used for accuracy and safety claims."
+  },
+  "toolInterface": {
+    "id": "IFC-TCP-001",
+    "definition": "TCP is a candidate-declared datum rigidly related to the gripper. Its transform and payload state shall be present in every motion-manifest pose.",
+    "endEffectorInterface": "Candidate-designed. The candidate shall provide a controlled interface drawing between wrist and gripper and shall not rely on an undeclared purchased end-effector.",
+    "minimumClearanceAtCnc": 8,
+    "minimumClearanceAtTrays": 12
+  },
+  "machineInterfaces": [
+    {
+      "id": "IFC-CNC-001",
+      "name": "CNC load fixture",
+      "datum": "Fixture datum F1",
+      "fixturePlane": { "origin": [1220, 0, 945], "normal": [-1, 0, 0] },
+      "insertionAxis": [-1, 0, 0],
+      "approachLength": 180,
+      "partSeatingTolerance": 0.15,
+      "leadIn": "The cell provides a 20 degree × 3 mm chamfer at the fixture mouth. Candidate shall provide the remaining alignment strategy.",
+      "machineEnvelope": { "x": [1020, 1480], "y": [-360, 360], "z": [640, 1380] }
+    },
+    {
+      "id": "IFC-INS-001",
+      "name": "Inspection nest",
+      "datum": "Nest datum I1",
+      "fixturePlane": { "origin": [700, 560, 875], "normal": [0, 0, 1] },
+      "insertionAxis": [0, 0, -1],
+      "approachLength": 160,
+      "partSeatingTolerance": 0.25,
+      "leadIn": "Four 4 mm radius guide features are available; no clamp is provided by the cell.",
+      "machineEnvelope": { "x": [520, 880], "y": [370, 760], "z": [760, 1110] }
+    }
+  ],
+  "utilityInterfaces": {
+    "id": "IFC-UTL-001",
+    "electrical": "Common controller provides 400 VAC three-phase and 24 VDC at the base service point. Candidate shall declare required channels, power estimate, and moving-cable strategy; cable selection is intentionally candidate-designed.",
+    "pneumatic": "0.55 MPa filtered compressed air is available at the base service point. Pneumatic actuation is permitted but the candidate shall state loss-of-air behavior and all valves/springs needed for the mechanical safety concept.",
+    "baseServicePoint": [0, -330, 420],
+    "routingConstraint": "All moving utilities must remain inside the service envelope or a candidate-declared protected route. They must not cross machine openings or required operator access zones."
+  },
+  "provenance": {
+    "status": "resolved-benchmark-design-basis",
+    "sourceClass": "benchmark-design-basis; ISO 9409-1:2004 informs the mechanical-interface convention but does not prescribe this cell's anchor pattern.",
+    "basis": "Benchmark-author industrial-cell synthesis fixed for v1.0.",
+    "applicability": "Candidate floor, fixture, TCP, utility, clearance, and approach calculations.",
+    "uncertainty": "Unless a tighter tolerance is stated, public envelope coordinates have ±2 mm authoring tolerance and are not claimed to be metrology-grade as-built data."
+  }
+}

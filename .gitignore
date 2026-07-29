@@ -47,4 +47,12 @@ next-env.d.ts
 /.wrangler/
 /outputs/
 /work/
+/runs/*
+!/runs/README.md
+!/runs/_template/
+!/runs/_template/**
+/cohorts/*
+!/cohorts/README.md
+!/cohorts/_template/
+!/cohorts/_template/**
 /.dev-server.*.log

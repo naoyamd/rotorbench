@@ -1,0 +1,33 @@
+{
+  "schemaVersion": "1.0",
+  "id": "integrated-robotic-handling",
+  "title": "Integrated industrial robot arm and powered gripper",
+  "summary": "A fixed public anchor task measuring how an LLM plans, embodies, verifies, and documents a manufacturable machine-tending robot arm with an integrated powered opening/closing gripper.",
+  "status": "active",
+  "version": "1.7",
+  "extensions": {
+    "taskClass": "mechanical-system-design",
+    "primaryPanel": "fixed-anchor-baseline",
+    "candidateScope": [
+      "fixed base and complete manipulator arm",
+      "wrist and electrically powered two-contact opening/closing gripper; pneumatic primary actuation is prohibited because no pneumatic catalogue family is supplied",
+      "kinematics, load paths, drives, brakes, bearings and structure",
+      "critical manufacturing definition, tolerances, inspection and service",
+      "complete fixed neutral geometry, closed component-interface cards, and fixed foundation/contact acceptance",
+      "hash-bound static STEP/kinematics handoff, CSG-checked grasp coordinates, closed actuator/rating cards, and frozen evidence-only common method for cycle/collision/accuracy claims"
+    ],
+    "scoringContract": {
+      "id": "integrated-robotic-handling-scoring",
+      "version": "1.1",
+      "publicPath": "framework/evaluation/integrated-robotic-handling-v1/scoring-contract.json",
+      "compositeScorePublished": false
+    },
+    "optionalControlledPanels": [
+      "hidden-robustness",
+      "change-response",
+      "fresh-generalization"
+    ],
+    "publicLaunchDoesNotDistributePrivateInputs": true,
+    "longitudinalFreezeMonths": 12
+  }
+}

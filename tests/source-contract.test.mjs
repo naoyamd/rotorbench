@@ -108,6 +108,7 @@ async function writeProtocolFixture(
   const cohort = {
     schemaVersion: "1.0",
     id: "neutral-cohort",
+    openedAt: "2026-07-29T00:00:00Z",
     launchId: launch.id,
     fairnessFingerprint: launch.fairnessFingerprint,
     status: "open",
@@ -225,6 +226,9 @@ test("all Stage 1, Stage 2, and publication schemas compile and reject unknown f
     "task-packet.schema.json",
     "launch.schema.json",
     "cohort.schema.json",
+    "measurement-conditions.schema.json",
+    "cohort-disclosure.schema.json",
+    "cohort-evaluation-aggregate.schema.json",
     "plan.schema.json",
     "work-record.schema.json",
     "submission.schema.json",
@@ -330,6 +334,7 @@ test("a launch is self-contained, fail-closed, and identity-neutral", async () =
       "candidate-output/plan.json",
       "candidate-output/work-record.json",
       "candidate-output/submission.json",
+      "only in `submission.json.model`",
       "Do not clone or modify RotorBench",
     ]) assert.match(prompt, new RegExp(required.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
     const broken = structuredClone(first.launch);
@@ -924,11 +929,18 @@ test("repository catalog counts match checked-in non-template content", async ()
     (await readdir(path.join(projectRoot, name), { withFileTypes: true }))
       .filter((entry) => entry.isDirectory() && !entry.name.startsWith("_")).length;
   const catalog = JSON.parse(await readFile(path.join(projectRoot, "public", "framework", "catalog.json"), "utf8"));
+  const framework = await validateFramework(projectRoot);
   assert.equal(catalog.benchmarks.length, await contentDirectories("benchmarks"));
-  assert.equal(catalog.taskPackets.length, await contentDirectories("task-packets"));
-  assert.equal(catalog.launches.length, await contentDirectories("launches"));
+  const publiclyReferencedPackets = new Set(
+    catalog.launches.map((launch) => `${launch.taskPacket.id}@${launch.taskPacket.version}`),
+  );
+  assert.equal(catalog.taskPackets.length, publiclyReferencedPackets.size);
+  assert.equal(
+    catalog.launches.length,
+    framework.launches.filter((launch) => launch.publicEligible).length,
+  );
   assert.equal(catalog.cohorts.length, await contentDirectories("cohorts"));
-  assert.deepEqual((await validateFramework(projectRoot)).issues, []);
+  assert.deepEqual(framework.issues, []);
 });
 
 test("legacy material remains byte-identical", async () => {
@@ -951,21 +963,28 @@ test("operator contracts enforce the three-stage boundary", async () => {
     readFile(path.join(projectRoot, "MODEL_TASK.md"), "utf8"),
     readFile(path.join(projectRoot, "PUBLISH_TASK.md"), "utf8"),
   ]);
-  assert.match(model, /EDBF-STAGE1-3\.0/);
-  assert.match(model, /bare\s+URL/i);
+  assert.match(model, /EDBF-STAGE1-4\.0/);
+  assert.match(model, /no placeholders/i);
   assert.match(model, /candidate-output\//);
   assert.match(model, /candidate ID/);
+  assert.match(model, /stage1:prepare-workspace/);
+  assert.match(model, /receiptSha256/);
+  assert.match(model, /external-run-configuration-sha256/);
   assert.match(MODEL_LAUNCH_MESSAGE, /このタスクに対する私の指示として実行/);
-  assert.match(MODEL_TASK_PROMPT, /isolated engineering project/);
-  assert.match(publish, /EDBF-STAGE2-3\.0/);
-  assert.match(publish, /byte-for-byte/);
-  assert.match(publish, /opaque candidate ID/);
+  assert.match(MODEL_TASK_PROMPT, /launch-bound isolated workspace/);
+  assert.match(MODEL_TASK_PROMPT, /opaque three-run assignments/);
+  assert.match(publish, /EDBF-STAGE2-4\.0/);
+  assert.match(publish, /EVALUATE_TASK\.md/);
+  assert.match(publish, /opaque\s+run\s+assignments/);
   assert.match(publish, /stage2:publish-cohort/);
-  assert.match(publish, /open cohort ID/);
+  /* Legacy Japanese launcher assertions target the retired v3 handoff. */
+  /*
   assert.match(PUBLISH_LAUNCH_MESSAGE, /このタスクに対する私の指示として実行/);
   assert.match(PUBLISH_LAUNCH_MESSAGE, /予定候補と完成済み成果/);
-  assert.match(PUBLISH_TASK_PROMPT, /deterministic tree hash/);
-  assert.match(PUBLISH_TASK_PROMPT, /transition together or roll back/);
+  */
+  assert.match(PUBLISH_LAUNCH_MESSAGE, /evaluate-task/);
+  assert.match(PUBLISH_TASK_PROMPT, /identity-blind independent engineering/);
+  assert.match(PUBLISH_TASK_PROMPT, /complete cohort atomically/);
   for (const contract of [
     STAGE0_COORDINATOR_HANDOFF,
     STAGE0_AUTHOR_HANDOFF,
@@ -979,6 +998,51 @@ test("operator contracts enforce the three-stage boundary", async () => {
   assert.match(STAGE0_RELEASE_HANDOFF, /APPROVE RELEASE <launch-digest>/);
 });
 
+test("official entrypoints invoke only the launch-frozen execution contract", async () => {
+  const packageJson = await readFile(path.join(projectRoot, "package.json"), "utf8");
+  const scripts = JSON.parse(packageJson).scripts;
+  const officialCommands = [
+    "stage1:prepare-workspace",
+    "stage1:authorize-run",
+    "stage2:integrate",
+    "stage2:open-cohort",
+    "stage2:sanitize",
+    "stage2:prepare-review",
+    "stage2:seal-review",
+    "stage2:finalize-evaluation",
+    "stage2:publish-cohort",
+    "stage2:export-publication",
+    "evaluation:score",
+    "evaluation:aggregate",
+  ];
+  for (const name of officialCommands) {
+    assert.match(
+      scripts[name],
+      /^node launches\/integrated-robotic-handling-v1\/execution-contract\/scripts\/[a-z0-9-]+\.mjs$/,
+      name,
+    );
+    assert.doesNotMatch(scripts[name], /-runner\.mjs$/, name);
+  }
+});
+
+test("official integration binds the submitted workspace receipt to pre-run authorization", async () => {
+  const [authorizeSource, integrateSource, frameworkSource] = await Promise.all([
+    readFile(path.join(projectRoot, "scripts", "stage1-authorize-run.mjs"), "utf8"),
+    readFile(path.join(projectRoot, "scripts", "stage2-integrate.mjs"), "utf8"),
+    readFile(path.join(projectRoot, "scripts", "framework-lib.mjs"), "utf8"),
+  ]);
+  assert.match(authorizeSource, /candidateWorkspaceReceiptRequired/);
+  assert.match(authorizeSource, /externalRunConfigurationSha256/);
+  assert.match(integrateSource, /workspace-receipt\.json/);
+  assert.match(
+    integrateSource,
+    /runAuthorization\.externalRunConfigurationSha256/,
+  );
+  assert.match(integrateSource, /workspaceReceiptBindingIssues/);
+  assert.match(frameworkSource, /candidateWorkspaceReceiptSha256/);
+  assert.match(frameworkSource, /candidate-workspace-receipt-time-order/);
+});
+
 test("launch rendering uses frozen prompt bytes while Stage 1 listing remains live-only", async () => {
   const [launchPage, modelTaskPage] = await Promise.all([
     readFile(path.join(projectRoot, "app", "launch", "[id]", "page.tsx"), "utf8"),
@@ -988,5 +1052,8 @@ test("launch rendering uses frozen prompt bytes while Stage 1 listing remains li
   assert.doesNotMatch(launchPage, /buildLaunchPrompt/);
   assert.match(launchPage, /data-launch-digest/);
   assert.match(launchPage, /data-prompt-sha256/);
+  assert.match(launchPage, /Version 4 execution boundary/);
+  assert.match(launchPage, /packet-lock\.json/);
   assert.match(modelTaskPage, /releaseStatus.*live-verified/s);
+  assert.match(modelTaskPage, /private payloads remain withheld/);
 });

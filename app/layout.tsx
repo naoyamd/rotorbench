@@ -8,28 +8,28 @@ const publicBasePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: { default: "Engineering Design Benchmark Framework", template: "%s" },
-  description: "A static, task-neutral framework for publishing engineering design benchmark evidence.",
+  description: "A live-verified engineering design benchmark for comparing LLM robot-arm and powered-gripper design capability.",
   applicationName: "Engineering Design Benchmark Framework",
   keywords: ["engineering design", "benchmark framework", "CAD", "STEP", "static evidence"],
   openGraph: {
     title: "Engineering Design Benchmark Framework",
-    description: "A static, task-neutral framework for future engineering design benchmark evidence.",
+    description: "Compare LLM engineering design through one fixed robot-arm and powered-gripper task, immutable process evidence, and multidimensional evaluation.",
     type: "website",
     locale: "en_US",
     images: [
       {
-        url: absoluteSiteUrl("og-stage0.png"),
+        url: absoluteSiteUrl("engineering-benchmark-og.png"),
         width: 1728,
-        height: 909,
-        alt: "Engineering Design Benchmark — Prepare, Design, Publish",
+        height: 910,
+        alt: "Industrial robot arm and powered gripper under CAD, load, and manufacturing review",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
     title: "Engineering Design Benchmark Framework",
-    description: "A static, task-neutral framework for future engineering design benchmark evidence.",
-    images: [absoluteSiteUrl("og-stage0.png")],
+    description: "One fixed engineering task, staged evidence, and multidimensional evaluation for LLM mechanical-system design.",
+    images: [absoluteSiteUrl("engineering-benchmark-og.png")],
   },
   icons: { icon: `${publicBasePath}/favicon.svg`, shortcut: `${publicBasePath}/favicon.svg` },
 };

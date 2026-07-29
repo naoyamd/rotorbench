@@ -1,0 +1,212 @@
+{
+  "document": "Candidate engineering evidence and checkpoint contract",
+  "version": "1.4",
+  "outputRoot": "candidate-output",
+  "purpose": "Define the minimum inspectable artefacts and checkpoint evidence for a complete Stage 1 engineering submission.",
+  "protocolCheckpoint": {
+    "id": "CKPT-000",
+    "path": "candidate-output/plan.json",
+    "companionDigestPath": "candidate-output/initial-plan.sha256",
+    "rule": "Write before creating or modifying engineering design artefacts. The execution protocol seals both files and subsequent changes invalidate the checkpoint."
+  },
+  "candidateCheckpoints": [
+    {
+      "id": "CKPT-010",
+      "name": "architecture-and-interface-freeze",
+      "requiredArtefacts": ["artifacts/design/requirements-trace.csv", "artifacts/design/concept-selection.md", "artifacts/motion/kinematics.json", "artifacts/gripper/gripper-design.json"],
+      "purpose": "Record architecture selection, interfaces, kinematics, and gripper mechanism before detailed release evidence."
+    },
+    {
+      "id": "CKPT-020",
+      "name": "embodiment-and-neutral-model-freeze",
+      "requiredArtefacts": ["artifacts/cad/source-manifest.json", "artifacts/cad/assembly.step", "artifacts/motion/kinematics.json", "artifacts/bom/bom.csv"],
+      "purpose": "Record the embodiment, neutral geometry, kinematic handoff, and structured bill of materials before detailed verification evidence."
+    },
+    {
+      "id": "CKPT-030",
+      "name": "critical-design-evidence-complete",
+      "requiredArtefacts": ["artifacts/bom/bom.csv", "artifacts/calculations/system-calculations.pdf", "artifacts/drawings/critical-drawing-index.csv", "artifacts/safety/risk-fmea.csv"],
+      "purpose": "Record critical calculation, drawing, manufacturing, and safety evidence before final packaging."
+    },
+    {
+      "id": "CKPT-040",
+      "name": "submission-release",
+      "requiredArtefacts": ["artifacts/cad/assembly.step", "artifacts/evidence/verification-report.md", "artifacts/evidence/evidence-manifest.json", "artifacts/design/change-readiness.csv"],
+      "purpose": "Bind neutral handoff and final evidence to the sealed baseline submission."
+    },
+    {
+      "id": "CKPT-050",
+      "name": "change-response-release",
+      "requiredForBaseline": false,
+      "requiredArtefacts": ["artifacts/design/change-impact.json", "artifacts/design/change-readiness.csv", "artifacts/motion/kinematics.json", "artifacts/calculations/calculation-register.csv", "artifacts/gripper/gripper-design.json", "artifacts/evidence/verification-report.md"],
+      "purpose": "After the event-private change is disclosed, bind the pre-edit impact classification, affected design decisions, calculations, gripper package, motion evidence, and verification response. Conditional CAD, STEP, BOM, and drawing/PMI reissue obligations are defined in conditionalChangeResponse."
+    }
+  ],
+  "artefacts": [
+    {
+      "id": "ART-001",
+      "path": "artifacts/design/requirements-trace.csv",
+      "role": "supporting",
+      "requiredOutputRef": "OUT-003",
+      "mediaType": "text/csv",
+      "requiredFields": ["requirementId", "designDecision", "verificationMethod", "evidencePath", "acceptanceMeasure", "result", "uncertainty", "status"]
+    },
+    {
+      "id": "ART-002",
+      "path": "artifacts/design/concept-selection.md",
+      "role": "supporting",
+      "requiredOutputRef": "OUT-003",
+      "mediaType": "text/markdown",
+      "requiredFields": ["three-or-more architectures", "selection rationale", "rejection rationale", "unresolved risks"]
+    },
+    {
+      "id": "ART-003",
+      "path": "artifacts/cad/source-manifest.json",
+      "role": "cad-source",
+      "requiredOutputRef": "OUT-001",
+      "mediaType": "application/json",
+      "requiredFields": ["sourceFiles", "toolchain", "reproducibilityInstructions", "assemblyRoot", "externalReferencePolicy"],
+      "indexedFileReferences": {
+        "kind": "json-records",
+        "recordsField": "sourceFiles",
+        "pathField": "path",
+        "mediaTypeField": "mediaType",
+        "sha256Field": "sha256",
+        "pathRoot": "artifacts/cad/source",
+        "allowedMediaTypes": ["application/x-opaque-cad", "application/json", "text/plain"],
+        "declarationRule": "sourceFiles must be a non-empty list of unique safe paths, media types, and SHA-256 values. Each listed byte stream must exist below pathRoot, hash-match this manifest, and be declared exactly once in submission.artifacts with role cad-source and OUT-001. Opaque native CAD is retained read-only and never opened or executed."
+      }
+    },
+    {
+      "id": "ART-004",
+      "path": "artifacts/cad/assembly.step",
+      "role": "step",
+      "requiredOutputRef": "OUT-002",
+      "mediaType": "model/step",
+      "requiredFields": ["complete assembly", "base-to-fingertips", "purchased components", "gripper mechanism", "workpiece interface references"]
+    },
+    {
+      "id": "ART-005",
+      "path": "artifacts/motion/kinematics.json",
+      "role": "supporting",
+      "requiredOutputRef": "OUT-003",
+      "mediaType": "application/json",
+      "requiredFields": ["contractId", "units", "coordinateFrames", "jointTopology", "jointLimits", "tcpTransform", "payloadStates", "requiredPoseResults", "trajectory", "geometryReferences", "repeatabilityBudget"]
+    },
+    {
+      "id": "ART-006",
+      "path": "artifacts/bom/bom.csv",
+      "role": "bom",
+      "requiredOutputRef": "OUT-004",
+      "mediaType": "text/csv",
+      "requiredFields": ["partNumber", "description", "quantity", "makeBuy", "materialOrCatalogId", "mass", "process", "costBasis", "source", "uncertainty"]
+    },
+    {
+      "id": "ART-007",
+      "path": "artifacts/calculations/system-calculations.pdf",
+      "role": "calculation",
+      "requiredOutputRef": "OUT-005",
+      "mediaType": "application/pdf",
+      "requiredFields": ["workspace", "cycle", "load-cases", "drive-sizing", "brake-sizing", "gripper-force", "contact-retention", "structure-deflection", "life", "accuracy-budget", "energy"]
+    },
+    {
+      "id": "ART-008",
+      "path": "artifacts/calculations/calculation-register.csv",
+      "role": "calculation",
+      "requiredOutputRef": "OUT-005",
+      "mediaType": "text/csv",
+      "requiredFields": ["claim", "inputSources", "method", "modelScope", "result", "units", "acceptanceMeasure", "uncertainty", "evidencePath"]
+    },
+    {
+      "id": "ART-009",
+      "path": "artifacts/drawings/critical-drawing-index.csv",
+      "role": "drawing",
+      "requiredOutputRef": "OUT-006",
+      "mediaType": "text/csv",
+      "requiredFields": ["drawingId", "partOrAssembly", "criticalFunction", "datumScheme", "toleranceStrategy", "material", "process", "inspectionMethod", "drawingPath", "authoritativeChannel", "pmiPath"],
+      "indexedFileReferences": {
+        "kind": "csv-row-paths",
+        "drawingPath": { "required": true, "allowedMediaTypes": ["application/pdf", "model/step"] },
+        "pmiPath": { "required": false, "allowedMediaTypes": ["application/pdf", "model/step", "application/json"] },
+        "pathRoot": "artifacts/drawings",
+        "declarationRule": "Every non-empty indexed path must be a distinct regular file below pathRoot and be declared once in submission.artifacts with role drawing, requiredOutputRefs containing OUT-006, a matching allowed mediaType, and status present or processed. The index itself is not a substitute for any referenced file.",
+        "validationRule": "The evaluator validates each referenced file's path safety and static envelope. PDF requires a PDF envelope; STEP requires an ISO 10303-21 envelope; JSON PMI requires valid JSON with a non-empty pmiRecords array."
+      }
+    },
+    {
+      "id": "ART-010",
+      "path": "artifacts/gripper/gripper-design.json",
+      "role": "supporting",
+      "requiredOutputRef": "OUT-007",
+      "mediaType": "application/json",
+      "requiredFields": ["actuation", "openingRange", "forceDisplacement", "transmission", "fingerGeometry", "contactSurfaces", "workpieceConfigurations", "presenceSensingInterface", "lossOfPowerBehavior", "primaryRetentionPath"]
+    },
+    {
+      "id": "ART-011",
+      "path": "artifacts/safety/risk-fmea.csv",
+      "role": "supporting",
+      "requiredOutputRef": "OUT-008",
+      "mediaType": "text/csv",
+      "requiredFields": ["requirementId", "hazardOrFailureMode", "cause", "effect", "control", "verification", "residualRisk", "owner", "uncertainty"]
+    },
+    {
+      "id": "ART-012",
+      "path": "artifacts/safety/service-and-utility-plan.md",
+      "role": "supporting",
+      "requiredOutputRef": "OUT-008",
+      "mediaType": "text/markdown",
+      "requiredFields": ["brakes", "stops", "retention", "pinchZones", "residualEnergy", "serviceAccess", "cableUtilityRouting"]
+    },
+    {
+      "id": "ART-013",
+      "path": "artifacts/evidence/verification-report.md",
+      "role": "supporting",
+      "requiredOutputRef": "OUT-009",
+      "mediaType": "text/markdown",
+      "requiredFields": ["qualificationGates", "requirementResults", "limitations", "unsupportedClasses", "selfCheckResults"]
+    },
+    {
+      "id": "ART-014",
+      "path": "artifacts/evidence/evidence-manifest.json",
+      "role": "supporting",
+      "requiredOutputRef": "OUT-009",
+      "mediaType": "application/json",
+      "requiredFields": ["artifactPaths", "sha256", "requirementRefs", "evidenceRoles", "provenance", "uncertainty", "status"]
+    },
+    {
+      "id": "ART-015",
+      "path": "artifacts/design/change-readiness.csv",
+      "role": "supporting",
+      "requiredOutputRef": "OUT-009",
+      "mediaType": "text/csv",
+      "requiredFields": ["changeCategory", "affectedInterfaces", "affectedParts", "affectedCalculations", "affectedEvidence", "revalidationPlan"]
+    },
+    {
+      "id": "ART-016",
+      "path": "artifacts/design/change-impact.json",
+      "role": "supporting",
+      "requiredOutputRef": "OUT-009",
+      "mediaType": "application/json",
+      "requiredFields": ["changeEventId", "affectedOutputRefs", "revisedArtifactPaths", "baselineCheckpoint", "impactSummary", "revalidationResults"]
+    }
+  ],
+  "neutralHandoff": {
+    "step": "ISO 10303 STEP AP242 where candidate CAD supports it; export limitations and retained identifiers must be declared. The hash-bound validator checks only its published static envelope, not B-rep topology or PMI semantics.",
+    "kinematics": "inputs/neutral-handoff-contract.json is the authoritative JSON contract. The evaluator reruns its hash-bound validator; a candidate report does not replace it and candidate code is never executed.",
+    "pmi": "Critical PMI may be supplied through supported STEP AP242 PMI and/or controlled drawings. The evidence manifest shall state which channel is authoritative for each feature.",
+    "staticOnly": "The evaluator accepts static data, drawings, reports, and archives. It does not execute candidate macros, scripts, binaries, web pages, or CAD embedded code."
+  },
+  "conditionalChangeResponse": {
+    "triggerCheckpoint": "CKPT-050",
+    "impactArtifact": "artifacts/design/change-impact.json",
+    "rule": "At CKPT-050, affectedOutputRefs is authoritative. For every affected OUT-001, OUT-002, OUT-004, or OUT-006, the candidate must reissue every current artefact contract file bound to that output and list each required path in revisedArtifactPaths. For OUT-006 that includes the index and every currently indexed drawing/PMI file. The evaluator validates the reissued current files and their static envelopes. This applies only to a disclosed/attempted change response and never makes CKPT-050 mandatory for a valid CKPT-040 baseline.",
+    "affectedOutputRefs": ["OUT-001", "OUT-002", "OUT-004", "OUT-006"],
+    "baselineProtection": "A missing, invalid, or failed CKPT-050 response is reported separately and cannot erase a sealed CKPT-040 baseline qualification."
+  },
+  "candidateOutputBoundary": {
+    "permitted": ["CAD source", "STEP", "JSON", "CSV", "PDF", "plain text", "static images used as supporting evidence"],
+    "prohibited": ["executables", "macros", "embedded CAD scripts", "external links required for evidence", "credentials", "network-dependent artefacts", "candidate web applications"],
+    "sanitization": "A frozen launch supplies the exact sanitizer and file-type rules. Non-conforming artefacts are classified artifact-invalid rather than opened unsafely."
+  },
+  "status": "public-v1.4; file hashes and execution-specific archive limits are bound by the frozen launch contract."
+}

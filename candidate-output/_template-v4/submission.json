@@ -1,0 +1,51 @@
+{
+  "schemaVersion": "1.0",
+  "protocolVersion": "4.0",
+  "status": "partial",
+  "launchId": "replace-from-launch-json",
+  "taskPacket": {
+    "id": "replace-from-launch-json",
+    "version": "replace-from-launch-json",
+    "digest": "0000000000000000000000000000000000000000000000000000000000000000",
+    "bundleDigest": "0000000000000000000000000000000000000000000000000000000000000000"
+  },
+  "executionContractDigest": "0000000000000000000000000000000000000000000000000000000000000000",
+  "promptSha256": "0000000000000000000000000000000000000000000000000000000000000000",
+  "launchDigest": "0000000000000000000000000000000000000000000000000000000000000000",
+  "fairnessFingerprint": "0000000000000000000000000000000000000000000000000000000000000000",
+  "model": { "provider": "unknown", "name": "unknown", "version": "unknown" },
+  "initialPlan": { "path": "plan.json", "sha256": "0000000000000000000000000000000000000000000000000000000000000000" },
+  "initialPlanCheckpoint": { "path": "initial-plan.sha256", "sha256": "0000000000000000000000000000000000000000000000000000000000000000" },
+  "workRecord": { "path": "work-record.json", "sha256": "0000000000000000000000000000000000000000000000000000000000000000" },
+  "checkpointReceipts": [
+    {
+      "id": "RCP-000",
+      "sequence": 0,
+      "checkpointId": "CKPT-000",
+      "path": "receipts/000-CKPT-000.json",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "previousReceiptSha256": "0000000000000000000000000000000000000000000000000000000000000000"
+    }
+  ],
+  "partialAttainment": {
+    "attemptedCheckpointIds": ["CKPT-000"],
+    "completedCheckpointIds": ["CKPT-000"],
+    "highestVerifiedCheckpointId": "CKPT-000",
+    "stoppedReason": "candidate-stop"
+  },
+  "sanitizationRequest": {
+    "profileDigest": "0000000000000000000000000000000000000000000000000000000000000000"
+  },
+  "v4Contract": {
+    "scoringVersion": "replace-from-launch-json",
+    "instanceBankManifest": { "id": "INS-001", "visibilityClass": "run-private-instance", "disclosedAt": "run-start", "requirementRefs": [], "digest": "0000000000000000000000000000000000000000000000000000000000000000" },
+    "visibilityPolicy": { "id": "VIS-001", "visibilityClass": "candidate-public", "disclosedAt": "before-run", "requirementRefs": [], "digest": "0000000000000000000000000000000000000000000000000000000000000000" },
+    "checkpointContract": { "id": "CKC-001", "visibilityClass": "candidate-public", "disclosedAt": "before-run", "requirementRefs": [], "digest": "0000000000000000000000000000000000000000000000000000000000000000" },
+    "changeEventContract": { "id": "CHC-001", "visibilityClass": "event-private-change", "disclosedAt": "after-prior-receipt", "requirementRefs": [], "digest": "0000000000000000000000000000000000000000000000000000000000000000" },
+    "evaluationContract": { "id": "EVC-001", "visibilityClass": "candidate-public", "disclosedAt": "before-run", "requirementRefs": [], "digest": "0000000000000000000000000000000000000000000000000000000000000000" },
+    "sanitizationProfile": { "id": "SAN-001", "visibilityClass": "candidate-public", "disclosedAt": "before-run", "requirementRefs": [], "digest": "0000000000000000000000000000000000000000000000000000000000000000" },
+    "sealedAssetCommitments": [{ "id": "SEA-001", "visibilityClass": "evaluator-secret", "disclosedAt": "evaluator-only", "requirementRefs": [], "digest": "0000000000000000000000000000000000000000000000000000000000000000" }],
+    "disclosureSchedule": [{ "id": "DSC-001", "visibilityClass": "candidate-public", "disclosedAt": "before-run", "requirementRefs": [], "digest": "0000000000000000000000000000000000000000000000000000000000000000" }]
+  },
+  "artifacts": []
+}

@@ -1,0 +1,79 @@
+{
+  "document": "Supported purchased-component mounting, interface, neutral-envelope, and datum cards",
+  "version": "1.1",
+  "contractId": "robotic-handling-component-interface-cards-v1.1",
+  "policy": "Every purchased component used in a capacity, geometry, collision, service, mass-property, life, accuracy, energy, or assembly claim shall use exactly one card and its matching component-catalogue record. Dimensions are fixed neutral equivalents, not manufacturer drawings. A candidate may design adapters, housings, couplings, fingers, pads, and structural parts around these cards, but may not substitute an unlisted purchased actuator, reducer, brake, bearing, gripper transmission, pneumatic device, or rating.",
+  "geometryConvention": {
+    "linearUnits": "mm",
+    "massUnits": "kg",
+    "inertiaUnits": "kg*m^2 about the local centre of mass, axes [Ixx,Iyy,Izz]",
+    "axis": "Every card has a local right-handed XYZ frame. Z is the component axis; every named axial datum is a signed Z coordinate in that frame. The datum table, not an inferred drawing view, is authoritative for stack-up and service calculations.",
+    "envelope": "Each primitive is an occupied conservative envelope. Interface pilots, shafts, bores, and bolt holes are exact connection features and are not occupied volume.",
+    "tolerance": "Envelope dimensions are plus/minus 0.5 mm and mass/inertia values are plus/minus 10% unless the matching catalogue record states a larger uncertainty. Use the conservative envelope and catalogue derating for benchmark claims."
+  },
+  "cards": [
+    {
+      "id": "MTR-075", "kind": "servoMotor", "ratingCard": "MTR-075",
+      "massProperties": { "mass": 3.3, "centreOfMass": [0, 0, -62], "inertiaAtCom": [0.006, 0.006, 0.002] },
+      "envelope": [{ "kind": "box", "origin": [-45, -45, -124], "size": [90, 90, 124] }],
+      "axialDatums": { "primaryMountFaceZ": 0, "pilotShoulderZ": -3, "motorRearFaceZ": -124, "shaftStartFaceZ": 0, "shaftEndFaceZ": 35 },
+      "mount": { "faceZ": 0, "pilotDiameter": 70, "pilotDepth": 3, "boltCircleDiameter": 90, "holes": 4, "holeThread": "M6x1", "holeDepth": 12 },
+      "shaft": { "diameter": 19, "startZ": 0, "endZ": 35, "key": "6x6x25", "axis": [0, 0, 1] }, "service": { "rearConnectorKeepout": 30, "axialRemovalDirection": "-Z" }
+    },
+    {
+      "id": "MTR-180", "kind": "servoMotor", "ratingCard": "MTR-180",
+      "massProperties": { "mass": 8.8, "centreOfMass": [0, 0, -80], "inertiaAtCom": [0.018, 0.018, 0.006] },
+      "envelope": [{ "kind": "box", "origin": [-65, -65, -160], "size": [130, 130, 160] }],
+      "axialDatums": { "primaryMountFaceZ": 0, "pilotShoulderZ": -4, "motorRearFaceZ": -160, "shaftStartFaceZ": 0, "shaftEndFaceZ": 45 },
+      "mount": { "faceZ": 0, "pilotDiameter": 110, "pilotDepth": 4, "boltCircleDiameter": 145, "holes": 4, "holeThread": "M8x1.25", "holeDepth": 16 },
+      "shaft": { "diameter": 24, "startZ": 0, "endZ": 45, "key": "8x7x30", "axis": [0, 0, 1] }, "service": { "rearConnectorKeepout": 35, "axialRemovalDirection": "-Z" }
+    },
+    {
+      "id": "MTR-400", "kind": "servoMotor", "ratingCard": "MTR-400",
+      "massProperties": { "mass": 18.5, "centreOfMass": [0, 0, -112], "inertiaAtCom": [0.055, 0.055, 0.018] },
+      "envelope": [{ "kind": "box", "origin": [-90, -90, -224], "size": [180, 180, 224] }],
+      "axialDatums": { "primaryMountFaceZ": 0, "pilotShoulderZ": -5, "motorRearFaceZ": -224, "shaftStartFaceZ": 0, "shaftEndFaceZ": 58 },
+      "mount": { "faceZ": 0, "pilotDiameter": 130, "pilotDepth": 5, "boltCircleDiameter": 180, "holes": 4, "holeThread": "M10x1.5", "holeDepth": 20 },
+      "shaft": { "diameter": 35, "startZ": 0, "endZ": 58, "key": "10x8x40", "axis": [0, 0, 1] }, "service": { "rearConnectorKeepout": 45, "axialRemovalDirection": "-Z" }
+    },
+    {
+      "id": "MTR-750", "kind": "servoMotor", "ratingCard": "MTR-750",
+      "massProperties": { "mass": 31, "centreOfMass": [0, 0, -145], "inertiaAtCom": [0.14, 0.14, 0.045] },
+      "envelope": [{ "kind": "box", "origin": [-110, -110, -290], "size": [220, 220, 290] }],
+      "axialDatums": { "primaryMountFaceZ": 0, "pilotShoulderZ": -6, "motorRearFaceZ": -290, "shaftStartFaceZ": 0, "shaftEndFaceZ": 80 },
+      "mount": { "faceZ": 0, "pilotDiameter": 180, "pilotDepth": 6, "boltCircleDiameter": 230, "holes": 4, "holeThread": "M12x1.75", "holeDepth": 24 },
+      "shaft": { "diameter": 48, "startZ": 0, "endZ": 80, "key": "14x9x55", "axis": [0, 0, 1] }, "service": { "rearConnectorKeepout": 55, "axialRemovalDirection": "-Z" }
+    },
+    {
+      "id": "RED-100", "kind": "precisionReducer", "ratingCard": "RED-100",
+      "massProperties": { "mass": 2.9, "centreOfMass": [0, 0, 43], "inertiaAtCom": [0.004, 0.004, 0.002] }, "envelope": [{ "kind": "cylinder", "origin": [0, 0, 0], "axis": [0, 0, 1], "diameter": 122, "length": 86 }],
+      "axialDatums": { "inputMountFaceZ": 0, "inputPilotEndZ": 3, "inputShaftBoreEndZ": 28, "outputMountFaceZ": 86, "outputPilotStartZ": 74, "outputFlangeStartZ": 74 },
+      "input": { "pilotDiameter": 70, "boltCircleDiameter": 90, "holes": 4, "holeThread": "M6x1", "shaftBoreDiameter": 19, "engagement": 28 }, "output": { "pilotDiameter": 100, "boltCircleDiameter": 112, "holes": 8, "holeThread": "M8x1.25", "flangeThickness": 12 }, "service": { "axialRemovalClearance": 110, "radialConnectorKeepout": 28, "axialRemovalDirection": "+Z" }
+    },
+    {
+      "id": "RED-160", "kind": "precisionReducer", "ratingCard": "RED-160",
+      "massProperties": { "mass": 6.5, "centreOfMass": [0, 0, 57], "inertiaAtCom": [0.014, 0.014, 0.007] }, "envelope": [{ "kind": "cylinder", "origin": [0, 0, 0], "axis": [0, 0, 1], "diameter": 170, "length": 114 }],
+      "axialDatums": { "inputMountFaceZ": 0, "inputPilotEndZ": 4, "inputShaftBoreEndZ": 36, "outputMountFaceZ": 114, "outputPilotStartZ": 98, "outputFlangeStartZ": 98 },
+      "input": { "pilotDiameter": 110, "boltCircleDiameter": 145, "holes": 4, "holeThread": "M8x1.25", "shaftBoreDiameter": 24, "engagement": 36 }, "output": { "pilotDiameter": 145, "boltCircleDiameter": 160, "holes": 8, "holeThread": "M10x1.5", "flangeThickness": 16 }, "service": { "axialRemovalClearance": 140, "radialConnectorKeepout": 35, "axialRemovalDirection": "+Z" }
+    },
+    {
+      "id": "RED-250", "kind": "precisionReducer", "ratingCard": "RED-250",
+      "massProperties": { "mass": 16, "centreOfMass": [0, 0, 78], "inertiaAtCom": [0.055, 0.055, 0.027] }, "envelope": [{ "kind": "cylinder", "origin": [0, 0, 0], "axis": [0, 0, 1], "diameter": 255, "length": 156 }],
+      "axialDatums": { "inputMountFaceZ": 0, "inputPilotEndZ": 6, "inputShaftBoreEndZ": 50, "outputMountFaceZ": 156, "outputPilotStartZ": 136, "outputFlangeStartZ": 136 },
+      "input": { "pilotDiameter": 180, "boltCircleDiameter": 230, "holes": 4, "holeThread": "M12x1.75", "shaftBoreDiameter": 48, "engagement": 50 }, "output": { "pilotDiameter": 220, "boltCircleDiameter": 240, "holes": 10, "holeThread": "M12x1.75", "flangeThickness": 20 }, "service": { "axialRemovalClearance": 190, "radialConnectorKeepout": 45, "axialRemovalDirection": "+Z" }
+    },
+    {
+      "id": "BRK-100", "kind": "holdingBrake", "ratingCard": "BRK-100", "massProperties": { "mass": 1.2, "centreOfMass": [0, 0, 20], "inertiaAtCom": [0.001, 0.001, 0.0005] }, "envelope": [{ "kind": "cylinder", "origin": [0, 0, 0], "axis": [0, 0, 1], "diameter": 110, "length": 40 }], "axialDatums": { "mountFaceZ": 0, "pilotEndZ": 3, "hubEngagementEndZ": 24, "rearFaceZ": 40 }, "mount": { "pilotDiameter": 80, "boltCircleDiameter": 96, "holes": 4, "holeThread": "M6x1", "shaftBoreDiameter": 30, "engagement": 24 }, "interface": { "torqueTransfer": "keyed hub; 8x7 key minimum", "coilConnectorKeepout": 24 }, "service": { "axialRemovalDirection": "+Z" } },
+    {
+      "id": "BRK-250", "kind": "holdingBrake", "ratingCard": "BRK-250", "massProperties": { "mass": 3.2, "centreOfMass": [0, 0, 29], "inertiaAtCom": [0.004, 0.004, 0.002] }, "envelope": [{ "kind": "cylinder", "origin": [0, 0, 0], "axis": [0, 0, 1], "diameter": 170, "length": 58 }], "axialDatums": { "mountFaceZ": 0, "pilotEndZ": 4, "hubEngagementEndZ": 35, "rearFaceZ": 58 }, "mount": { "pilotDiameter": 125, "boltCircleDiameter": 150, "holes": 6, "holeThread": "M8x1.25", "shaftBoreDiameter": 50, "engagement": 35 }, "interface": { "torqueTransfer": "keyed hub; 14x9 key minimum", "coilConnectorKeepout": 32 }, "service": { "axialRemovalDirection": "+Z" } },
+    {
+      "id": "BRG-130", "kind": "crossedRollerBearing", "ratingCard": "BRG-130", "massProperties": { "mass": 4.8, "centreOfMass": [0, 0, 18], "inertiaAtCom": [0.013, 0.013, 0.025] }, "envelope": [{ "kind": "cylinder", "origin": [0, 0, 0], "axis": [0, 0, 1], "diameter": 190, "length": 36 }], "axialDatums": { "innerRingMountFaceZ": 0, "outerRingMountFaceZ": 36, "innerPilotStartZ": 0, "outerPilotStartZ": 0 }, "interface": { "boreDiameter": 130, "outerDiameter": 190, "mountBoltCircleInner": 150, "mountBoltCircleOuter": 170, "holesPerRing": 12, "holeThread": "M8x1.25", "mountFaceRunout": 0.02 }, "service": { "axialRemovalDirection": "+Z", "radialSealKeepout": 8 } },
+    {
+      "id": "BRG-250", "kind": "crossedRollerBearing", "ratingCard": "BRG-250", "massProperties": { "mass": 15.5, "centreOfMass": [0, 0, 26], "inertiaAtCom": [0.07, 0.07, 0.14] }, "envelope": [{ "kind": "cylinder", "origin": [0, 0, 0], "axis": [0, 0, 1], "diameter": 340, "length": 52 }], "axialDatums": { "innerRingMountFaceZ": 0, "outerRingMountFaceZ": 52, "innerPilotStartZ": 0, "outerPilotStartZ": 0 }, "interface": { "boreDiameter": 250, "outerDiameter": 340, "mountBoltCircleInner": 280, "mountBoltCircleOuter": 310, "holesPerRing": 16, "holeThread": "M12x1.75", "mountFaceRunout": 0.02 }, "service": { "axialRemovalDirection": "+Z", "radialSealKeepout": 12 } },
+    {
+      "id": "GRP-BS-16", "kind": "ballScrewTransmission", "ratingCard": "GRP-BS-16", "massProperties": { "mass": 1.1, "centreOfMass": [0, 0, 80], "inertiaAtCom": [0.002, 0.002, 0.0002] }, "envelope": [{ "kind": "cylinder", "origin": [0, 0, 0], "axis": [0, 0, 1], "diameter": 28, "length": 180 }, { "kind": "box", "origin": [-24, -24, 55], "size": [48, 48, 48] }], "axialDatums": { "driveJournalStartZ": 0, "driveJournalEndZ": 20, "nutDatumZ": 80, "strokeStartDatumZ": 40, "strokeEndDatumZ": 120, "rearSupportFaceZ": 180 }, "interface": { "screwDiameter": 16, "lead": 16, "endJournalDiameter": 12, "endJournalLength": 20, "nutMountPattern": "4x M5 on 32 square", "usableStroke": 80 }, "service": { "axialRemovalDirection": "+Z", "lubricationAccess": "nut radial port" } },
+    {
+      "id": "GRP-RP-25", "kind": "rackPinionTransmission", "ratingCard": "GRP-RP-25", "massProperties": { "mass": 0.9, "centreOfMass": [0, 0, 15], "inertiaAtCom": [0.0015, 0.0015, 0.0008] }, "envelope": [{ "kind": "cylinder", "origin": [0, 0, 0], "axis": [0, 0, 1], "diameter": 58, "length": 24 }, { "kind": "box", "origin": [-12, -25, 0], "size": [24, 150, 24] }], "axialDatums": { "pinionMountFaceZ": 0, "pinionHubEndZ": 24, "rackTravelDatumY": 0, "rackTravelEndY": 100, "rackMountFaceZ": 0 }, "interface": { "pitchRadius": 25, "pinionBoreDiameter": 14, "key": "5x5x18", "rackSection": "8x24", "rackMountPattern": "M5 at 40 pitch", "usableTravel": 100 }, "service": { "rackRemovalDirection": "+Y", "lubricationAccess": "pinion mesh cover removal" } }
+  ],
+  "provenance": { "sourceClass": "benchmark-design-basis", "physicalTested": false, "uncertainty": "The catalogue and these cards are fixed neutral benchmark data, not vendor warranties. All service, inertia, datum, and rating values are sufficient only for the specified comparative methods and must retain their stated uncertainty in candidate evidence." }
+}

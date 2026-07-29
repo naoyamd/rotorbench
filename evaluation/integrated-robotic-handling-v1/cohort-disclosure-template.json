@@ -1,0 +1,24 @@
+{
+  "schemaVersion": "1.0",
+  "cohortId": "<published-cohort-id>",
+  "launchId": "<live-verified-launch-id>",
+  "measurementConditionsSha256": "<64hex-measurement-conditions-sha256>",
+  "disclosedAt": "2026-07-29T00:00:00Z",
+  "modelGroups": [
+    {
+      "groupId": "<opaque-model-group-id>",
+      "runIds": [
+        "<exact-run-id-01>",
+        "<exact-run-id-02>",
+        "<exact-run-id-03>"
+      ],
+      "model": {
+        "provider": "<provider>",
+        "name": "<model-name>",
+        "version": "<model-version>",
+        "reasoningSetting": "<frozen-reasoning-setting>",
+        "policy": "<model-policy>"
+      }
+    }
+  ]
+}

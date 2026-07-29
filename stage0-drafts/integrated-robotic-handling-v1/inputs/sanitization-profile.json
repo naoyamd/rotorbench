@@ -1,0 +1,18 @@
+{
+  "document": "Candidate-artifact sanitization commitment",
+  "version": "1.0",
+  "status": "sealed-commitment-descriptor-v1",
+  "allowlistedArtifactTypes": [
+    "STEP",
+    "JSON",
+    "CSV",
+    "PDF",
+    "plain text",
+    "static image",
+    "opaque native CAD data retained read-only and never executed or opened automatically"
+  ],
+  "rejectedArtifactTypes": ["executable", "macro", "embedded CAD script", "credential", "symbolic link", "network-dependent resource", "external-link-only evidence", "candidate HTML or JavaScript"],
+  "evaluatorBoundary": "Submitted candidate artefacts are copied to a sealed, read-only evaluation location after path, type, hash, and archive checks. Native CAD is retained as opaque source evidence; automated evaluation uses the declared neutral STEP and static evidence. The evaluator does not execute candidate code or CAD macros and does not provide network, credentials, other candidate data, or sealed evaluation inputs to the candidate.",
+  "resourcePolicy": "The frozen execution profile defines total-bundle, per-file, parser, time, memory, and derived-output limits. A limit breach is reported as artifact-invalid or evaluator-uncertain with evidence.",
+  "freezeRequirement": "The exact sanitizer and artifact-contract validator implementations, versions, digests, and limits are bound in the launch execution contract."
+}

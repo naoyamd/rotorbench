@@ -1,0 +1,307 @@
+{
+  "document": "Neutral component catalogue snapshot",
+  "version": "1.0",
+  "snapshotPolicy": {
+    "purpose": "Provide a common, closed component-design space for benchmark comparison while retaining freedom in architecture and custom structural design.",
+    "catalogueNature": "Frozen neutral benchmark catalogue. MTR-075 is a public manufacturer-data crosswalk; the other neutral classes are benchmark-design-basis equivalents representing adjacent industrial ranges. The catalogue is not a purchasing specification or manufacturer warranty.",
+    "candidateUse": "Closed-source policy: every purchased motor, reducer, brake, bearing, gripper transmission, pneumatic cylinder, pneumatic valve, pneumatic spring/accumulator, pneumatic seal pack, or other primary actuator that appears in the CAD/BOM or supports a load, safety, life, clearance, service, mass, inertia, energy, or performance claim shall be one of the supported IDs in this snapshot and shall use its matching frozen interface card. There are no supported pneumatic primary-actuation IDs; pneumatic primary actuation is therefore prohibited. Candidate-designed fabricated structures, adapters, couplings, fingers, and compliant pads remain permitted, but their properties are candidate evidence rather than catalogue substitutions. Generic consumables that carry no claimed load may be listed as no-credit consumables.",
+    "units": "SI; dimensional values in mm; torque in N·m; mass in kg."
+  },
+  "evaluationClasses": {
+    "supported": "Automatic range, ratio, mass, and rating checks are available within the declared benchmark catalogue scope.",
+    "declarable-manual": "Not available in this packet. It is retained only as a framework vocabulary label; no candidate component may use this class.",
+    "prohibited": "Item cannot be used in the submitted candidate design."
+  },
+  "closedRatingCards": {
+    "purpose": "Authoritative conservative inputs for B3/B4/B5 capacity, life, thermal, duty, energy, service, and accuracy calculations. These records are part of the closed catalogue; values must not be replaced with vendor estimates.",
+    "servoMotor": {
+      "MTR-075": { "feedbackResolution": 8388608, "feedbackUnit": "counts/rev", "feedbackAccuracy": 0.018, "feedbackAccuracyUnit": "deg", "ratedEfficiency": 0.88, "continuousLoss": 102, "continuousLossUnit": "W", "thermalResistance": 0.42, "thermalResistanceUnit": "K/W", "thermalTimeConstant": 900, "thermalTimeConstantUnit": "s", "continuousDuty": 1.0, "peakTorqueDuty": { "maximumSeconds": 1.0, "minimumPeriodSeconds": 10 } },
+      "MTR-180": { "feedbackResolution": 8388608, "feedbackUnit": "counts/rev", "feedbackAccuracy": 0.018, "feedbackAccuracyUnit": "deg", "ratedEfficiency": 0.90, "continuousLoss": 180, "continuousLossUnit": "W", "thermalResistance": 0.28, "thermalResistanceUnit": "K/W", "thermalTimeConstant": 1200, "thermalTimeConstantUnit": "s", "continuousDuty": 1.0, "peakTorqueDuty": { "maximumSeconds": 1.0, "minimumPeriodSeconds": 10 } },
+      "MTR-400": { "feedbackResolution": 8388608, "feedbackUnit": "counts/rev", "feedbackAccuracy": 0.018, "feedbackAccuracyUnit": "deg", "ratedEfficiency": 0.91, "continuousLoss": 340, "continuousLossUnit": "W", "thermalResistance": 0.18, "thermalResistanceUnit": "K/W", "thermalTimeConstant": 1500, "thermalTimeConstantUnit": "s", "continuousDuty": 1.0, "peakTorqueDuty": { "maximumSeconds": 1.0, "minimumPeriodSeconds": 10 } },
+      "MTR-750": { "feedbackResolution": 8388608, "feedbackUnit": "counts/rev", "feedbackAccuracy": 0.018, "feedbackAccuracyUnit": "deg", "ratedEfficiency": 0.92, "continuousLoss": 600, "continuousLossUnit": "W", "thermalResistance": 0.12, "thermalResistanceUnit": "K/W", "thermalTimeConstant": 1800, "thermalTimeConstantUnit": "s", "continuousDuty": 1.0, "peakTorqueDuty": { "maximumSeconds": 1.0, "minimumPeriodSeconds": 10 } }
+    },
+    "precisionReducer": {
+      "RED-100": { "ratedEfficiency": 0.79, "noLoadLossTorque": 2.0, "noLoadLossTorqueUnit": "N*m", "continuousDuty": 1.0, "ratedLife": 20000, "ratedLifeUnit": "h", "lifeLoadExponent": 3.0, "dynamicOutputTorqueRating": 160, "staticOutputTorqueRating": 480, "thermalDissipationLimit": 160, "thermalDissipationLimitUnit": "W" },
+      "RED-160": { "ratedEfficiency": 0.82, "noLoadLossTorque": 4.5, "noLoadLossTorqueUnit": "N*m", "continuousDuty": 1.0, "ratedLife": 20000, "ratedLifeUnit": "h", "lifeLoadExponent": 3.0, "dynamicOutputTorqueRating": 430, "staticOutputTorqueRating": 1290, "thermalDissipationLimit": 350, "thermalDissipationLimitUnit": "W" },
+      "RED-250": { "ratedEfficiency": 0.84, "noLoadLossTorque": 11, "noLoadLossTorqueUnit": "N*m", "continuousDuty": 1.0, "ratedLife": 20000, "ratedLifeUnit": "h", "lifeLoadExponent": 3.0, "dynamicOutputTorqueRating": 1300, "staticOutputTorqueRating": 3900, "thermalDissipationLimit": 760, "thermalDissipationLimitUnit": "W" }
+    },
+    "holdingBrake": {
+      "BRK-100": { "dynamicStoppingTorque": 150, "staticHoldingTorque": 200, "maximumEngagementSpeed": 1500, "maximumEngagementSpeedUnit": "rpm", "perStopEnergy": 180, "perStopEnergyUnit": "J", "ratedEngagementCycles": 1000000, "coilHoldPower": 22, "coilHoldPowerUnit": "W" },
+      "BRK-250": { "dynamicStoppingTorque": 450, "staticHoldingTorque": 600, "maximumEngagementSpeed": 1000, "maximumEngagementSpeedUnit": "rpm", "perStopEnergy": 650, "perStopEnergyUnit": "J", "ratedEngagementCycles": 1000000, "coilHoldPower": 42, "coilHoldPowerUnit": "W" }
+    },
+    "crossedRollerBearing": {
+      "BRG-130": { "dynamicAxialRating": 56000, "dynamicRadialRating": 47000, "axialStaticRating": 85000, "radialStaticRating": 72000, "overturningMomentStaticRating": 2500, "L10LifeExponent": 3.333333, "referenceSpeed": 30, "referenceSpeedUnit": "rpm", "frictionTorque": 5.5, "frictionTorqueUnit": "N*m" },
+      "BRG-250": { "dynamicAxialRating": 170000, "dynamicRadialRating": 138000, "axialStaticRating": 240000, "radialStaticRating": 190000, "overturningMomentStaticRating": 8600, "L10LifeExponent": 3.333333, "referenceSpeed": 20, "referenceSpeedUnit": "rpm", "frictionTorque": 16, "frictionTorqueUnit": "N*m" }
+    },
+    "gripperTransmission": {
+      "GRP-BS-16": { "dynamicAxialRating": 14000, "staticAxialRating": 28000, "ratedEfficiency": 0.88, "backdriveTorque": 1.6, "backdriveTorqueUnit": "N*m", "L10Travel": 5000000, "L10TravelUnit": "m", "dutyCycle": 0.5, "thermalLossLimit": 45, "thermalLossLimitUnit": "W" },
+      "GRP-RP-25": { "maximumTangentialForce": 4800, "staticTangentialForce": 7200, "ratedEfficiency": 0.90, "backlash": 0.12, "backlashUnit": "mm", "backdrivable": true, "ratedMeshCycles": 10000000, "dutyCycle": 0.5, "thermalLossLimit": 35, "thermalLossLimitUnit": "W" }
+    }
+  },
+  "servoMotors": [
+    {
+      "id": "MTR-075",
+      "class": "supported",
+      "type": "brushless AC servo motor",
+      "continuousTorque": 2.39,
+      "peakTorque": 8.36,
+      "ratedSpeed": 3000,
+      "maximumSpeed": 6000,
+      "rotorInertia": 0.00062,
+      "mass": 3.3,
+      "ratedPower": 0.75,
+      "units": { "torque": "N*m", "speed": "rpm", "rotorInertia": "kg*m^2", "mass": "kg", "ratedPower": "kW" },
+      "valueProvenance": "Manufacturer-public-data-equivalent: Yaskawa Sigma-7 SGM7A 750 W public table (REF-YASKAWA-SGM7A). Rotor inertia and mass are neutral benchmark values because the task evaluates system design rather than a named SKU.",
+      "applicability": "Supported motor class for automatic range checks in v1.0.",
+      "uncertainty": "Torque and speed use the public table; neutral inertia and mass retain ±10% modelling uncertainty.",
+      "physicalTested": false,
+      "status": "resolved-benchmark-catalogue"
+    },
+    {
+      "id": "MTR-180",
+      "class": "supported",
+      "type": "brushless AC servo motor",
+      "continuousTorque": 5.73,
+      "peakTorque": 17.2,
+      "ratedSpeed": 3000,
+      "maximumSpeed": 4000,
+      "rotorInertia": 0.0019,
+      "mass": 8.8,
+      "ratedPower": 1.8,
+      "units": { "torque": "N*m", "speed": "rpm", "rotorInertia": "kg*m^2", "mass": "kg", "ratedPower": "kW" },
+      "valueProvenance": "Benchmark-design-basis neutral servo class, interpolated around published industrial servo data-sheet ranges.",
+      "applicability": "Supported motor class for automatic range checks in v1.0.",
+      "uncertainty": "±10% rating, inertia, and mass modelling uncertainty; no physical test has been performed.",
+      "physicalTested": false,
+      "status": "resolved-benchmark-catalogue"
+    },
+    {
+      "id": "MTR-400",
+      "class": "supported",
+      "type": "brushless AC servo motor",
+      "continuousTorque": 19.1,
+      "peakTorque": 57.3,
+      "ratedSpeed": 2000,
+      "maximumSpeed": 3000,
+      "rotorInertia": 0.0086,
+      "mass": 18.5,
+      "ratedPower": 4.0,
+      "units": { "torque": "N*m", "speed": "rpm", "rotorInertia": "kg*m^2", "mass": "kg", "ratedPower": "kW" },
+      "valueProvenance": "Benchmark-design-basis neutral servo class, interpolated around published industrial servo data-sheet ranges.",
+      "applicability": "Supported motor class for automatic range checks in v1.0.",
+      "uncertainty": "±10% rating, inertia, and mass modelling uncertainty; no physical test has been performed.",
+      "physicalTested": false,
+      "status": "resolved-benchmark-catalogue"
+    },
+    {
+      "id": "MTR-750",
+      "class": "supported",
+      "type": "brushless AC servo motor",
+      "continuousTorque": 35.8,
+      "peakTorque": 107.4,
+      "ratedSpeed": 2000,
+      "maximumSpeed": 2500,
+      "rotorInertia": 0.023,
+      "mass": 31.0,
+      "ratedPower": 7.5,
+      "units": { "torque": "N*m", "speed": "rpm", "rotorInertia": "kg*m^2", "mass": "kg", "ratedPower": "kW" },
+      "valueProvenance": "Benchmark-design-basis neutral servo class, interpolated around published industrial servo data-sheet ranges.",
+      "applicability": "Supported motor class for automatic range checks in v1.0.",
+      "uncertainty": "±10% rating, inertia, and mass modelling uncertainty; no physical test has been performed.",
+      "physicalTested": false,
+      "status": "resolved-benchmark-catalogue"
+    }
+  ],
+  "reducers": [
+    {
+      "id": "RED-100",
+      "class": "supported",
+      "type": "compact precision reducer",
+      "nominalRatio": 100,
+      "continuousOutputTorque": 160,
+      "peakOutputTorque": 320,
+      "maximumInputSpeed": 3500,
+      "backlash": 1.0,
+      "torsionalStiffness": 18,
+      "mass": 2.9,
+      "units": { "torque": "N*m", "speed": "rpm", "backlash": "arcmin", "torsionalStiffness": "N*m/arcmin", "mass": "kg" },
+      "valueProvenance": "Manufacturer-public-data-equivalent class based on published precision reducer catalogue ranges; neutral dimensions and ratings are fixed benchmark values.",
+      "applicability": "Supported reducer class for automatic range and margin checks in v1.0.",
+      "uncertainty": "±15% torque/stiffness and ±0.5 arcmin backlash modelling uncertainty; no physical test is claimed.",
+      "physicalTested": false,
+      "status": "resolved-benchmark-catalogue"
+    },
+    {
+      "id": "RED-160",
+      "class": "supported",
+      "type": "precision reducer",
+      "nominalRatio": 100,
+      "continuousOutputTorque": 430,
+      "peakOutputTorque": 860,
+      "maximumInputSpeed": 3000,
+      "backlash": 1.2,
+      "torsionalStiffness": 52,
+      "mass": 6.5,
+      "units": { "torque": "N*m", "speed": "rpm", "backlash": "arcmin", "torsionalStiffness": "N*m/arcmin", "mass": "kg" },
+      "valueProvenance": "Manufacturer-public-data-equivalent class based on published precision reducer catalogue ranges; neutral dimensions and ratings are fixed benchmark values.",
+      "applicability": "Supported reducer class for automatic range and margin checks in v1.0.",
+      "uncertainty": "±15% torque/stiffness and ±0.5 arcmin backlash modelling uncertainty; no physical test is claimed.",
+      "physicalTested": false,
+      "status": "resolved-benchmark-catalogue"
+    },
+    {
+      "id": "RED-250",
+      "class": "supported",
+      "type": "large precision reducer",
+      "nominalRatio": 120,
+      "continuousOutputTorque": 1300,
+      "peakOutputTorque": 2600,
+      "maximumInputSpeed": 2500,
+      "backlash": 1.5,
+      "torsionalStiffness": 145,
+      "mass": 16.0,
+      "units": { "torque": "N*m", "speed": "rpm", "backlash": "arcmin", "torsionalStiffness": "N*m/arcmin", "mass": "kg" },
+      "valueProvenance": "Manufacturer-public-data-equivalent class based on published precision reducer catalogue ranges; neutral dimensions and ratings are fixed benchmark values.",
+      "applicability": "Supported reducer class for automatic range and margin checks in v1.0.",
+      "uncertainty": "±15% torque/stiffness and ±0.5 arcmin backlash modelling uncertainty; no physical test is claimed.",
+      "physicalTested": false,
+      "status": "resolved-benchmark-catalogue"
+    }
+  ],
+  "brakes": [
+    {
+      "id": "BRK-100",
+      "class": "supported",
+      "type": "spring-applied electrically released holding brake",
+      "staticHoldingTorque": 200,
+      "mass": 1.2,
+      "releaseTime": 0.055,
+      "engageTime": 0.04,
+      "units": { "torque": "N*m", "mass": "kg", "time": "s" },
+      "valueProvenance": "Benchmark-design-basis holding-brake class selected to make loss-of-power reasoning explicit.",
+      "applicability": "Candidate may use this as a supported brake rating only with a system-specific fault-load calculation.",
+      "uncertainty": "±15% torque and ±20% timing modelling uncertainty; no physical test is claimed.",
+      "physicalTested": false,
+      "status": "resolved-benchmark-catalogue"
+    },
+    {
+      "id": "BRK-250",
+      "class": "supported",
+      "type": "spring-applied electrically released holding brake",
+      "staticHoldingTorque": 600,
+      "mass": 3.2,
+      "releaseTime": 0.075,
+      "engageTime": 0.055,
+      "units": { "torque": "N*m", "mass": "kg", "time": "s" },
+      "valueProvenance": "Benchmark-design-basis holding-brake class selected to make loss-of-power reasoning explicit.",
+      "applicability": "Candidate may use this as a supported brake rating only with a system-specific fault-load calculation.",
+      "uncertainty": "±15% torque and ±20% timing modelling uncertainty; no physical test is claimed.",
+      "physicalTested": false,
+      "status": "resolved-benchmark-catalogue"
+    }
+  ],
+  "bearings": [
+    {
+      "id": "BRG-130",
+      "class": "supported",
+      "type": "crossed-roller rotary bearing",
+      "axialStaticRating": 85000,
+      "radialStaticRating": 72000,
+      "overturningMomentRating": 2500,
+      "mass": 4.8,
+      "units": { "force": "N", "moment": "N*m", "mass": "kg" },
+      "valueProvenance": "Manufacturer-public-data-equivalent crossed-roller/slewing-bearing class informed by public SKF rolling-bearing and crossed-roller material.",
+      "applicability": "Supported bearing class for static capacity screening; detailed life remains candidate-calculated and uncertainty-labelled.",
+      "uncertainty": "±15% static ratings modelling uncertainty; no physical test is claimed.",
+      "physicalTested": false,
+      "status": "resolved-benchmark-catalogue"
+    },
+    {
+      "id": "BRG-250",
+      "class": "supported",
+      "type": "crossed-roller rotary bearing",
+      "axialStaticRating": 240000,
+      "radialStaticRating": 190000,
+      "overturningMomentRating": 8600,
+      "mass": 15.5,
+      "units": { "force": "N", "moment": "N*m", "mass": "kg" },
+      "valueProvenance": "Manufacturer-public-data-equivalent crossed-roller/slewing-bearing class informed by public SKF rolling-bearing and crossed-roller material.",
+      "applicability": "Supported bearing class for static capacity screening; detailed life remains candidate-calculated and uncertainty-labelled.",
+      "uncertainty": "±15% static ratings modelling uncertainty; no physical test is claimed.",
+      "physicalTested": false,
+      "status": "resolved-benchmark-catalogue"
+    }
+  ],
+  "gripperTransmissions": [
+    {
+      "id": "GRP-BS-16",
+      "class": "supported",
+      "type": "preloaded ball-screw and nut",
+      "lead": 16,
+      "dynamicAxialRating": 14000,
+      "maximumSpeed": 3000,
+      "mass": 1.1,
+      "units": { "lead": "mm/rev", "force": "N", "speed": "rpm", "mass": "kg" },
+      "valueProvenance": "Benchmark-design-basis neutral ball-screw transmission class.",
+      "applicability": "Supported gripper transmission for force/displacement and life calculations in v1.0.",
+      "uncertainty": "±15% rating modelling uncertainty; no physical test is claimed.",
+      "physicalTested": false,
+      "status": "resolved-benchmark-catalogue"
+    },
+    {
+      "id": "GRP-RP-25",
+      "class": "supported",
+      "type": "rack-and-pinion gripper transmission set",
+      "pitchRadius": 25,
+      "maximumTangentialForce": 4800,
+      "backlash": 0.12,
+      "mass": 0.9,
+      "units": { "pitchRadius": "mm", "force": "N", "backlash": "mm", "mass": "kg" },
+      "valueProvenance": "Benchmark-design-basis neutral rack-and-pinion transmission class.",
+      "applicability": "Supported gripper transmission for force/displacement and backlash calculations in v1.0.",
+      "uncertainty": "±15% force and ±0.05 mm backlash modelling uncertainty; no physical test is claimed.",
+      "physicalTested": false,
+      "status": "resolved-benchmark-catalogue"
+    }
+  ],
+  "commonMaterials": [
+    {
+      "id": "MAT-AL-6082",
+      "class": "supported",
+      "material": "Aluminium alloy structural plate/billet",
+      "elasticModulus": 69,
+      "yieldStrength": 250,
+      "density": 2700,
+      "units": { "elasticModulus": "GPa", "yieldStrength": "MPa", "density": "kg/m^3" },
+      "valueProvenance": "Benchmark-design-basis material card representative of common structural aluminium. Candidate must state product form, condition, and design allowables.",
+      "applicability": "Preliminary and comparative calculations only; not a material certificate.",
+      "uncertainty": "±10% property modelling uncertainty; no physical coupon test is claimed.",
+      "physicalTested": false,
+      "status": "resolved-benchmark-catalogue"
+    },
+    {
+      "id": "MAT-ST-4140",
+      "class": "supported",
+      "material": "Quenched-and-tempered alloy steel",
+      "elasticModulus": 205,
+      "yieldStrength": 655,
+      "density": 7850,
+      "units": { "elasticModulus": "GPa", "yieldStrength": "MPa", "density": "kg/m^3" },
+      "valueProvenance": "Benchmark-design-basis material card representative of quenched-and-tempered alloy steel. Candidate must state product form, condition, and design allowables.",
+      "applicability": "Preliminary and comparative calculations only; not a material certificate.",
+      "uncertainty": "±10% property modelling uncertainty; no physical coupon test is claimed.",
+      "physicalTested": false,
+      "status": "resolved-benchmark-catalogue"
+    }
+  ],
+  "prohibitedItems": [
+    {
+      "id": "PRH-001",
+      "description": "Complete commercial robot arm, cobot, turnkey gripper, or automatic tool changer as a substitute for the candidate-designed arm or powered gripper.",
+      "class": "prohibited",
+      "valueProvenance": "Benchmark rule REQ-003 and REQ-008.",
+      "uncertainty": "None.",
+      "status": "resolved"
+    }
+  ]
+}

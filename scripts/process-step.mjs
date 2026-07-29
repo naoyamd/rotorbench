@@ -1,6 +1,8 @@
-import { createRequire } from "node:module";
+import { execFile } from "node:child_process";
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { promisify } from "node:util";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { ensureInside, sha256, validateFramework, validateReport } from "./framework-lib.mjs";
 
 const rootArgument = process.argv.indexOf("--root");
@@ -8,41 +10,71 @@ const projectRoot = rootArgument >= 0 ? path.resolve(process.argv[rootArgument +
 const outputRoot = path.join(projectRoot, ".framework-staging");
 const meshRoot = path.join(outputRoot, "meshes");
 const reportRoot = path.join(outputRoot, "reports");
-const require = createRequire(import.meta.url);
+const workerRoot = path.join(outputRoot, "step-worker");
+// The worker is part of this trusted processor, not candidate input under
+// `--root`; fixtures and isolated workspaces therefore use this module's
+// location rather than assuming a scripts directory in the candidate root.
+const workerPath = path.join(path.dirname(fileURLToPath(import.meta.url)), "process-step-worker.mjs");
+const execFileAsync = promisify(execFile);
+const workerLimits = {
+  timeoutMs: 60_000,
+  maxOldSpaceMb: 512,
+};
 const processor = {
   name: "engineering-design-benchmark-framework",
   version: "1.0.0",
   stepEngine: "occt-import-js@0.0.23",
+  isolation: {
+    process: "separate-node-worker",
+    timeoutMs: workerLimits.timeoutMs,
+    maxOldSpaceMb: workerLimits.maxOldSpaceMb,
+    networkIsolation: "not-asserted; worker imports no network clients",
+  },
 };
 
-function numericArray(value) {
-  const array = Array.from(value ?? []);
-  if (array.some((entry) => typeof entry !== "number" || !Number.isFinite(entry))) {
-    throw new Error("mesh contains non-finite geometry values");
+async function processStepIsolated({ sourcePath, outputPath, artifactId }) {
+  await execFileAsync(
+    process.execPath,
+    [
+      `--max-old-space-size=${workerLimits.maxOldSpaceMb}`,
+      workerPath,
+      "--input",
+      sourcePath,
+      "--output",
+      outputPath,
+      "--artifact-id",
+      artifactId,
+    ],
+    {
+      timeout: workerLimits.timeoutMs,
+      windowsHide: true,
+      maxBuffer: 1_048_576,
+      killSignal: "SIGKILL",
+      env: {
+        PATH: process.env.PATH ?? "",
+        SYSTEMROOT: process.env.SYSTEMROOT ?? "",
+        WINDIR: process.env.WINDIR ?? "",
+        TEMP: process.env.TEMP ?? "",
+        TMP: process.env.TMP ?? "",
+        NO_PROXY: "*",
+        HTTP_PROXY: "http://127.0.0.1:9",
+        HTTPS_PROXY: "http://127.0.0.1:9",
+      },
+    },
+  );
+  const meshBytes = await readFile(outputPath);
+  const mesh = JSON.parse(meshBytes.toString("utf8"));
+  if (
+    mesh?.schemaVersion !== "1.0"
+    || mesh?.sourceArtifactId !== artifactId
+    || !Number.isInteger(mesh?.triangleCount)
+    || mesh.triangleCount < 1
+    || !Array.isArray(mesh.meshes)
+    || mesh.meshes.length < 1
+  ) {
+    throw new Error("isolated STEP worker returned an invalid derived mesh");
   }
-  return array.map((entry) => Number(entry.toFixed(8)));
-}
-
-function normalizeMesh(result, sourceArtifactId) {
-  if (!result?.success || !Array.isArray(result.meshes)) {
-    throw new Error("OpenCascade could not read a triangulated STEP model");
-  }
-  const meshes = result.meshes.map((mesh, index) => ({
-    id: `mesh-${index + 1}`,
-    name: typeof mesh.name === "string" ? mesh.name : `Mesh ${index + 1}`,
-    color: Array.isArray(mesh.color) ? mesh.color.slice(0, 3).map((value) => Number(value)) : null,
-    positions: numericArray(mesh.attributes?.position?.array),
-    normals: mesh.attributes?.normal?.array ? numericArray(mesh.attributes.normal.array) : null,
-    indices: numericArray(mesh.index?.array),
-  }));
-  const triangleCount = meshes.reduce((count, mesh) => count + Math.floor(mesh.indices.length / 3), 0);
-  if (meshes.length === 0 || triangleCount === 0) throw new Error("STEP contained no displayable triangles");
-  return { schemaVersion: "1.0", sourceArtifactId, meshes, triangleCount };
-}
-
-async function getOcct() {
-  const factory = require("occt-import-js");
-  return factory();
+  return { mesh, meshBytes };
 }
 
 const validation = await validateFramework(projectRoot);
@@ -53,18 +85,10 @@ const runs = validation.runs.filter((run) =>
 );
 await rm(meshRoot, { recursive: true, force: true });
 await rm(reportRoot, { recursive: true, force: true });
+await rm(workerRoot, { recursive: true, force: true });
 await mkdir(meshRoot, { recursive: true });
 await mkdir(reportRoot, { recursive: true });
-const stepRuns = runs.filter((run) => run.manifest.artifacts.some((artifact) => artifact.role === "step"));
-let occt = null;
-let engineError = null;
-if (stepRuns.length > 0) {
-  try {
-    occt = await getOcct();
-  } catch (error) {
-    engineError = error instanceof Error ? error.message : "OpenCascade initialization failed";
-  }
-}
+await mkdir(workerRoot, { recursive: true });
 
 for (const run of runs) {
   const checks = [...run.validationChecks];
@@ -75,20 +99,25 @@ for (const run of runs) {
 
   for (const artifact of stepArtifacts) {
     try {
-      if (engineError || !occt) throw new Error(engineError ?? "OpenCascade is unavailable");
       const sourcePath = ensureInside(run.root, artifact.path);
       if (!sourcePath) throw new Error("STEP path is unsafe");
       const bytes = await readFile(sourcePath);
-      const imported = occt.ReadStepFile(new Uint8Array(bytes), {
-        linearUnit: "millimeter",
-        linearDeflectionType: "bounding_box_ratio",
-        linearDeflection: 0.001,
-        angularDeflection: 0.5,
+      if (sha256(bytes) !== artifact.sha256) {
+        throw new Error("STEP bytes no longer match the sealed artifact hash");
+      }
+      const isolatedRunRoot = path.join(workerRoot, run.manifest.id);
+      await mkdir(isolatedRunRoot, { recursive: true });
+      const workerOutputPath = path.join(
+        isolatedRunRoot,
+        `${artifact.id}.${process.pid}.mesh.json`,
+      );
+      const { mesh, meshBytes } = await processStepIsolated({
+        sourcePath,
+        outputPath: workerOutputPath,
+        artifactId: artifact.id,
       });
-      const mesh = normalizeMesh(imported, artifact.id);
       const meshFile = `${artifact.id}.mesh.json`;
-      const meshJson = `${JSON.stringify(mesh)}\n`;
-      const meshSha256 = sha256(Buffer.from(meshJson));
+      const meshSha256 = sha256(meshBytes);
       const metadata = {
         schemaVersion: "1.0",
         runId: run.manifest.id,
@@ -100,8 +129,9 @@ for (const run of runs) {
         meshSha256,
         mesh: `framework/meshes/${run.manifest.id}/${meshFile}`,
       };
-      await writeFile(path.join(runMeshRoot, meshFile), meshJson);
+      await writeFile(path.join(runMeshRoot, meshFile), meshBytes);
       await writeFile(path.join(runMeshRoot, `${artifact.id}.metadata.json`), `${JSON.stringify(metadata, null, 2)}\n`);
+      await rm(workerOutputPath, { force: true });
       checks.push({
         name: `STEP ${artifact.id}`,
         status: "pass",
@@ -143,4 +173,5 @@ for (const run of runs) {
   await writeFile(path.join(reportRoot, `${run.manifest.id}.json`), `${JSON.stringify(report, null, 2)}\n`);
 }
 
+await rm(workerRoot, { recursive: true, force: true });
 console.log(`Processed STEP artifacts for ${runs.length} run${runs.length === 1 ? "" : "s"}.`);

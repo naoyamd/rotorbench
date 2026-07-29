@@ -1,0 +1,123 @@
+{
+  "document": "Fixed cell, fixture, workpiece, and grasp-region neutral geometry",
+  "version": "1.0",
+  "contractId": "robotic-handling-fixed-geometry-csg-v1",
+  "units": "mm and degrees; all values are nominal benchmark geometry unless a tolerance is explicitly declared.",
+  "purpose": "Provide the complete candidate-visible evaluator-relevant fixed geometry. This CSG-style neutral definition, not a candidate reconstruction from prose or bounding boxes, is authoritative for fixture insertion, interference, carried-part clearance, and primary grasp geometry.",
+  "representation": {
+    "coordinateFrame": "W from inputs/interface-dimensions.json",
+    "primitiveVocabulary": {
+      "box": "origin is the minimum XYZ corner; size is [x,y,z].",
+      "cylinder": "axis is a unit vector; origin is the centre of the first circular face; length follows axis.",
+      "extrusion": "profile is a closed XY polygon in the named local frame; length follows +Z of that frame."
+    },
+    "booleanVocabulary": "A solid is a union of additive primitives minus every subtractive primitive. Coincident boundaries belong to the fixed object.",
+    "tolerancePolicy": "For collision and interface analysis use the geometry exactly as stated, then apply the object or interface tolerance where one is declared. Do not invent fillets, holes, pockets, wall thickness, or contact surfaces that are absent from this definition."
+  },
+  "fixedCellObjects": [
+    {
+      "id": "CELL-FLOOR-001",
+      "name": "foundation top and cell floor",
+      "solid": {
+        "add": [{ "kind": "box", "origin": [-900, -1200, -600], "size": [3000, 2800, 600] }],
+        "subtract": []
+      },
+      "interfaces": [{ "id": "IFC-FLR-001", "plane": { "origin": [0, 0, 0], "normal": [0, 0, 1] }, "reference": "inputs/interface-dimensions.json:floorMounting" }]
+    },
+    {
+      "id": "CNC-BODY-001",
+      "name": "CNC machine outer envelope with open loading mouth",
+      "solid": {
+        "add": [{ "kind": "box", "origin": [1040, -700, 0], "size": [540, 1400, 1680] }],
+        "subtract": [{ "kind": "box", "origin": [1020, -150, 810], "size": [120, 300, 300] }]
+      },
+      "interfaces": [{ "id": "CNC-MOUTH-001", "opening": { "x": [1020, 1140], "y": [-150, 150], "z": [810, 1110] }, "clearance": 8 }]
+    },
+    {
+      "id": "CNC-FIXTURE-001",
+      "name": "CNC load/unload fixture and seating interface",
+      "solid": {
+        "add": [
+          { "kind": "box", "origin": [1150, -180, 820], "size": [170, 360, 90] },
+          { "kind": "cylinder", "origin": [1217, 0, 910], "axis": [1, 0, 0], "diameter": 168, "length": 38 }
+        ],
+        "subtract": [
+          { "kind": "cylinder", "origin": [1216, 0, 930], "axis": [1, 0, 0], "diameter": 156.4, "length": 46 },
+          { "kind": "box", "origin": [1202, -86, 914], "size": [54, 172, 52] }
+        ]
+      },
+      "interfaces": [
+        { "id": "F1", "type": "part seating plane", "plane": { "origin": [1220, 0, 945], "normal": [-1, 0, 0] }, "positionTolerance": 0.15, "insertionAxis": [-1, 0, 0], "approachLength": 180 },
+        { "id": "CNC-GUIDE-001", "type": "mouth lead-in", "chamfer": { "angle": 20, "length": 3 }, "reference": "mouth-facing edges of fixture pocket" }
+      ]
+    },
+    {
+      "id": "INSPECTION-NEST-001",
+      "name": "inspection nest with passive guides",
+      "solid": {
+        "add": [
+          { "kind": "box", "origin": [540, 400, 760], "size": [320, 320, 100] },
+          { "kind": "box", "origin": [565, 425, 860], "size": [270, 270, 15] },
+          { "kind": "cylinder", "origin": [570, 430, 875], "axis": [0, 0, 1], "diameter": 8, "length": 38 },
+          { "kind": "cylinder", "origin": [830, 430, 875], "axis": [0, 0, 1], "diameter": 8, "length": 38 },
+          { "kind": "cylinder", "origin": [570, 690, 875], "axis": [0, 0, 1], "diameter": 8, "length": 38 },
+          { "kind": "cylinder", "origin": [830, 690, 875], "axis": [0, 0, 1], "diameter": 8, "length": 38 }
+        ],
+        "subtract": [{ "kind": "box", "origin": [594, 454, 875], "size": [212, 212, 26] }]
+      },
+      "interfaces": [{ "id": "I1", "type": "part seating plane", "plane": { "origin": [700, 560, 875], "normal": [0, 0, 1] }, "positionTolerance": 0.25, "insertionAxis": [0, 0, -1], "guideRadius": 4, "approachLength": 160 }]
+    },
+    {
+      "id": "RAW-TRAY-001",
+      "name": "raw-parts tray",
+      "solid": { "add": [{ "kind": "box", "origin": [570, -810, 740], "size": [400, 400, 50] }], "subtract": [{ "kind": "box", "origin": [588, -792, 770], "size": [364, 364, 24] }] },
+      "interfaces": [{ "id": "RAW-SEAT-001", "type": "part support plane", "plane": { "origin": [770, -610, 794], "normal": [0, 0, 1] }, "partDatumPositionTolerance": 2 }]
+    },
+    {
+      "id": "FINISHED-TRAY-001",
+      "name": "finished-parts tray",
+      "solid": { "add": [{ "kind": "box", "origin": [570, 600, 740], "size": [400, 400, 50] }], "subtract": [{ "kind": "box", "origin": [588, 618, 770], "size": [364, 364, 24] }] },
+      "interfaces": [{ "id": "FIN-SEAT-001", "type": "part support plane", "plane": { "origin": [770, 800, 794], "normal": [0, 0, 1] }, "partDatumPositionTolerance": 2 }]
+    }
+  ],
+  "workpieces": [
+    {
+      "id": "WP-A",
+      "partDatum": { "origin": [0, 0, 0], "axes": "W-aligned when seated; base face is z=0." },
+      "solid": {
+        "add": [
+          { "kind": "box", "origin": [-81, -40, 0], "size": [162, 80, 64] },
+          { "kind": "box", "origin": [-64, -49, 8], "size": [128, 9, 52] },
+          { "kind": "box", "origin": [-64, 40, 8], "size": [128, 9, 52] }
+        ],
+        "subtract": [{ "kind": "cylinder", "origin": [0, 0, 0], "axis": [0, 0, 1], "diameter": 42, "length": 64 }]
+      },
+      "graspRegions": [{ "id": "WP-A-GR-1", "type": "opposed planar rail faces", "surfaces": [{ "plane": { "origin": [0, -40, 34], "normal": [0, -1, 0] }, "rectangle": { "uAxis": [1, 0, 0], "u": [-26, 26], "vAxis": [0, 0, 1], "v": [8, 60] } }, { "plane": { "origin": [0, 40, 34], "normal": [0, 1, 0] }, "rectangle": { "uAxis": [1, 0, 0], "u": [-26, 26], "vAxis": [0, 0, 1], "v": [8, 60] } }], "primaryContactOnly": true }]
+    },
+    {
+      "id": "WP-B",
+      "partDatum": { "origin": [0, 0, 0], "axes": "W-aligned when seated; cylinder axis is +Z." },
+      "solid": { "add": [{ "kind": "cylinder", "origin": [0, 0, 0], "axis": [0, 0, 1], "diameter": 156, "length": 50 }], "subtract": [{ "kind": "cylinder", "origin": [0, 0, 0], "axis": [0, 0, 1], "diameter": 74, "length": 50 }] },
+      "graspRegions": [{ "id": "WP-B-GR-1", "type": "opposed cylindrical arcs", "surfaces": [{ "cylinder": { "axisOrigin": [0, 0, 0], "axis": [0, 0, 1], "radius": 78, "angleDegrees": [-107.5, -72.5], "z": [5, 45] } }, { "cylinder": { "axisOrigin": [0, 0, 0], "axis": [0, 0, 1], "radius": 78, "angleDegrees": [72.5, 107.5], "z": [5, 45] } }], "primaryContactOnly": true }]
+    },
+    {
+      "id": "WP-C",
+      "partDatum": { "origin": [0, 0, 0], "axes": "W-aligned when seated; cosmetic exterior is z=22." },
+      "solid": {
+        "add": [
+          { "kind": "box", "origin": [-105, -69, 0], "size": [210, 138, 4.5] },
+          { "kind": "box", "origin": [-105, -69, 4.5], "size": [210, 6, 17.5] },
+          { "kind": "box", "origin": [-105, 63, 4.5], "size": [210, 6, 17.5] },
+          { "kind": "box", "origin": [-92, -66, 4.5], "size": [184, 4.5, 17.5] },
+          { "kind": "box", "origin": [-92, 61.5, 4.5], "size": [184, 4.5, 17.5] }
+        ],
+        "subtract": [{ "kind": "box", "origin": [-72, -40, 0], "size": [144, 80, 22] }]
+      },
+      "graspRegions": [
+        { "id": "WP-C-GR-1", "type": "opposed reinforced side pads", "surfaces": [{ "plane": { "origin": [0, -66, 13.25], "normal": [0, -1, 0] }, "rectangle": { "uAxis": [1, 0, 0], "u": [-19, 19], "vAxis": [0, 0, 1], "v": [1.25, 25.25] } }, { "plane": { "origin": [0, 66, 13.25], "normal": [0, 1, 0] }, "rectangle": { "uAxis": [1, 0, 0], "u": [-19, 19], "vAxis": [0, 0, 1], "v": [1.25, 25.25] } }], "wallThickness": 4.5, "primaryContactOnly": true },
+        { "id": "WP-C-GR-2", "type": "under-flange support ledges", "surfaces": [{ "plane": { "origin": [0, -63, 4.5], "normal": [0, 0, 1] }, "rectangle": { "uAxis": [1, 0, 0], "u": [-19, 19], "vAxis": [0, 1, 0], "v": [-7, 0] } }, { "plane": { "origin": [0, 63, 4.5], "normal": [0, 0, 1] }, "rectangle": { "uAxis": [1, 0, 0], "u": [-19, 19], "vAxis": [0, 1, 0], "v": [0, 7] } }], "secondaryRetentionOnly": true }
+      ]
+    }
+  ],
+  "provenance": { "sourceClass": "benchmark-design-basis", "physicalTested": false, "uncertainty": "Geometry is a fixed synthetic benchmark definition with the explicit interface tolerances above; it is not an as-built factory survey." }
+}

@@ -1,0 +1,61 @@
+{
+  "schemaVersion": "4.0",
+  "protocolVersion": "4.0",
+  "id": "integrated-robotic-handling-common",
+  "version": "1.0",
+  "canonicalBaseUrl": "https://naoyamd.github.io/rotorbench",
+  "outputRoot": "candidate-output",
+  "startAction": "checkpoint-initial-plan",
+  "stopConditions": [
+    "Stop before engineering work if a declared public input is unavailable or its SHA-256 does not match the launch.",
+    "If a tool or time limit prevents completion, preserve all verified checkpoint receipts and submit a schema-valid partial result instead of fabricating evidence.",
+    "Do not claim a calculation, inspection, simulation, or physical test that was not actually performed."
+  ],
+  "sanitization": {
+    "maxBundleFiles": 256,
+    "maxBundleBytes": 104857600,
+    "maxFileBytes": 26214400,
+    "maxPathLength": 240,
+    "maxJsonBytes": 4194304,
+    "maxTextBytes": 4194304,
+    "maxPdfBytes": 26214400,
+    "maxStepBytes": 26214400,
+    "maxImageBytes": 10485760
+  },
+  "workspaceBootstrap": {
+    "kind": "public-bundle",
+    "location": "https://naoyamd.github.io/rotorbench/framework/workspaces/integrated-robotic-handling-v1.json",
+    "sha256": "9ad7c0f812921287f60d045518f6f6d83fce09fd10d9337fcb4fe63ec60ca44b"
+  },
+  "extensions": {
+    "officialRepeatCountPerModel": 3,
+    "preRunAuthorizationRequired": true,
+    "preRunAuthorizationAssurance": "operator-attested-pre-run",
+    "candidateWorkspaceReceiptRequired": true,
+    "candidateWorkspaceIsolationAssurance": "operator-harness-attested-not-cryptographic-proof",
+    "comparisonRule": "Only runs using this exact profile digest are directly compared. Profile changes require bridge runs.",
+    "humanInterventionsAllowed": 0,
+    "candidateIdentityAssignedAfterSubmission": true,
+    "toolBoundary": {
+      "allowed": [
+        "the candidate environment's ordinary filesystem, shell, browser research, CAD authoring, calculation and document tools",
+        "public technical sources with recorded provenance"
+      ],
+      "prohibited": [
+        "other candidate outputs",
+        "evaluator-owned review records, model-group disclosure, hidden robustness inputs, and private change-event payloads",
+        "human design assistance",
+        "credentials or private engineering databases not supplied to every candidate"
+      ],
+      "operatorEnforcement": [
+        "Before the run, expose only the canonical live launch, its hash-bound declared inputs and workspace bootstrap from RotorBench.",
+        "After launch materialization, block RotorBench comparison, result, private evaluator-record, model-disclosure, and prior-run surfaces while retaining the same public technical-research access for every candidate.",
+        "Record the exact tool-access profile and network policy in the pre-run measurement conditions; do not infer or backfill them from the candidate output."
+      ],
+      "publicEvaluationPolicy": "The task rubric, schemas, and deterministic framework source are public and auditable. Evaluator-owned review records, reviewer mappings, cohort-to-model disclosure, and committed hidden-panel payloads remain unavailable to candidates. Candidates must not execute Stage 2 or inspect result surfaces during a run."
+    },
+    "budgetBinding": "The cohort manifest records the identical elapsed-time, token, reasoning-preset and tool-access limits used for every candidate. Cross-profile results are not ranked together.",
+    "primaryAssessmentPanel": "fixed-anchor-baseline",
+    "optionalPanelsRequireSeparateEvaluatorControlledInputs": true
+  }
+}

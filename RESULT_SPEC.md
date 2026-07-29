@@ -1,43 +1,73 @@
 # Framework result and evidence specification
 
-A published run is rendered at `/runs/<candidate-id>/` only when:
+A protocol v4 run can be published only when:
 
-1. it references a valid task packet, launch, and Stage 2-owned cohort;
-2. a protocol v3 launch is `live-verified`, and its packet
-   bundle, execution-contract, prompt, and launch digests match the sealed
-   submission and Stage 2-owned run;
-3. its benchmark version, launch, cohort membership, and fairness fingerprint
-   match;
-4. Stage 2 has sealed `submitted/` with `sha256-tree-v1`;
-5. every process-evidence and artifact path is a safe regular file below the
-   sealed bundle path;
-6. the sealed `submission.json` matches the run model, process hashes, and
-   complete artifact declarations;
-7. every protocol v3 artifact declares `requiredOutputRefs`, and each
-   task-packet required output ID is bound by exactly one artifact whose role
-   matches that output and whose status is `present`;
-8. every declared SHA-256 and the immutable initial-plan checkpoint match;
-9. Stage 2 has fixed a schema-valid, successful publication report whose seal
-   attestation matches the run;
-10. every candidate listed in the cohort has a valid sealed run; and
-11. the run and its complete cohort both have status `published`.
+1. its task packet, launch, public workspace bootstrap, execution profile, and
+   execution contract are valid and hash-bound;
+2. its launch is `live-verified` at the canonical page, `launch.json`, and
+   `prompt.txt` URLs;
+3. it belongs to a cohort whose opaque membership, three-run model groups, and
+   equal measurement conditions were operator-frozen before execution, with
+   `frozenAt <= openedAt` recorded (not a cryptographic candidate-start proof);
+4. `submission.json`, the immutable initial plan, work record, append-only
+   receipts, every declared artifact hash, and the deterministic submitted-tree
+   hash match;
+5. candidate paths are safe regular files and no undeclared or prohibited type
+   crosses the evaluator boundary;
+6. the launch-frozen sanitizer has produced a canonical report and only
+   admitted static evidence appears under `sanitized/`;
+7. the frozen artifact contract has validated required fixed and indexed CAD,
+   STEP, drawing/PMI, BOM, calculation, gripper, safety, and traceability
+   evidence at the highest claimed checkpoint;
+8. at least two identity-blind independent reviewers have rated every required
+   gate and dimension from sanitized evidence, with a third adjudicator on a
+   material disagreement;
+9. the frozen scoring runtime has created a schema-valid evaluator record bound
+   to the exact scoring contract, launch, candidate tree, sanitization report,
+   and measurement conditions;
+10. `stage2:finalize-evaluation` has atomically bound the evaluator record to
+    `run.json`; and
+11. every predeclared cohort member is finalized and an operator-owned
+    disclosure exactly binds the frozen three-repeat groups before
+    `stage2:publish-cohort -- --cohort-id <id> --disclosure <file>` transitions
+    the runs and cohort together.
+12. the published cohort is exported from a private evaluator workspace with
+    the launch-frozen `stage2:export-publication` command, then the public
+    repository imports only its manifest-bound `publications/<cohort-id>/`
+    bundle. Raw `runs/`, `cohorts/`, review packages, reviewer records,
+    evaluator records, and private source paths are never public artifacts.
 
-The neutral result page exposes:
+An incomplete engineering design is not discarded merely for being incomplete.
+Its highest verified checkpoint, evidence coverage, gate state, failure causes,
+and evaluable dimensions remain visible. Admission failure, design failure,
+missing evidence, evaluator unsupported capability, and evaluator uncertainty
+remain distinct.
 
-1. Overview — benchmark, launch, fairness fingerprint, model facts, and seal
-2. Process — initial requirements/plan and later work record as separate,
-   hashed downloads
-3. 3D — only common preprocessed meshes for STEP artifacts
-4. Drawings
-5. BOM
-6. Calculations
-7. All submitted files
-8. Validation — manifest, reference, path, hash, STEP, and bundle-seal checks
+The public result exposes:
 
-The browser never runs candidate HTML, CSS, JavaScript, or CAD parsers.
-Candidate files are copied to inert same-origin `.download` paths and retain
-their original save names through download metadata. The candidate bundle is
-preserved as submitted; derived public assets remain outside the sealed bundle.
+1. task, launch, profile, fairness, cohort, and byte-seal identities;
+2. the Engineering Attainment Profile and checkpoint chain;
+3. A0 and B0–B6 gate outcomes;
+4. the D01–D10 ordinal vector, model-group medians, observed interval, and
+   host-generated public evaluator summary (not individual reviewer records);
+5. raw geometry, kinematics, grasp, load, accuracy, manufacturing, safety,
+   cost, mass, energy, and change metrics;
+6. execution-efficiency facts in a separate non-ranking record;
+7. neutral derived geometry and admitted drawings/evidence;
+8. original candidate downloads, kept byte-identical and inert; and
+9. validation, sanitization, assessment, and finalization reports.
 
-The comparison page groups only runs with the same fairness fingerprint. It
-does not introduce a score, rank, winner, or task-specific interpretation.
+For a published v4 cohort, the public post-review record also exposes the
+operator disclosure and exact group aggregate. Each group retains D01–D10
+medians and observed intervals, gates, admission/qualification count-rates,
+checkpoint distribution, raw metrics, and a separate efficiency record. No
+composite score, rank, or winner is generated.
+
+No composite score, rank, or winner is generated by the framework. Comparison
+is permitted only for runs with the same task version, fairness fingerprint,
+execution-profile digest, scoring-contract digest, and measurement-conditions
+policy. A changed profile requires bridge runs and remains a separate series.
+
+The browser never parses native CAD or runs candidate HTML, CSS, JavaScript,
+macros, binaries, or embedded code. Original files remain downloads; public
+visualization uses only evaluator-derived static output.

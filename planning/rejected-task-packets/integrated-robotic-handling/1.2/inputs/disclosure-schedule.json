@@ -1,0 +1,33 @@
+{
+  "document": "Disclosure schedule commitment",
+  "version": "1.0",
+  "status": "public-fixed-anchor-schedule-v1",
+  "schedule": [
+    {
+      "class": "candidate-public",
+      "time": "before-run",
+      "content": "Task, complete fixed-anchor baseline inputs, output contract, scoring contract, and public commitments."
+    },
+    {
+      "class": "run-private-instance",
+      "time": "run-start",
+      "content": "Reserved only for a separately provisioned future private-instance panel; it is not used by the public fixed-anchor baseline launch."
+    },
+    {
+      "class": "event-private-change",
+      "time": "after-prior-receipt",
+      "content": "Complete change payload after baseline receipt is sealed."
+    },
+    {
+      "class": "evaluator-hidden-robustness",
+      "time": "evaluator-only",
+      "content": "Precommitted robustness payloads evaluated after submission sealing."
+    },
+    {
+      "class": "evaluator-secret",
+      "time": "evaluator-only",
+      "content": "Integrity and anti-leakage controls that are not design requirements."
+    }
+  ],
+  "publication": "Public result pages expose only permitted aggregate evidence, qualification state, attainment profile, score intervals, and digest attestations after the cohort embargo policy releases them."
+}

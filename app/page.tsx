@@ -6,7 +6,7 @@ import { sitePath } from "./site-url";
 export const metadata: Metadata = {
   title: "Engineering Design Benchmark Framework",
   description:
-    "A static, task-neutral framework for preparing, executing, and publishing engineering design benchmark evidence.",
+    "A live-verified benchmark for measuring LLM mechanical-system design through a complete robot arm and powered gripper task.",
 };
 
 export default function Home() {
@@ -17,12 +17,13 @@ export default function Home() {
       <SiteHeader />
       <main>
         <section className="hero" aria-labelledby="hero-title">
-          <p className="eyebrow">STATIC / TASK-NEUTRAL / INSPECTABLE</p>
+          <p className="eyebrow">FIXED PUBLIC ANCHOR / V4 / INSPECTABLE</p>
           <h1 id="hero-title">Engineering Design<br /><em>Benchmark Framework</em></h1>
           <p className="lead">
-            A governed path from task definition to candidate evidence. The
-            framework publishes protocols and proofs without supplying a task,
-            design answer, score, or model-specific page.
+            Give each model the same verified launch. It must plan and design a
+            complete industrial robot arm and powered gripper, preserve staged
+            evidence, and submit CAD, STEP, calculations, manufacturing
+            definition, and verification records for independent evaluation.
           </p>
           <div className="count-grid" aria-label="Framework catalog counts">
             <div><strong>{benchmarks.length}</strong><span>BENCHMARKS</span></div>
@@ -33,7 +34,7 @@ export default function Home() {
 
         <section className="content-section" aria-labelledby="flow-title">
           <p className="eyebrow">THREE-STAGE SYSTEM</p>
-          <h2 id="flow-title">Prepare, design, then publish</h2>
+          <h2 id="flow-title">Freeze, design, then measure</h2>
           <ol className="flow flow-three">
             <li>
               <span>00</span>
@@ -45,7 +46,7 @@ export default function Home() {
             </li>
             <li>
               <span>02</span>
-              <div><strong>Publish</strong><p>Assign opaque identity separately, validate the byte-identical bundle, and release only a complete cohort.</p></div>
+              <div><strong>Evaluate</strong><p>Seal the candidate bytes, sanitize neutral evidence, apply common checks and independent ratings, then publish the complete cohort.</p></div>
             </li>
           </ol>
         </section>
@@ -68,9 +69,9 @@ export default function Home() {
             </article>
             <article>
               <span>STAGE 02</span>
-              <h3>Seal and publish</h3>
-              <p>Integrate completed candidate bundles byte-for-byte and publish only after every member of the planned cohort passes.</p>
-              <a className="button-link" href={sitePath("publish-task/")}>STAGE 2 PUBLISH</a>
+              <h3>Measure without rewriting</h3>
+              <p>Keep incomplete work measurable, separate evaluator limits from design failures, and report a ten-dimensional vector without an opaque composite.</p>
+              <a className="button-link" href={sitePath("evaluate-task/")}>STAGE 2 EVALUATE</a>
             </article>
           </div>
         </section>
@@ -78,15 +79,15 @@ export default function Home() {
         <section className="empty-state" aria-labelledby="empty-title">
           <p className="eyebrow">CATALOG STATUS</p>
           <h2 id="empty-title">
-            {isEmpty ? "Ready for future benchmark definitions" : "Published framework catalog"}
+            {isEmpty ? "No active benchmark" : "Engineering benchmark ready"}
           </h2>
           <p>
             {isEmpty
-              ? "No real benchmark task, launch, candidate, or run is published."
-              : "Browse the published framework catalog."}
+              ? "No live task is available."
+              : "Open the benchmark definition or copy the Stage 1 launcher when its live verification is complete."}
           </p>
           <div className="action-row">
-            <a className="button-link" href={sitePath("stage0/")}>START AT STAGE 0</a>
+            <a className="button-link" href={sitePath("model-task/")}>COPY THE MODEL PROMPT</a>
             <a className="button-link secondary" href={sitePath("benchmarks/")}>VIEW BENCHMARKS</a>
             <a className="button-link secondary" href={sitePath("format/")}>VIEW FORMAT</a>
           </div>

@@ -1,0 +1,23 @@
+{
+  "schemaVersion": "3.0",
+  "kind": "engineering",
+  "reviewer": {
+    "id": "sol-engineering-reviewer",
+    "name": "Sol xhigh engineering reviewer"
+  },
+  "authorId": "rotorbench-engineering-benchmark",
+  "packetDigest": "f306521b97ad6de10bbaf33eb73bf15e531dc515ceeb0334faf2edc93790ee17",
+  "bundleDigest": "a10d83f685a72e7b05003b43529bdb5388e1096992f7e340e0d334246ec10b73",
+  "status": "changes-requested",
+  "blockingIssues": [
+    "P1: The fixed public anchor contains no neutral CAD, STEP, or fully dimensioned drawings for the cell, CNC and inspection fixtures, workpieces, or approved grasp regions. Axis-aligned envelopes, TCP poses, and prose descriptions are insufficient to determine fixture insertion geometry, finger/contact geometry, local interference, carried-workpiece collision, and service clearance without candidate-invented geometry. Add hash-bound neutral geometry and/or complete production-style interface drawings for every evaluator-relevant fixed object.",
+    "P1: The closed component catalogue supplies ratings and mass only; it omits the mounting pilots and bolt patterns, shaft and coupling interfaces, bearing envelopes, brake interfaces, reducer geometry, centre-of-mass/inertia data, and other integration dimensions required by the mandatory complete CAD assembly, collision checks, structural load path, assembly, and service evidence. Add frozen interface cards and neutral envelope geometry for every supported purchased component class, or explicitly remove those claims from automatic qualification.",
+    "P1: WP-C requires candidates to limit local contact stress and scoring gate B2 requires contact pressure constraints to be respected, but the packet provides no allowable pressure, damage threshold, pad-property class, or acceptance method. A common gripper cannot be sized or objectively passed for WP-C. Provide a fixed conservative acceptance limit and evaluation method tied to the declared load cases and uncertainty.",
+    "P1: The component-source policy is contradictory. TASK.md states that the frozen catalogue is the only source for catalogue actuator, reducer, brake, bearing, and gripper-transmission data, while the catalogue policy and REQ-016 permit an unlisted declarable-manual component with external source documentation. Resolve this to one common design-space rule so results do not depend on unequal external component access.",
+    "P1: The foundation is outside the candidate-designed boundary but its stiffness, anchor embedment/capacity model, and floor-interface compliance are not fixed; candidates are merely told to declare assumptions. Because B3 and B4 score floor-to-TCP load path, safety margin, deflection, and the 0.20 mm repeatability target, this makes qualification depend on arbitrary optimism rather than design quality. Supply a fixed foundation/anchor model and uncertainty band, or exclude its contribution consistently from the affected gates.",
+    "P1: The packet refers to a future common STEP/kinematics validation pipeline and requires common-host reach, cycle, and repeatability results after calibration, while the provenance record says the host model still requires validation against physical motion and reference architectures. A candidate can create CKPT-040 files, but cannot perform the required self-checks and an evaluator cannot yet reproduce B1/B4 or the 32 s result from this packet. Freeze the executable neutral-handoff schemas, validator, host model, limits, and calibration coverage before declaring the anchor runnable.",
+    "P1: OUT-006 requires controlled drawings/PMI, but the output contract declares only critical-drawing-index.csv as an ART-009 drawing artefact and does not require the referenced drawingPath files to exist or be validated. The same contract permits multiple files per logical output, so it should explicitly require and validate every indexed controlled drawing/PMI file; otherwise CKPT-030/040 can appear complete with an index and no production definition.",
+    "P1: CKPT-050 is correctly optional for baseline, but its required outputs exclude CAD source, STEP, BOM, and drawings even though the permitted change categories include workpiece and fixture/interface changes that can alter geometry and production definition. Make affected OUT-001/002/004/006 artefacts conditionally mandatory when the disclosed change impacts them, while preserving the valid CKPT-040 baseline if CKPT-050 is not attempted or fails."
+  ],
+  "reviewedAt": "2026-07-29T13:49:03.403Z"
+}

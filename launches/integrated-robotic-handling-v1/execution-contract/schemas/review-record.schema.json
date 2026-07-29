@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rotorbench.example/schemas/review-record.schema.json",
+  "title": "Evaluator-sealed identity-neutral review record",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "reviewerId",
+    "role",
+    "lockedAt",
+    "reviewPackage",
+    "sourceReviewSha256",
+    "attestations",
+    "gateRatings",
+    "expertRatings"
+  ],
+  "properties": {
+    "schemaVersion": { "const": "1.0" },
+    "reviewerId": { "type": "string", "pattern": "^rater-[a-f0-9]{16}$" },
+    "role": { "enum": ["primary", "secondary", "adjudicator"] },
+    "lockedAt": { "type": "string", "format": "date-time" },
+    "reviewPackage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "manifestSha256"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^review-[a-f0-9]{16}$" },
+        "manifestSha256": { "$ref": "artifact.schema.json#/$defs/sha256" }
+      }
+    },
+    "sourceReviewSha256": { "$ref": "artifact.schema.json#/$defs/sha256" },
+    "attestations": { "$ref": "review-submission.schema.json#/$defs/attestations" },
+    "gateRatings": {
+      "type": "array",
+      "items": { "$ref": "review-submission.schema.json#/$defs/gateRating" }
+    },
+    "expertRatings": {
+      "type": "array",
+      "items": { "$ref": "review-submission.schema.json#/$defs/rating" }
+    }
+  }
+}

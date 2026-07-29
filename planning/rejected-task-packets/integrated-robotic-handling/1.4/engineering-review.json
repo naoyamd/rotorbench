@@ -1,0 +1,20 @@
+{
+  "schemaVersion": "3.0",
+  "kind": "engineering",
+  "reviewer": {
+    "id": "sol-engineering-reviewer",
+    "name": "Sol xhigh engineering reviewer"
+  },
+  "authorId": "rotorbench-engineering-benchmark",
+  "packetDigest": "affe80c8eaa9d09fb88fe4f099a36ba05bfcf190e3ee9919cecdb92a8842c19a",
+  "bundleDigest": "1820e761bf93863e7f74e601da08a718225a6382626e038739d822633793d417",
+  "status": "changes-requested",
+  "blockingIssues": [
+    "P1: inputs/fixed-geometry.json does not define how grasp-surface rectangle u/v ranges are parameterized, and the listed surfaces are not consistent exposed faces of the supplied solids under the usual plane-origin-plus-axis convention. WP-A-GR-1 is placed at y=±40 inside the union of the main body and side rails rather than at the exposed rail faces y=±49, while its z origin/range can extend to z=94 above the z=64 solid. WP-C-GR-1 is placed at y=±66 through material rather than on an exposed wall face and its z origin/range can extend above the z=22 solid. The prose separations and dimensions also disagree with these CSG faces. Correct the solids/surfaces and publish an explicit surface-coordinate formula so a candidate and evaluator obtain the same legal contact patches.",
+    "P1: The new component interface cards are still insufficient for the mandatory complete CAD, life, accuracy, and energy evidence. Reducer, brake, and bearing cards do not locate input/output/mount faces axially in their local envelope, mass inertia units are not declared, and the catalogue omits evaluator-relevant dynamic bearing ratings, reducer efficiency/duty-life data, gripper-transmission efficiency/backdrivability/life inputs, and servo feedback/resolution data. Because REQ-013, REQ-017, B3, and the required calculation package depend on these values, candidates must invent materially different purchased-component properties. Add fixed interface datums and conservative rating/property cards, or narrow the affected requirements and scoring claims.",
+    "P1: Pneumatic actuation is explicitly permitted by IFC-UTL-001, but the closed purchased-component policy provides no pneumatic cylinder, valve, spring, seal, or force/stroke card and does not clearly prohibit or normalize that open component class. This gives pneumatic concepts an unrestricted external component space while electric motor/reducer/gripper-transmission concepts are closed. Either add a frozen pneumatic component family and interface/rating rules or prohibit pneumatic primary actuation for this packet.",
+    "P1: inputs/neutral-handoff-validator.mjs does not enforce several requirements published by inputs/neutral-handoff-contract.json. It does not reject duplicate topology, joint-limit, pose-result, joint-value, or trajectory-segment IDs; does not validate allowed joint kinds or declared units; does not require trajectory connectivity or coverage of every required pose; does not validate payload-state references; and accepts arbitrary STEP text containing five header tokens. Consequently an invalid or disconnected handoff can receive a valid preflight result. Make the hash-bound implementation match every claimed static check and add negative conformance fixtures before freezing it.",
+    "P1: The motion-evaluation contract remains internally contradictory and cannot yet support objective longitudinal comparison. TASK.md and cell-layout.json say a common host trajectory model applies common time parameterization, encoder, settling, and stop-law assumptions, and REQ-002/REQ-011 still call for common-host evaluation; neutral-handoff-contract.json and calibration-provenance.json instead state that no dynamic host, reachability, collision, cycle-feasibility, or physical-repeatability model is supplied or calibrated. Expert review can grade submitted reasoning, but it cannot produce common 32 s, reach/collision, or 0.20 mm results across architectures from this packet. Remove the common-host claims and explicitly make these evidence-only ordinal dimensions, or freeze a topology-aware common analysis host and calibration coverage before the first cohort."
+  ],
+  "reviewedAt": "2026-07-29T14:25:40.022Z"
+}

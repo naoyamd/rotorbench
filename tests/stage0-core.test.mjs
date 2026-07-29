@@ -23,9 +23,11 @@ import {
   validateRequiredOutputBindings,
   validateSubmission,
 } from "../scripts/framework-lib.mjs";
+import { validateCandidateBundle } from "../scripts/stage-contract.mjs";
 import {
   approveLaunch,
   computeExecutionContractDigest,
+  executionContractFiles,
   freezeLaunch,
   freezePacket,
   markLiveVerified,
@@ -35,6 +37,7 @@ import {
   validateLaunchFreeze,
   verifyGitWorkspace,
 } from "../scripts/stage0-lib.mjs";
+import { loadFrozenEngineeringEvaluator } from "./helpers/evaluate-engineering-submission-frozen-loader.mjs";
 import { buildLaunchPrompt } from "../shared/prompts.mjs";
 
 const execFileAsync = promisify(execFile);
@@ -63,6 +66,12 @@ async function createProject() {
   await cp(path.join(repositoryRoot, "shared"), path.join(root, "shared"), {
     recursive: true,
   });
+  for (const relativePath of executionContractFiles) {
+    const source = path.join(repositoryRoot, ...relativePath.split("/"));
+    const destination = path.join(root, ...relativePath.split("/"));
+    await mkdir(path.dirname(destination), { recursive: true });
+    await cp(source, destination);
+  }
   return root;
 }
 
@@ -451,6 +460,7 @@ test("Stage 0 v3 freezes immutable versions and gates public release", async () 
     await writeJson(path.join(heldCohortRoot, "cohort.json"), {
       schemaVersion: "1.0",
       id: "held-cohort",
+      openedAt: "2026-07-29T00:00:00Z",
       launchId: "neutral-launch",
       fairnessFingerprint: launch.launch.fairnessFingerprint,
       status: "open",
@@ -461,6 +471,35 @@ test("Stage 0 v3 freezes immutable versions and gates public release", async () 
       ({ code }) => code === "cohort-launch-not-live-verified",
     ));
     await rm(heldCohortRoot, { recursive: true, force: true });
+    await execFileAsync(
+      process.execPath,
+      [path.join(repositoryRoot, "scripts", "build-framework-catalog.mjs"), "--root", root],
+      { cwd: repositoryRoot },
+    );
+    const releaseReadyCatalog = JSON.parse(
+      await readFile(path.join(root, "public", "framework", "catalog.json"), "utf8"),
+    );
+    assert.equal(releaseReadyCatalog.launches[0].releaseStatus, "release-ready");
+    assert.equal(releaseReadyCatalog.launches[0].promptText, undefined);
+    assert.equal(releaseReadyCatalog.launches[0].promptDownload, undefined);
+    await readFile(path.join(
+      root,
+      "public",
+      "framework",
+      "launches",
+      "neutral-launch",
+      "prompt.txt",
+    ));
+    await assert.rejects(
+      readFile(path.join(
+        root,
+        "public",
+        "framework",
+        "contracts",
+        launch.launch.executionContractDigest,
+        "contract.json",
+      )),
+    );
 
     const liveUrls = {
       launchId: "neutral-launch",
@@ -616,6 +655,7 @@ test("Stage 0 v3 freezes immutable versions and gates public release", async () 
     await writeJson(path.join(root, "cohorts", "frozen-contract-cohort", "cohort.json"), {
       schemaVersion: "1.0",
       id: "frozen-contract-cohort",
+      openedAt: "2026-07-29T00:00:00Z",
       launchId: launch.launch.id,
       fairnessFingerprint: launch.launch.fairnessFingerprint,
       status: "open",
@@ -798,6 +838,90 @@ test("frozen packets and launches reject undeclared bytes and prompt reconstruct
   }
 });
 
+test("engineering scoring dispatch uses the frozen evaluator and rejects snapshot tampering", async () => {
+  const root = await createProject();
+  try {
+    await writeJson(
+      path.join(root, "benchmarks", "neutral-benchmark", "benchmark.json"),
+      {
+        schemaVersion: "1.0",
+        id: "neutral-benchmark",
+        title: "Frozen evaluator fixture",
+        status: "active",
+        version: "1.0",
+        extensions: {},
+      },
+    );
+    const source = await writeTaskSource(root, "1.0", "Frozen evaluator fixture");
+    const packet = await freezePacket({
+      projectRoot: root,
+      sourceRoot: source,
+      packetId: "neutral-benchmark",
+      version: "1.0",
+      now: "2026-01-01T00:00:00Z",
+    });
+    const profilePath = path.join(root, "profile.json");
+    await writeJson(profilePath, {
+      schemaVersion: "3.0",
+      id: "frozen-evaluator-profile",
+      version: "1.0",
+      canonicalBaseUrl: "https://example.invalid/frozen-evaluator",
+      outputRoot: "candidate-output",
+      startAction: "checkpoint-initial-plan",
+      stopConditions: ["fixture"],
+      extensions: {},
+    });
+    const workspace = await createCleanWorkspace(root);
+    const frozenLaunch = await freezeLaunch({
+      projectRoot: root,
+      launchId: "frozen-evaluator-launch",
+      packetId: packet.packet.id,
+      version: packet.packet.version,
+      profilePath,
+      workspace,
+      now: "2026-01-01T00:00:00Z",
+    });
+    const runId = "frozen-evaluator-run";
+    await writeJson(path.join(root, "runs", runId, "run.json"), {
+      id: runId,
+      status: "validated",
+      seal: { sealed: true },
+      launchId: frozenLaunch.launch.id,
+      executionContractDigest: frozenLaunch.launch.executionContractDigest,
+    });
+
+    // A later workspace edit must not affect the evaluator selected for this
+    // launch. The loader only imports the byte-verified snapshot below.
+    await writeFile(
+      path.join(root, "scripts", "evaluate-engineering-submission.mjs"),
+      'throw new Error("live evaluator must not run");\n',
+    );
+    const evaluator = await loadFrozenEngineeringEvaluator({
+      projectRoot: root,
+      runId,
+    });
+    assert.equal(typeof evaluator.scoreEngineeringRun, "function");
+
+    const frozenEvaluatorPath = path.join(
+      frozenLaunch.root,
+      "execution-contract",
+      "scripts",
+      "evaluate-engineering-submission.mjs",
+    );
+    const frozenBytes = await readFile(frozenEvaluatorPath, "utf8");
+    await writeFile(
+      frozenEvaluatorPath,
+      `${frozenBytes}\nthrow new Error("tampered evaluator imported");\n`,
+    );
+    await assert.rejects(
+      () => loadFrozenEngineeringEvaluator({ projectRoot: root, runId }),
+      /Frozen execution contract is invalid/,
+    );
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
 test("v2 requires an explicit grandfather entry and v3 output IDs bind exactly once", async () => {
   const root = await createProject();
   try {
@@ -914,6 +1038,19 @@ test("v2 requires an explicit grandfather entry and v3 output IDs bind exactly o
       { id: "two", role: "supporting", status: "present", requiredOutputRefs: ["OUT-001", "OUT-999"] },
     ]);
     assert.ok(invalidBindings.some(({ code }) => code === "duplicate-required-output-binding"));
+
+    const v4Packet = {
+      ...v3Packet,
+      schemaVersion: "4.0",
+    };
+    const v4PackageBindings = validateRequiredOutputBindings(v4Packet, [
+      { id: "one", role: "supporting", status: "present", requiredOutputRefs: ["OUT-001"] },
+      { id: "two", role: "supporting", status: "present", requiredOutputRefs: ["OUT-001"] },
+    ]);
+    assert.ok(
+      !v4PackageBindings.some(({ code }) => code === "duplicate-required-output-binding"),
+      "v4 logical output packages may be represented by multiple inspectable artifacts",
+    );
     assert.ok(invalidBindings.some(({ code }) => code === "unknown-required-output-ref"));
   } finally {
     await rm(root, { recursive: true, force: true });
@@ -1007,6 +1144,131 @@ test("multiple packet versions coexist through their compound packet and launch 
     const validation = await validateFramework(root);
     assert.ok(validation.launches.find(({ manifest }) => manifest?.id === "launch-one")
       .stage0Issues.some(({ code }) => code === "task-packet-digest-mismatch" || code === "launch-packet-binding"));
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("v4 binds public contracts, bootstrap, append-only receipts, and partial attainment", async () => {
+  const root = await createProject();
+  try {
+    const source = path.join(root, "source-v4");
+    await mkdir(source, { recursive: true });
+    const publicFiles = {
+      "visibility.json": "visibility policy\n",
+      "checkpoints.json": "checkpoint contract\n",
+      "evaluation.json": "evaluation contract\n",
+      "sanitize.json": "sanitization profile\n",
+    };
+    for (const [file, text] of Object.entries(publicFiles)) {
+      await writeFile(path.join(source, file), text);
+    }
+    const digest = (file) => sha256(Buffer.from(publicFiles[file]));
+    const commitment = (id, visibilityClass, disclosedAt, value) => ({
+      id, visibilityClass, disclosedAt, requirementRefs: [], digest: value,
+    });
+    const task = {
+      ...taskDefinition("4.0", "V4 fixture"),
+      schemaVersion: "4.0",
+      inputs: [
+        { id: "visibility", path: "visibility.json", mediaType: "application/json", provenance: "fixture", license: "CC0-1.0", downloadName: "visibility.json" },
+        { id: "checkpoints", path: "checkpoints.json", mediaType: "application/json", provenance: "fixture", license: "CC0-1.0", downloadName: "checkpoints.json" },
+        { id: "evaluation", path: "evaluation.json", mediaType: "application/json", provenance: "fixture", license: "CC0-1.0", downloadName: "evaluation.json" },
+        { id: "sanitize", path: "sanitize.json", mediaType: "application/json", provenance: "fixture", license: "CC0-1.0", downloadName: "sanitize.json" },
+      ],
+      v4Contract: {
+        scoringVersion: "v4-fixture",
+        instanceBankManifest: commitment("INS-001", "run-private-instance", "run-start", "1".repeat(64)),
+        visibilityPolicy: commitment("VIS-001", "candidate-public", "before-run", digest("visibility.json")),
+        checkpointContract: commitment("CKC-001", "candidate-public", "before-run", digest("checkpoints.json")),
+        changeEventContract: commitment("CHC-001", "event-private-change", "after-prior-receipt", "2".repeat(64)),
+        evaluationContract: commitment("EVC-001", "candidate-public", "before-run", digest("evaluation.json")),
+        sanitizationProfile: commitment("SAN-001", "candidate-public", "before-run", digest("sanitize.json")),
+        sealedAssetCommitments: [commitment("SEA-001", "evaluator-secret", "evaluator-only", "3".repeat(64))],
+        disclosureSchedule: [commitment("DSC-001", "candidate-public", "before-run", "4".repeat(64))],
+      },
+      checkpoints: [
+        { id: "CKPT-000", sequence: 0, title: "Initial plan", phase: "initial-plan", requiredOutputRefs: [], requiresPriorCheckpointIds: [] },
+        { id: "CKPT-100", sequence: 1, title: "Concept", phase: "concept", requiredOutputRefs: ["OUT-001"], requiresPriorCheckpointIds: ["CKPT-000"] },
+        { id: "CKPT-200", sequence: 2, title: "Change", phase: "change-response", requiredForBaseline: false, requiredOutputRefs: [], requiresPriorCheckpointIds: ["CKPT-100"] },
+      ],
+      changeEvents: [{ id: "CHG-001", visibilityClass: "event-private-change", triggerAfterCheckpointId: "CKPT-100", responseCheckpointId: "CKPT-200", requirementRefs: ["REQ-001"], digest: "5".repeat(64) }],
+    };
+    await writeJson(path.join(source, "task.json"), task);
+    await writeFile(path.join(source, "TASK.md"), "# V4 fixture\n");
+    await writeJson(path.join(root, "benchmarks", task.id, "benchmark.json"), {
+      schemaVersion: "1.0", id: task.id, title: task.title, status: "draft", version: task.version, extensions: {},
+    });
+    const frozen = await freezePacket({ projectRoot: root, sourceRoot: source, packetId: task.id, version: task.version, now: "2026-01-01T00:00:00Z" });
+    assert.equal(frozen.packet.schemaVersion, "4.0");
+    assert.equal((await validateFrozenPacket(frozen.root)).status, "valid");
+
+    const profilePath = path.join(root, "profile-v4.json");
+    await writeJson(profilePath, {
+      schemaVersion: "4.0", protocolVersion: "4.0", id: "v4-profile", version: "1.0",
+      canonicalBaseUrl: "https://example.invalid/base", outputRoot: "candidate-output",
+      startAction: "checkpoint-initial-plan", stopConditions: ["fixture"],
+      sanitization: {
+        maxBundleFiles: 32, maxBundleBytes: 1048576, maxFileBytes: 262144,
+        maxPathLength: 240, maxJsonBytes: 131072, maxTextBytes: 131072,
+        maxPdfBytes: 262144, maxStepBytes: 262144, maxImageBytes: 262144,
+      },
+      workspaceBootstrap: { kind: "public-bundle", location: "https://example.invalid/bootstrap.zip", sha256: "6".repeat(64) }, extensions: {},
+    });
+    const workspace = await createCleanWorkspace(root);
+    const launchResult = await freezeLaunch({ projectRoot: root, launchId: "v4-launch", packetId: task.id, version: task.version, profilePath, workspace, now: "2026-01-01T00:00:00Z" });
+    assert.equal(launchResult.launch.protocolVersion, "4.0");
+    assert.equal((await validateLaunchFreeze(root, "v4-launch")).status, "valid");
+    const v4Prompt = buildLaunchPrompt(launchResult.launch, {
+      ...frozen.packet,
+      instructionsText: "# V4 fixture\n",
+      workspaceBootstrap: launchResult.launch.workspaceBootstrap,
+    });
+    assert.match(v4Prompt, /Public workspace bootstrap/);
+    assert.match(v4Prompt, /append-only receipt/);
+    assert.match(v4Prompt, /partialAttainment/);
+    assert.match(v4Prompt, /sanitizationRequest\.profileDigest/);
+    assert.match(v4Prompt, /CHG-001: commitment digest/);
+    assert.match(v4Prompt, /The change payload is not disclosed/);
+
+    const output = path.join(root, "candidate-output");
+    await mkdir(output);
+    const plan = {
+      schemaVersion: "1.0", status: "initial", requirements: [{ id: "REQ-001", source: "fixture", statement: "fixture" }], assumptions: [],
+      steps: [{ id: "STEP-001", statement: "fixture", requirementRefs: ["REQ-001"] }], alternativesToEvaluate: [],
+      verificationPlan: [{ id: "VER-001", requirementRefs: ["REQ-001"], method: "fixture", expectedEvidence: "fixture" }],
+    };
+    const workRecord = { schemaVersion: "1.0", alternatives: [], decisions: [], planRevisions: [], verificationClaims: [{ id: "CLAIM-001", requirementRefs: ["REQ-001"], method: "fixture", result: "not-run", evidenceArtifactRefs: [] }] };
+    await writeJson(path.join(output, "plan.json"), plan);
+    await writeJson(path.join(output, "work-record.json"), workRecord);
+    const planBytes = await readFile(path.join(output, "plan.json"));
+    const workBytes = await readFile(path.join(output, "work-record.json"));
+    await execFileAsync(process.execPath, [
+      path.join(repositoryRoot, "scripts", "stage1-checkpoint.mjs"), "--root", output,
+    ]);
+    const checkpoint = await execFileAsync(process.execPath, [
+      path.join(repositoryRoot, "scripts", "stage1-checkpoint.mjs"), "--root", output,
+      "--checkpoint", "CKPT-000", "--at", "2026-01-01T00:00:00Z",
+    ]);
+    const receiptDeclaration = JSON.parse(checkpoint.stdout);
+    const initialCheckpointBytes = await readFile(path.join(output, "initial-plan.sha256"));
+    const launch = launchResult.launch;
+    const submission = {
+      schemaVersion: "1.0", protocolVersion: "4.0", status: "partial", launchId: launch.id, taskPacket: launch.taskPacket,
+      executionContractDigest: launch.executionContractDigest, promptSha256: launch.promptSha256, launchDigest: launch.launchDigest, fairnessFingerprint: launch.fairnessFingerprint,
+      model: { provider: "fixture", name: "fixture", version: "1" },
+      initialPlan: { path: "plan.json", sha256: sha256(planBytes) }, initialPlanCheckpoint: { path: "initial-plan.sha256", sha256: sha256(initialCheckpointBytes) },
+      workRecord: { path: "work-record.json", sha256: sha256(workBytes) },
+      checkpointReceipts: [receiptDeclaration],
+      partialAttainment: { attemptedCheckpointIds: ["CKPT-000"], completedCheckpointIds: ["CKPT-000"], highestVerifiedCheckpointId: "CKPT-000", stoppedReason: "candidate-stop" },
+      sanitizationRequest: {
+        profileDigest: launch.v4Contract.sanitizationProfile.digest,
+      },
+      v4Contract: launch.v4Contract, artifacts: [],
+    };
+    await writeJson(path.join(output, "submission.json"), submission);
+    const v4Bundle = await validateCandidateBundle(output);
+    assert.equal(v4Bundle.status, "valid", v4Bundle.issues.join("\n"));
   } finally {
     await rm(root, { recursive: true, force: true });
   }

@@ -1,0 +1,6 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rotorbench.example/schemas/evaluation-record.schema.json",
+  "title": "Evaluator-owned version 4 assessment record",
+  "$ref": "stage-contract-v4.schema.json#/$defs/evaluationRecord"
+}

@@ -1,0 +1,213 @@
+{
+  "document": "Integrated robotic handling system requirements",
+  "version": "1.0",
+  "units": "SI units, with geometry expressed in mm unless explicitly stated otherwise.",
+  "status": "public-v1.0; quantitative values are fixed benchmark design inputs and their non-physical uncertainty is recorded in the provenance file.",
+  "objective": "Design an integrated, fixed-base mechanical handling system capable of safely loading, unloading, and placing three representative manufacturing workpieces in the supplied cell.",
+  "scope": {
+    "included": [
+      "floor mounting interface and candidate-designed fixed base or column",
+      "manipulator architecture, joints, links, bearings, reductions, brakes, wrists, and structural load path",
+      "end-effector interface, powered opening/closing gripper, fingers, contact surfaces, and workpiece retention path",
+      "mechanical-control handoff, motion assumptions, serviceability, manufacturability, risk analysis, and engineering evidence"
+    ],
+    "excluded": [
+      "PLC software, safety PLC programming, complete electrical cabinet design, and robot controller implementation",
+      "legal certification or a declaration of conformity",
+      "automatic tool changing and changing fingers between baseline workpiece cycles",
+      "use of a complete commercial robot arm as the candidate-designed system"
+    ]
+  },
+  "quantitativeRequirementBasis": [
+    {
+      "requirementId": "REQ-012",
+      "value": 32,
+      "unit": "s",
+      "source": "inputs/calibration-provenance.json:VAL-002",
+      "sourceClass": "benchmark-design-basis",
+      "applicability": "Common-host baseline material-flow sequence only; machine machining time excluded.",
+      "uncertainty": "Host-model and physical-cell correlation uncertainty is recorded in VAL-002.",
+      "status": "resolved"
+    },
+    {
+      "requirementId": "REQ-013",
+      "value": 0.2,
+      "unit": "mm",
+      "source": "inputs/calibration-provenance.json:VAL-003",
+      "sourceClass": "benchmark-design-basis with ISO 9283 method framing",
+      "applicability": "TCP repeatability under declared common-host and payload assumptions; not a certification claim.",
+      "uncertainty": "Mechanical versus host-control contribution and physical correlation uncertainty are recorded in VAL-003.",
+      "status": "resolved"
+    }
+  ],
+  "requirements": [
+    {
+      "id": "REQ-001",
+      "category": "system-boundary",
+      "statement": "The candidate shall design one integrated handling system from the floor mounting interface to the workpiece contact surfaces; every primary load path shall be traceable across that boundary.",
+      "verification": "CAD assembly, load-path diagram, BOM, and calculation trace.",
+      "status": "public-fixed"
+    },
+    {
+      "id": "REQ-002",
+      "category": "system-boundary",
+      "statement": "The candidate may select the manipulator topology, provided the kinematics can be expressed in the neutral motion manifest and all required poses can be evaluated.",
+      "verification": "Kinematic model and common-host motion evaluation.",
+      "status": "public-fixed"
+    },
+    {
+      "id": "REQ-003",
+      "category": "system-boundary",
+      "statement": "A complete purchased robot arm, cobot, gantry, or turnkey end-effector may not be represented as candidate-designed structure. Catalogue components in the supplied snapshot may be incorporated and declared.",
+      "verification": "BOM, CAD source, provenance declarations, and manual review.",
+      "status": "public-fixed"
+    },
+    {
+      "id": "REQ-004",
+      "category": "cell-interface",
+      "statement": "The system shall mount only through the supplied floor anchor region and remain within the permitted base, service, and machine-clearance envelopes.",
+      "verification": "CAD collision/clearance check against cell geometry.",
+      "status": "public-fixed"
+    },
+    {
+      "id": "REQ-005",
+      "category": "cell-interface",
+      "statement": "The tool centre point shall realize every required process pose and insertion axis defined in the cell layout with the stated clearance conditions.",
+      "verification": "Common-host kinematic reachability and trajectory feasibility evaluation.",
+      "status": "public-fixed"
+    },
+    {
+      "id": "REQ-006",
+      "category": "payload",
+      "statement": "The system shall handle each baseline workpiece plus the installed gripper, declared auxiliary retention hardware, and stated uncertainty allowance without exceeding declared component limits.",
+      "verification": "Mass properties, load cases, component ratings, and calculation report.",
+      "status": "public-fixed"
+    },
+    {
+      "id": "REQ-007",
+      "category": "gripper",
+      "statement": "The end effector shall have an actively powered mechanical opening/closing mechanism and at least two opposing mechanical contact paths. A vacuum, magnetic, or fixture feature may be auxiliary only and shall not be the primary static or dynamic retention path.",
+      "verification": "CAD, kinematic transmission description, force analysis, and grasp evidence.",
+      "status": "public-fixed"
+    },
+    {
+      "id": "REQ-008",
+      "category": "gripper",
+      "statement": "One installed gripper configuration shall handle WP-A, WP-B, and WP-C. The baseline cycle shall not use automatic tool changing or finger replacement between workpieces.",
+      "verification": "Configuration record, grasp simulation, and common-host task sequence.",
+      "status": "public-fixed"
+    },
+    {
+      "id": "REQ-009",
+      "category": "gripper",
+      "statement": "The design shall constrain workpiece motion during acceleration, deceleration, insertion, and a loss-of-power hold case without relying on unapproved cosmetic surfaces for primary contact.",
+      "verification": "Grasp/load analysis and risk review using the approved grasp regions.",
+      "status": "public-fixed"
+    },
+    {
+      "id": "REQ-010",
+      "category": "gripper",
+      "statement": "The gripper shall declare a minimum usable opening range, closing force or force-displacement characteristic, contact compliance or hardness assumption, and a workpiece-presence sensing interface.",
+      "verification": "Drawing, calculation, interface sheet, and evidence manifest.",
+      "status": "public-fixed"
+    },
+    {
+      "id": "REQ-011",
+      "category": "motion",
+      "statement": "The baseline material-flow sequence is raw tray pick, CNC load, CNC unload, inspection nest placement, and finished tray placement. The candidate shall define all waypoints and their payload state.",
+      "verification": "Neutral motion manifest and common-host trajectory evaluation.",
+      "status": "public-fixed"
+    },
+    {
+      "id": "REQ-012",
+      "category": "motion",
+      "statement": "The nominal baseline sequence shall target a 32 s cycle, measured by the common host from raw-tray pick confirmation to finished-tray placement confirmation, excluding machine machining time.",
+      "verification": "Common-host trajectory model after calibration of common velocity, acceleration, jerk, and settling assumptions.",
+      "status": "public-fixed"
+    },
+    {
+      "id": "REQ-013",
+      "category": "accuracy",
+      "statement": "The required process-pose repeatability target is 0.20 mm at the tool centre point under the common host model. The candidate shall allocate error sources rather than quote a single untraced value.",
+      "verification": "Error budget, tolerance analysis, and common-host repeatability method after calibration.",
+      "status": "public-fixed"
+    },
+    {
+      "id": "REQ-014",
+      "category": "accuracy",
+      "statement": "At the CNC insertion poses, the candidate shall provide a compliance, lead-in, sensing, or alignment strategy consistent with the supplied fixture geometry and shall explain how it protects both machine and part.",
+      "verification": "Interface analysis, CAD clearance, and risk/FMEA evidence.",
+      "status": "public-fixed"
+    },
+    {
+      "id": "REQ-015",
+      "category": "mechanics",
+      "statement": "The candidate shall identify governing static, dynamic, emergency-stop, and loss-of-power load cases for base, joints, links, wrist, gripper, fingers, and contact surfaces.",
+      "verification": "Calculation plan and later calculation report with declared model fidelity.",
+      "status": "public-fixed"
+    },
+    {
+      "id": "REQ-016",
+      "category": "mechanics",
+      "statement": "Rated torque, speed, bearing, reducer, brake, fastener, and structural limits shall be checked against declared operating and fault load cases using the catalogue snapshot or a declared manual-evaluation component.",
+      "verification": "BOM, calculation report, and evaluation-class declaration.",
+      "status": "public-fixed"
+    },
+    {
+      "id": "REQ-017",
+      "category": "reliability",
+      "statement": "The candidate shall state a target duty profile and planned life method for wear, fatigue, bearing life, reducer duty, cable/utility routing, and gripper contact surfaces. Unsupported life claims shall be labelled as estimates.",
+      "verification": "Duty-cycle model, life calculations, and uncertainty register.",
+      "status": "public-fixed"
+    },
+    {
+      "id": "REQ-018",
+      "category": "mechanical-safety",
+      "statement": "The design shall provide a mechanical safety concept covering loss of supplied power, brake engagement, gravity or stored-energy motion, workpiece retention, end stops, pinch/crush zones, maintenance support, and residual energy.",
+      "verification": "Risk register/FMEA, drawings, and fault load cases.",
+      "status": "public-fixed"
+    },
+    {
+      "id": "REQ-019",
+      "category": "mechanical-safety",
+      "statement": "Safety claims shall distinguish engineered controls, assumptions owned by the common host or cell integrator, and risks remaining for manual review. No certification claim is permitted.",
+      "verification": "Risk register and safety-interface sheet.",
+      "status": "public-fixed"
+    },
+    {
+      "id": "REQ-020",
+      "category": "manufacturing",
+      "statement": "Candidate-designed parts shall have a declared material, manufacturing route, datum scheme, critical dimensions, tolerances, and inspection approach appropriate to their function.",
+      "verification": "Drawings, BOM, DFM/DFA review, and inspection plan.",
+      "status": "public-fixed"
+    },
+    {
+      "id": "REQ-021",
+      "category": "manufacturing",
+      "statement": "The design shall state assembly, service, and replacement access for wear parts, brakes, drives, bearings, gripper interfaces, and utility routing. Access claims shall be visible in the assembly evidence.",
+      "verification": "Assembly plan, CAD service views, and maintenance procedure.",
+      "status": "public-fixed"
+    },
+    {
+      "id": "REQ-022",
+      "category": "evidence",
+      "statement": "The final design shall be transferable through neutral CAD, STEP, BOM, drawings, calculations, a neutral kinematic/motion manifest, and a requirement-linked evidence manifest. Native CAD is supporting evidence, not the sole evaluation source.",
+      "verification": "Output-contract validation and evaluator import checks.",
+      "status": "public-fixed"
+    },
+    {
+      "id": "REQ-023",
+      "category": "evidence",
+      "statement": "Each material assumption, derived quantity, and analysis conclusion shall identify source data, method, units, model scope, and uncertainty. A rendered image alone is not verification evidence.",
+      "verification": "Evidence manifest and independent review.",
+      "status": "public-fixed"
+    },
+    {
+      "id": "REQ-024",
+      "category": "change-readiness",
+      "statement": "The Stage 0 plan shall identify which interfaces, decisions, analyses, and artefacts would need revision after a later workpiece, cell, cycle, or safety change event. The event itself is not part of this public baseline.",
+      "verification": "Change-readiness matrix in Stage 0 and later change record.",
+      "status": "public-fixed"
+    }
+  ]
+}

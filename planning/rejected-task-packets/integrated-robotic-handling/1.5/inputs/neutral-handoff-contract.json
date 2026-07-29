@@ -1,0 +1,49 @@
+{
+  "document": "Deterministic static neutral STEP, kinematics, and evidence-coverage validation contract",
+  "version": "1.1",
+  "contractId": "robotic-handling-neutral-handoff-v1.1",
+  "validatorInputId": "neutral-handoff-validator",
+  "execution": {
+    "command": "node inputs/neutral-handoff-validator.mjs --candidate-root <sealed-candidate-root> --contract <packet-root>/inputs/neutral-handoff-contract.json",
+    "owner": "The script is benchmark-owned packet input. The evaluator runs its hash-bound bytes; it never imports, executes, renders, or follows a candidate file, macro, URL, or embedded script.",
+    "network": "Forbidden. The script uses only Node built-in filesystem and path modules and reads the two named static candidate artefacts.",
+    "candidateUse": "Candidates may run an unmodified copy as a preflight check. Its JSON report is advisory until the evaluator reruns the hash-bound packet copy.",
+    "automaticScope": "The tool validates a non-trivial STEP Part-21 static envelope; unique frames, joints, limits, pose/payload records, joint values, trajectory segments, pose/payload coverage, trajectory connection/arithmetic, geometry-reference coverage, evidence-method coverage, and RSS arithmetic. It does not import B-rep topology, solve arbitrary kinematics, calculate collision, establish reachability, synthesize motion, establish physical repeatability, or validate contact/structural claims. Those claims are assessed only by the frozen evidence-only common method."
+  },
+  "candidateArtifacts": { "stepPath": "artifacts/cad/assembly.step", "kinematicsPath": "artifacts/motion/kinematics.json", "requiredAtCheckpoint": "CKPT-020" },
+  "kinematics": {
+    "requiredTopLevelFields": ["contractId", "units", "coordinateFrames", "jointTopology", "jointLimits", "tcpTransform", "payloadStates", "requiredPoseResults", "trajectory", "geometryReferences", "repeatabilityBudget", "evaluationEvidence"],
+    "units": { "linear": "mm", "angular": "deg", "time": "s", "inertia": "kg*m^2" },
+    "jointKinds": ["revolute", "prismatic", "fixed", "parallel-derived"],
+    "jointUnitByKind": { "revolute": "deg", "prismatic": "mm", "fixed": "none", "parallel-derived": "mm" },
+    "coordinateFrameRule": "coordinateFrames is a unique-ID rooted tree with one W frame whose parentFrameId is null. Every non-W frame has an existing parentFrameId, finite translationMm and a finite 3x3 rotationMatrix; no cycle is permitted. Every topology and TCP reference must name one of these frames.",
+    "topologyRule": "jointTopology has unique IDs and unique childFrameId values. Each record has allowed kind, declared unit, existing distinct parentFrameId and childFrameId, and a finite unit axis for non-fixed joints. jointLimits contains exactly one record for every non-fixed joint and no other joint; every required pose result contains that joint exactly once with the same unit.",
+    "poseTolerance": { "position": 0.001, "toolAxis": 0.000001, "meaning": "Requested target values must equal the fixed target within these numerical tolerances. This is a handoff identity check, not a measured pose error." },
+    "requiredPayloadCases": [
+      { "id": "CASE-WP-A", "workpieceId": "WP-A", "payloadStateId": "WP-A-LOADED" },
+      { "id": "CASE-WP-B", "workpieceId": "WP-B", "payloadStateId": "WP-B-LOADED" },
+      { "id": "CASE-WP-C", "workpieceId": "WP-C", "payloadStateId": "WP-C-LOADED" }
+    ],
+    "requiredPayloadStates": [
+      { "id": "EMPTY", "workpieceId": null }, { "id": "WP-A-LOADED", "workpieceId": "WP-A" }, { "id": "WP-B-LOADED", "workpieceId": "WP-B" }, { "id": "WP-C-LOADED", "workpieceId": "WP-C" }
+    ],
+    "requiredPoseTargets": [
+      { "id": "POSE-RAW-PICK", "position": [770, -610, 910], "toolAxis": [0, 0, -1] }, { "id": "POSE-CNC-APPROACH", "position": [1040, 0, 945], "toolAxis": [-1, 0, 0] }, { "id": "POSE-CNC-SEAT", "position": [1220, 0, 945], "toolAxis": [-1, 0, 0] }, { "id": "POSE-CNC-RETRACT", "position": [1040, 0, 945], "toolAxis": [-1, 0, 0] }, { "id": "POSE-INS-APPROACH", "position": [700, 560, 1035], "toolAxis": [0, 0, -1] }, { "id": "POSE-INS-SEAT", "position": [700, 560, 875], "toolAxis": [0, 0, -1] }, { "id": "POSE-INS-RETRACT", "position": [700, 560, 1035], "toolAxis": [0, 0, -1] }, { "id": "POSE-FIN-PLACE", "position": [770, 800, 910], "toolAxis": [0, 0, -1] }
+    ],
+    "requiredGeometryReferenceIds": ["CELL-FLOOR-001", "CNC-BODY-001", "CNC-FIXTURE-001", "INSPECTION-NEST-001", "RAW-TRAY-001", "FINISHED-TRAY-001", "WP-A", "WP-B", "WP-C"],
+    "poseCoverageRule": "requiredPoseResults has unique id and unique (poseId,payloadCaseId) pairs. It contains every required pose for every required payload case exactly once, names that case's required payloadStateId, and contains each movable-joint value once within its declared inclusive limit.",
+    "trajectoryRule": "trajectory.segments has unique id. Each segment has a positive integer sequence unique within payloadCaseId, known fromPoseId/toPoseId, positive durationSeconds, and the case's payloadStateId. For every payload case, segments ordered by sequence connect end-to-start and cover every required pose. cycleSummaries has one unique payloadCaseId record for every case; declaredCycleSeconds equals that case's segment-duration sum. The validator reports 32 s comparison only as evidence coverage, never as automatic feasibility qualification.",
+    "repeatabilityRule": "repeatabilityBudget.components has unique id, finite non-negative valueMm and unit mm; rssMm is finite and equals their root-sum-square. This validates arithmetic and mandatory error-source declaration only; it never turns the 0.20 mm target into an automatic physical pass.",
+    "evidenceCoverageRule": "evaluationEvidence must use methodId ROBOTIC-HANDLING-EVIDENCE-ONLY-V1, may not claim automaticPass, and contains unique static-record IDs for motion, collision, and accuracy. The records must cover all trajectory segment IDs, all required pose IDs, all payload-case IDs, all required fixed geometry IDs, and FND-ANCH-001. Their static inputDigest fields must be SHA-256 strings. This is an objective common completeness check, not a simulation or a substitute for expert evidence assessment."
+  },
+  "step": {
+    "requiredSchemaToken": "AP242",
+    "pathRule": "The STEP path is fixed by candidateArtifacts.stepPath and must be a regular file below candidate root. The static envelope requires an ISO-10303-21 root, a bounded HEADER/ENDSEC section containing FILE_SCHEMA and AP242, a DATA/ENDSEC section containing at least one numbered entity assignment, and a terminal END-ISO-10303-21. It is deliberately not a B-rep topology import claim."
+  },
+  "calibrationCoverage": {
+    "coverageClass": "static-contract-plus-evidence-only-common-method",
+    "supportedAutomaticClaims": ["static Part-21 envelope recognizable", "mandatory manifest uniqueness, references, units, frame topology, pose/payload coverage, and arithmetic internally consistent", "required evidence-method coverage is declared"],
+    "unsupportedAutomaticClaims": ["physical motion correlation", "kinematic reachability", "self or cell collision", "path collision clearance", "32 s feasibility", "0.20 mm repeatability", "contact pressure", "foundation compliance", "structural capacity"],
+    "reportingPolicy": "Automatic results outside supportedAutomaticClaims are evaluator-unsupported, not a candidate engineering failure. The companion common-evaluation-method freezes the reviewer inputs, limits, calibration boundary, and evidence decision rules for all architectures."
+  }
+}

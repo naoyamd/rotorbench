@@ -1,0 +1,22 @@
+{
+  "schemaVersion": "3.0",
+  "launchId": "integrated-robotic-handling-v1",
+  "status": "release-ready",
+  "launchDigest": "7e7d237aeabecc6097299e48463f2ecc99798c6efd671117179c5f40a3e45f07",
+  "packetDigest": "3075f2f99bb2dff9a8391a3108d322ce71e124d30117bad57071d7da6507853f",
+  "packetBundleDigest": "27b2bd9edd292c211f8b7666226d1e3e22ccf89dc56409606d00a7a9b67813c9",
+  "executionContractDigest": "1c6c9d903a298ba9d71a2323884a0ae2cbeebcec8da87075f58eb712eec5d494",
+  "canonicalBaseUrl": "https://naoyamd.github.io/rotorbench",
+  "promptSha256": "a8de972729844fdaf44d2081471f8b9b5a9ccbaf500f8e7964a2e1d46f3cf4f8",
+  "updatedAt": "2026-07-29T16:38:51.765Z",
+  "engineeringReviewDigest": "fbcccc69a0c465df77ae63a9cd897aec3a9e0076875aed45c1868f9c7df76544",
+  "protocolReviewDigest": "dd10cdc64261114186e082e986a83307762b6b77df81f06790ab1efc131f5a3e",
+  "approvalAttestation": {
+    "expectedLaunchDigest": "7e7d237aeabecc6097299e48463f2ecc99798c6efd671117179c5f40a3e45f07",
+    "engineeringReviewDigest": "fbcccc69a0c465df77ae63a9cd897aec3a9e0076875aed45c1868f9c7df76544",
+    "protocolReviewDigest": "dd10cdc64261114186e082e986a83307762b6b77df81f06790ab1efc131f5a3e",
+    "statement": "APPROVE RELEASE 7e7d237aeabecc6097299e48463f2ecc99798c6efd671117179c5f40a3e45f07",
+    "attestedAt": "2026-07-29T16:38:51.199Z"
+  },
+  "approvalAttestationDigest": "15616917dc956bde4b21dd648e17fb7378c6f7573a520b36110fecaef40f8470"
+}
