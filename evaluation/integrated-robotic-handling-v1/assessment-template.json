@@ -1,0 +1,47 @@
+{
+  "schemaVersion": "4.0",
+  "scoringContract": {
+    "id": "integrated-robotic-handling-scoring",
+    "version": "1.1",
+    "sha256": "<filled-by-orchestrator>"
+  },
+  "panel": "fixed-anchor-baseline",
+  "runId": "<opaque-candidate-id>",
+  "launchId": "<launch-id>",
+  "fairnessFingerprint": "<64hex>",
+  "candidateBundleSha256": "<64hex>",
+  "evaluatedAt": "<ISO-8601>",
+  "sanitization": {
+    "actor": "evaluator",
+    "profileDigest": "<64hex>",
+    "status": "failed",
+    "sanitizedArtifactIds": [],
+    "report": {
+      "path": "<sanitization-report-path>",
+      "sha256": "<64hex>"
+    }
+  },
+  "automaticChecks": [
+    {
+      "id": "A0-01",
+      "gateId": "A0",
+      "result": "not-evaluable",
+      "evidenceRefs": [],
+      "detail": "Filled by the common validator."
+    }
+  ],
+  "checkpointReceipts": [],
+  "rawMetrics": [],
+  "reviewPackage": null,
+  "reviewRecords": [],
+  "efficiency": {
+    "wallClockDuration": null,
+    "modelInputTokens": null,
+    "modelOutputTokens": null,
+    "toolCalls": null,
+    "retries": null,
+    "humanInterventions": null,
+    "computeProfile": null,
+    "estimatedExecutionCost": null
+  }
+}

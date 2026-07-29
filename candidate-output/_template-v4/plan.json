@@ -1,0 +1,15 @@
+{
+  "schemaVersion": "1.0",
+  "status": "initial",
+  "requirements": [
+    { "id": "REQ-001", "source": "Task packet", "statement": "Replace with an extracted requirement." }
+  ],
+  "assumptions": [],
+  "steps": [
+    { "id": "STEP-001", "statement": "Replace with an engineering work step.", "requirementRefs": ["REQ-001"] }
+  ],
+  "alternativesToEvaluate": [],
+  "verificationPlan": [
+    { "id": "VER-001", "requirementRefs": ["REQ-001"], "method": "Replace with a verification method.", "expectedEvidence": "Replace with observable evidence." }
+  ]
+}

@@ -30,7 +30,7 @@ export type Benchmark = {
 };
 
 export type TaskPacket = {
-  schemaVersion: "1.0" | "3.0";
+  schemaVersion: "1.0" | "3.0" | "4.0";
   id: string;
   version: string;
   title: string;
@@ -65,15 +65,64 @@ export type TaskPacket = {
   >;
   taskDefinitionDigest?: string;
   authorId?: string;
+  v4Contract?: V4Contract;
+  checkpoints?: V4Checkpoint[];
+  changeEvents?: V4ChangeEvent[];
   manifestDownload: string;
   taskDefinitionDownload?: string;
   lockDownload?: string;
 };
 
+export type V4VisibilityClass =
+  | "candidate-public"
+  | "run-private-instance"
+  | "evaluator-hidden-robustness"
+  | "event-private-change"
+  | "evaluator-secret";
+
+export type V4AssetCommitment = {
+  id: string;
+  visibilityClass: V4VisibilityClass;
+  disclosedAt: "before-run" | "run-start" | "after-prior-receipt" | "evaluator-only";
+  requirementRefs: string[];
+  digest: string;
+};
+
+export type V4Checkpoint = {
+  id: string;
+  sequence: number;
+  title: string;
+  phase: "initial-plan" | "concept" | "embodiment" | "verification" | "submission" | "change-response";
+  requiredOutputRefs: string[];
+  requiresPriorCheckpointIds: string[];
+  requiredForBaseline?: boolean;
+};
+
+export type V4ChangeEvent = {
+  id: string;
+  visibilityClass: "event-private-change";
+  triggerAfterCheckpointId: string;
+  responseCheckpointId: string;
+  requirementRefs: string[];
+  digest: string;
+};
+
+export type V4Contract = {
+  scoringVersion: string;
+  instanceBankManifest: V4AssetCommitment;
+  visibilityPolicy: V4AssetCommitment;
+  checkpointContract: V4AssetCommitment;
+  changeEventContract: V4AssetCommitment;
+  evaluationContract: V4AssetCommitment;
+  sanitizationProfile: V4AssetCommitment;
+  sealedAssetCommitments: V4AssetCommitment[];
+  disclosureSchedule: V4AssetCommitment[];
+};
+
 export type Launch = {
   schemaVersion: "1.0";
   id: string;
-  protocolVersion: "2.0" | "3.0";
+  protocolVersion: "2.0" | "3.0" | "4.0";
   taskPacket: { id: string; version: string; digest: string; bundleDigest?: string };
   baselineCommit: string;
   workspaceDigest: string;
@@ -91,6 +140,12 @@ export type Launch = {
   promptDownload?: string;
   promptText?: string;
   executionContractRoot?: string;
+  v4Contract?: V4Contract;
+  workspaceBootstrap?: {
+    kind: "public-bundle" | "public-repository-commit";
+    location: string;
+    sha256: string;
+  };
   releaseStatus?: "release-ready" | "live-verified";
 };
 
@@ -102,6 +157,76 @@ export type Cohort = {
   status: "published";
   candidateIds: string[];
   extensions: Record<string, unknown>;
+  postReview?: {
+    disclosure: {
+      path: string;
+      sha256: string;
+      download: string;
+      content: CohortDisclosure;
+    };
+    aggregate: {
+      path: string;
+      sha256: string;
+      download: string;
+      content: CohortEvaluationAggregate;
+    };
+  };
+};
+
+export type CohortDisclosure = {
+  schemaVersion: "1.0";
+  cohortId: string;
+  launchId: string;
+  measurementConditionsSha256: string;
+  disclosedAt: string;
+  modelGroups: Array<{
+    groupId: string;
+    runIds: string[];
+    model: { provider: string; name: string; version: string; reasoningSetting: string; policy: string };
+  }>;
+};
+
+export type CohortEvaluationAggregate = {
+  schemaVersion: "1.0";
+  cohortId: string;
+  launchId: string;
+  measurementConditionsSha256: string;
+  disclosureSha256: string;
+  generatedAt: string;
+  binding: { fairnessFingerprint: string; evaluationContractDigest: string; scoringVersion: string; scoringContractSha256: string; panel: string };
+  evaluationRecords: Array<{ runId: string; path: string; sha256: string; status: "admitted" | "artifact-invalid" }>;
+  modelGroups: Array<{
+    groupId: string;
+    runIds: string[];
+    runCount: number;
+    admission: { count: number; rate: number };
+    qualification: { baseline: { count: number; rate: number }; change: { count: number; rate: number } };
+    dimensions: Array<{ id: string; label: string; runCount: number; evaluableCount: number; median: number | null; observedInterval: [number, number] | null; failureCauses: Record<string, number> }>;
+    gates: Array<{ id: string; runCount: number; passCount: number; passRate: number | null; resultCounts: Record<string, number> }>;
+    attainment: { highestCheckpointCounts: Record<string, number> };
+    rawMetrics: { separateFromDesignQuality: true; records: Array<{ runId: string; values: unknown }> };
+    efficiency: { separateFromDesignQuality: true; records: Array<{ runId: string; values: unknown }> };
+    compositeScore: null;
+    compositeScorePublished: false;
+  }>;
+  compositeScore: null;
+  compositeScorePublished: false;
+};
+
+export type PublicEvaluationSummary = {
+  schemaVersion: "1.0";
+  runId: string;
+  status: "admitted" | "artifact-invalid";
+  evaluationRecordSha256: string;
+  finalization: Record<string, unknown> | null;
+  qualification?: { baselineQualified?: boolean | null; changeQualified?: boolean | null };
+  gates?: Array<{ id: string; label?: string; result: string }>;
+  dimensions?: Array<{ id: string; label?: string; score: number | null; scoreInterval?: [number, number] | null; evaluable: boolean }>;
+  attainment?: { highestVerifiedCheckpoint?: string | null };
+  rawMetrics?: unknown[];
+  efficiency?: { separateFromDesignQuality?: boolean; values?: Record<string, unknown> };
+  compositeScore?: null;
+  compositeScorePublished?: false;
 };
 
 export type ValidationReport = {
@@ -125,7 +250,7 @@ export type Run = {
   fairnessFingerprint: string;
   status: "draft" | "submitted" | "validated" | "published" | "failed";
   submittedAt: string;
-  model: { provider: string; name: string; version: string };
+  model?: { provider: string; name: string; version: string };
   summary?: string;
   seal: {
     sealed: true;
@@ -133,11 +258,11 @@ export type Run = {
     bundleSha256: string;
     algorithm: "sha256-tree-v1";
   };
-  publicationReport: { path: "publication-report.json"; sha256: string };
+  publicationReport?: { path: "publication-report.json"; sha256: string };
   processEvidence: {
     initialPlan: { path: string; sha256: string; download: string; downloadName: string };
     workRecord: { path: string; sha256: string; download: string; downloadName: string };
-  };
+  } | null;
   process: {
     plan: {
       requirements: Array<{ id: string; source: string; statement: string }>;
@@ -156,6 +281,10 @@ export type Run = {
   artifacts: Artifact[];
   extensions: Record<string, unknown>;
   validation: ValidationReport | null;
+  evaluation?: {
+    summary: PublicEvaluationSummary;
+    download?: string;
+  } | null;
 };
 
 const catalog = catalogJson as {

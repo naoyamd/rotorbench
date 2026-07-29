@@ -14,7 +14,7 @@ export function SiteHeader() {
         <a href={`${basePath}/stage0/`}>STAGE 0</a>
         <a href={`${basePath}/benchmarks/`}>BENCHMARKS</a>
         <a href={`${basePath}/model-task/`}>STAGE 1</a>
-        <a href={`${basePath}/publish-task/`}>STAGE 2</a>
+        <a href={`${basePath}/evaluate-task/`}>STAGE 2</a>
         <a href={`${basePath}/format/`}>FORMAT</a>
         <a href={`${basePath}/compare/`}>COMPARE</a>
         <a href={`${basePath}/legacy/`}>LEGACY RB-2.0</a>
@@ -28,9 +28,9 @@ export function SiteFooter() {
     <footer>
       <div>
         <strong>ENGINEERING DESIGN BENCHMARK FRAMEWORK</strong>
-        <span>Static, inspectable, and task-neutral.</span>
+        <span>Fixed engineering task. Immutable evidence. Vector evaluation.</span>
       </div>
-      <p>FRAMEWORK / 1.0</p>
+      <p>EDBF / 4.0</p>
     </footer>
   );
 }

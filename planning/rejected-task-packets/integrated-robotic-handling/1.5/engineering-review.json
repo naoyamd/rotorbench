@@ -1,0 +1,17 @@
+{
+  "schemaVersion": "3.0",
+  "kind": "engineering",
+  "reviewer": {
+    "id": "sol-engineering-reviewer-v15",
+    "name": "Sol xhigh engineering reviewer"
+  },
+  "authorId": "rotorbench-engineering-benchmark",
+  "packetDigest": "972aa9645cb987ae04504264f99b04a612d1ffced5bf43a405722d1eeae1f84c",
+  "bundleDigest": "4a2cc655093b10f483bd0f6628314b8ce6357066496dddd27444ba2681ba472f",
+  "status": "changes-requested",
+  "blockingIssues": [
+    "P1 — Make the frozen neutral-handoff validator conform to its published topology contract. It currently accepts any finite non-fixed joint axis rather than a finite unit axis, and it does not verify that each joint parent/child edge agrees with the child frame's declared parentFrameId. Enforce a non-zero unit-vector tolerance and frame/joint edge consistency, then add negative conformance cases proving that zero/non-unit axes and contradictory trees are rejected.",
+    "P1 — Make COMMON-EVIDENCE-COVERAGE validate the complete frozen evidence-record contract rather than only identifiers and partial set membership. Enforce every required field in common-evaluation-method.json for motion, collision, and accuracy; enforce uniqueness before every exact-set comparison (including segmentIds, payloadCaseIds, geometryReferenceIds, and poseIds); and define and verify inputDigest against a canonical, published input-byte set instead of accepting any SHA-256-shaped string. Add negative conformance cases for omitted result fields, duplicate/substituted coverage IDs, and an unbound digest."
+  ],
+  "reviewedAt": "2026-07-29T14:52:55.6638290Z"
+}

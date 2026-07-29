@@ -1,145 +1,220 @@
 # Engineering Design Benchmark Framework
 
-This repository is the neutral publication and handoff framework for future
-manufacturing-design LLM benchmarks. Candidate models perform engineering work
-in isolated projects. They do not build viewers, edit this site, choose public
-identities, or publish results.
+RotorBench is a URL-driven framework for measuring how well LLMs perform a
+real mechanical-system design task. The current fixed anchor asks a candidate
+to design an integrated fixed-base industrial robot arm and its powered
+opening/closing gripper for a defined machine-tending cell.
 
-The repository currently contains no real engineering task, design answer,
-dimensions, loads, materials, scoring rules, or reference solution. Only
-underscored structural templates are present.
+This repository prepares, freezes, launches, evaluates, and publishes the
+benchmark. It does **not** contain a candidate answer, and no model run is
+performed merely by building or deploying the site.
 
-## Three-stage flow
+## Public entry points
 
-### Stage 0 — prepare outside the candidate run
+- Home: <https://naoyamd.github.io/rotorbench/>
+- Stage 1 candidate launcher: <https://naoyamd.github.io/rotorbench/model-task/>
+- Stage 2 evaluator handoff: <https://naoyamd.github.io/rotorbench/evaluate-task/>
+- Benchmark definition: <https://naoyamd.github.io/rotorbench/benchmarks/>
+- Stage 0 author/review/release controls:
+  <https://naoyamd.github.io/rotorbench/stage0/>
 
-1. Draft and lint the task outside `task-packets/`, then freeze one immutable
-   `task-packets/<benchmark-id>/<version>/` directory containing `task.json`,
-   `packet.json`, `packet-lock.json`, the task brief, and every input file.
-   Every revision uses a new version.
-2. Add the matching neutral `benchmarks/<benchmark-id>/benchmark.json`.
-3. Freeze a new launch against an exact clean Git repository and an execution
-   profile, then obtain independent engineering and protocol reviews.
-4. Approve and mark the digest-bound release `release-ready`. Draft,
-   unapproved, and retired launches are excluded from public routes.
-5. Give every model in one cohort the same launch URL and the exact launcher
-   sentence shown at `/model-task/`.
+The candidate receives only the no-placeholder block generated on the Stage 1
+page: one fixed authorization sentence plus one canonical, live-verified
+`/launch/<launch-id>/` URL. The URL contains the complete immutable task prompt,
+input hashes, workspace bootstrap, output contract, checkpoints, and stop
+conditions.
 
-Stage 0 v3 binds packet-manifest and whole-bundle digests, the verified Git
-worktree, execution profile and contract, rendered prompt, and launch. Existing
-Stage 1/2 v2 material remains readable; new freezes use v3.
+## What is measured
 
-### Stage 1 — candidate engineering work
+The benchmark does not judge a rendered surrogate or a web viewer. A complete
+candidate package includes:
 
-The candidate works in an isolated engineering project and creates:
+- immutable initial planning evidence and append-only attainment checkpoints;
+- native or reproducible parametric CAD source;
+- a complete neutral STEP assembly;
+- robot and gripper kinematics, payload states, and motion evidence;
+- BOM, system calculations, and requirement traceability;
+- controlled drawings/PMI for critical production definition;
+- gripper opening/closing, grasp, contact, retention, and loss-of-power
+  evidence;
+- structure, drives, brakes, bearings, foundation, accuracy, safety,
+  manufacturing, service, cost, mass, and energy evidence.
+
+The fixed packet supplies complete cell/workpiece CSG geometry, closed purchased
+component interface cards, contact-damage limits, a foundation/anchor model,
+and a hash-bound static STEP/kinematics validator. Candidate code, macros,
+binaries, web content, and CAD embedded code are never executed by the
+evaluator.
+
+Results are reported as:
+
+- A0 admission and B0–B6 engineering gates;
+- the highest verified checkpoint and partial-attainment profile;
+- D01–D10 ordinal engineering dimensions with reviewer intervals;
+- raw geometry, grasp, load, accuracy, manufacturing, safety, mass, cost, and
+  energy metrics;
+- baseline and optional change-response qualification as separate results; and
+- execution time, tokens, tools, retries, interventions, and cost separately
+  from design quality.
+
+No composite score is published.
+
+## Fair run preparation
+
+Before the first candidate starts, the operator:
+
+1. chooses one `live-verified` launch;
+2. creates a measurement-conditions file from
+   `evaluation/integrated-robotic-handling-v1/measurement-conditions-template.json`;
+3. preassigns opaque run IDs for the official three independent runs per model;
+4. records `frozenAt`, then fixes equal elapsed-time, token, reasoning, tool,
+   network, and zero-human-intervention conditions; and
+5. opens the cohort:
+
+```text
+pnpm stage2:open-cohort -- --cohort-id <cohort-id> --launch-id <launch-id> --conditions <measurement-conditions.json>
+```
+
+The real model-to-run mapping stays outside the candidate workspace until
+post-review publication. Conditions must not be reconstructed after results are
+seen. `frozenAt <= openedAt` records the operator's pre-run freeze policy; it
+does not cryptographically prove when a candidate started. Runs with another
+execution profile are not directly ranked; profile changes require bridge runs.
+
+## Stage 1 — candidate design
+
+Each run starts in a fresh materialized workspace from the launch's
+hash-verified public bootstrap. The candidate writes only:
 
 ```text
 candidate-output/
-  submission.json
+  workspace-receipt.json
   plan.json
   initial-plan.sha256
   work-record.json
-  artifacts/...
+  receipts/
+  artifacts/
+  submission.json
 ```
 
-`plan.json` records requirements, assumptions, planned alternatives, work
-steps, and verification before design work. `initial-plan.sha256` contains the
-single line `<64hex>  plan.json`; both files remain unchanged afterward.
-`work-record.json` records the alternatives actually considered, decisions and
-trade-offs, plan revisions, and requirement-linked verification claims.
-`submission.json` records all hashes and task/launch identity, including the
-`initialPlanCheckpoint` path and hash.
+`workspace-receipt.json` is created by the operator before the run and is
+hash-bound into the pre-run authorization. `plan.json` and
+`initial-plan.sha256` are created before engineering work and remain
+unchanged. Later receipts are append-only. A model that cannot finish still
+submits a schema-valid partial result rather than fabricating later evidence.
 
-The candidate is not given a candidate ID and does not access this repository,
-other candidates, Stage 2, comparison, scoring, or publishing.
+The model never receives its public run ID, other candidate results, hidden
+evaluator inputs, or publication instructions.
 
-### Stage 2 — seal, integrate, publish
+## Stage 2 — seal and evaluate
 
-A separate publishing task validates the completed bundle, assigns an opaque
-candidate ID, copies the bundle byte-for-byte into
-`runs/<candidate-id>/submitted/`, records a deterministic tree hash in the
-Stage 2-owned `run.json`, runs common STEP preprocessing, and publishes only a
-valid sealed run. Every planned candidate in a cohort must first be integrated
-at `validated`; publication starts only after the entire planned cohort and the
-framework checks are complete. The Stage 2-owned cohort manifest is the
-fail-closed source of membership; publication updates the complete cohort
-together.
+Stage 2 runs in a separate evaluator task using
+[`EVALUATE_TASK.md`](./EVALUATE_TASK.md). For each predeclared run:
 
-## Contracts
+```text
+pnpm stage2:integrate -- --source <candidate-output> --candidate-id <opaque-run-id> --cohort-id <cohort-id>
+pnpm stage2:sanitize -- --project-root . --run-id <opaque-run-id> --out sanitized
+pnpm evaluation:score -- --project-root . --run-id <opaque-run-id> --assessment <assessment.json> --out <temporary-evaluation-result.json>
+pnpm stage2:finalize-evaluation -- --run-id <opaque-run-id> --evaluation <temporary-evaluation-result.json>
+```
 
-- `schemas/task-packet.schema.json` — task, input hashes, outputs, environment,
-  completion criteria
-- `schemas/launch.schema.json` — packet binding, baseline, workspace, first
-  action, stop rules, fairness fingerprint
-- `schemas/plan.schema.json` — initial requirements and plan
-- `schemas/work-record.schema.json` — alternatives, decisions, revisions,
-  verification claims
-- `schemas/submission.schema.json` — candidate bundle manifest
-- `schemas/cohort.schema.json` — Stage 2 launch binding and complete candidate membership
-- `schemas/run.schema.json` — Stage 2 identity, cohort, seal, process evidence, artifacts
-- `schemas/artifact.schema.json` — safe path, role, hash, and status
+Integration copies candidate bytes unchanged and seals their deterministic tree
+hash. Sanitization and scoring are loaded from the exact execution contract
+frozen with the launch. At least two independent, identity-blind engineering
+ratings are required; a third adjudicator is required on a material conflict.
 
-The fairness fingerprint is calculated from the task packet, baseline,
-workspace, output root, first action, and stop rules. Candidate identity is
-excluded.
+After every planned run is finalized, create the operator-owned disclosure with
+the exact frozen groups/run IDs and the provider, model, version, reasoning
+setting, and policy for each group. Then publish:
 
-## Common processing
+```text
+pnpm check
+pnpm stage2:publish-cohort -- --cohort-id <cohort-id> --disclosure <cohort-disclosure.json>
+```
 
-The framework validates schemas, references, safe paths, file hashes, launch
-fingerprints, and sealed bundle tree hashes. STEP is triangulated during the
-build with OpenCascade via `occt-import-js`; browsers display only derived mesh
-JSON. A bad STEP produces a visible failed validation report and download
-fallback instead of breaking the result page.
+Publication is cohort-atomic and rolls back if a member or framework check
+fails. It produces a post-review, exact-three-repeat group aggregate with D01–D10
+medians/intervals, gates, qualification and admission rates, checkpoint
+distribution, raw metrics, and separate efficiency facts—never a composite,
+rank, or winner.
 
-Only `published`, sealed, fully valid runs enter the public catalog. Comparison
-groups runs only by an identical fairness fingerprint and displays no built-in
-rank, score, or winner.
+## Private evaluator → public repository boundary
+
+Run Stage 2 in a **separate private clone, fork, or evaluator workspace**.
+`runs/` and `cohorts/` contain sealed candidate bytes, reviewer packages,
+reviewer records, evaluator records, and source paths; they are intentionally
+ignored by Git and must never be committed to this public repository.
+
+After `stage2:publish-cohort` succeeds, export a verified portable publication
+outside that private workspace using the launch-frozen command:
+
+```text
+pnpm stage2:export-publication -- --project-root <private-workspace> --cohort-id <cohort-id> --out <outside-private-workspace/publication-bundle>
+```
+
+In a clean public repository clone, import only that bundle:
+
+```text
+pnpm publication:import -- --bundle <publication-bundle>
+pnpm check
+```
+
+The importer atomically writes `publications/<cohort-id>/` only after checking
+the signed manifest, every file hash and path, publication schemas, private
+field/token exclusions, and duplicate cohort/run IDs. The public catalog reads
+these checked-in publications; it does not require or copy raw evaluator state.
+Only post-review disclosure, aggregate, host-generated public summaries, safe
+run metadata, validation summaries, and admitted inert artifact downloads may
+cross this boundary.
+
+## Stage 0 — immutable authoring and release
+
+New task versions are authored outside `task-packets/`, frozen once, and never
+edited. Stage 0 binds:
+
+- the task definition, every public input, packet manifest, and whole-bundle
+  digest;
+- a clean Git baseline and public workspace bootstrap;
+- schemas, prompt renderer, sanitizer, artifact validator, and scoring runtime;
+- an independent engineering review and a distinct protocol review;
+- explicit release approval; and
+- the canonical page, `launch.json`, and `prompt.txt` bytes observed after
+  deployment.
+
+Only a `live-verified` launch appears on the Stage 1 launcher.
 
 ## Local validation
 
 Node.js 22+ and pnpm are required.
 
-```bash
+```text
 pnpm install
 pnpm check
 ```
 
-Useful scoped commands:
+Useful Stage 0 checks:
 
-```bash
+```text
 pnpm stage0 -- lint --source <draft-directory>
-pnpm stage0 -- freeze-packet --source <draft-directory> --packet-id <id> --version <version>
+pnpm stage0 -- check-packet --packet-id <id> --version <version>
 pnpm stage0 -- verify-workspace --workspace <git-repository>
 pnpm stage0 -- freeze-launch --launch-id <launch-id> --packet-id <id> --version <version> --profile <profile.json> --workspace <git-repository>
 pnpm stage0 -- review --launch-id <launch-id>
 pnpm stage0 -- approve --launch-id <launch-id> --expected-launch-digest <digest> --approval "APPROVE RELEASE <digest>"
-pnpm stage0 -- preview --launch-id <launch-id>
 pnpm stage0 -- release-ready --launch-id <launch-id> --expected-launch-digest <digest> --approval "APPROVE RELEASE <digest>"
 pnpm stage0 -- live-verify --launch-id <launch-id> --launch-url <https-url> --launch-json-url <https-url> --prompt-url <https-url>
-node scripts/stage1-validate.mjs --root <candidate-output>
-node scripts/stage1-checkpoint.mjs --root <candidate-output>
-node scripts/stage2-integrate.mjs --source <candidate-output> --candidate-id <id> --cohort-id <cohort-id>
-pnpm stage2:publish-cohort -- --cohort-id <cohort-id>
 ```
 
-`freeze-launch` requires an execution profile with `canonicalBaseUrl`: the
-canonical HTTPS deployment base without a trailing slash. Stage 0 freezes
-declared input and contract-schema URLs under that exact base.
+## Public rubric and private boundaries
 
-The legacy packet and launch finalize commands are check-only compatibility
-shims and never mutate frozen content.
+Requirements and the scoring rubric are public so every candidate faces the
+same stated engineering standard. “Evaluator-private” means other candidates,
+run identity, hidden robustness instances, change-event payloads, reviewer
+work, anti-leakage controls, and results—not an undisclosed primary scoring
+rule.
 
-## Operator pages
+## Legacy archive
 
-- Stage 0 preparation: https://naoyamd.github.io/rotorbench/stage0/
-- Stage 0 author: https://naoyamd.github.io/rotorbench/stage0/author/
-- Stage 0 review: https://naoyamd.github.io/rotorbench/stage0/review/
-- Stage 0 release: https://naoyamd.github.io/rotorbench/stage0/release/
-- Stage 1 handoff: https://naoyamd.github.io/rotorbench/model-task/
-- Stage 2 handoff: https://naoyamd.github.io/rotorbench/publish-task/
-- Submission format: https://naoyamd.github.io/rotorbench/format/
-- Public framework: https://naoyamd.github.io/rotorbench/
-
-Legacy RotorBench RB-2.0 material remains under `submissions/` and its existing
-`/results/<id>/` URLs. It is read-only and excluded from the engineering
-framework catalog.
+RotorBench RB-2.0 web-demo submissions remain read-only under `submissions/`
+and their existing `/results/<id>/` URLs. They are excluded from this
+engineering benchmark, launch catalog, and comparisons.

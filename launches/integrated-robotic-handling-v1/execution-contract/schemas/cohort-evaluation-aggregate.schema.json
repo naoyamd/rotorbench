@@ -1,0 +1,138 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rotorbench.example/schemas/cohort-evaluation-aggregate.schema.json",
+  "title": "Published post-review cohort evaluation aggregate",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "cohortId",
+    "launchId",
+    "measurementConditionsSha256",
+    "disclosureSha256",
+    "generatedAt",
+    "binding",
+    "evaluationRecords",
+    "modelGroups",
+    "compositeScore",
+    "compositeScorePublished"
+  ],
+  "properties": {
+    "schemaVersion": { "const": "1.0" },
+    "cohortId": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" },
+    "launchId": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" },
+    "measurementConditionsSha256": { "$ref": "artifact.schema.json#/$defs/sha256" },
+    "disclosureSha256": { "$ref": "artifact.schema.json#/$defs/sha256" },
+    "generatedAt": { "type": "string", "format": "date-time" },
+    "binding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["fairnessFingerprint", "evaluationContractDigest", "scoringVersion", "scoringContractSha256", "panel"],
+      "properties": {
+        "fairnessFingerprint": { "$ref": "artifact.schema.json#/$defs/sha256" },
+        "evaluationContractDigest": { "$ref": "artifact.schema.json#/$defs/sha256" },
+        "scoringVersion": { "type": "string", "minLength": 1 },
+        "scoringContractSha256": { "$ref": "artifact.schema.json#/$defs/sha256" },
+        "panel": { "type": "string", "minLength": 1 }
+      }
+    },
+    "evaluationRecords": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["runId", "path", "sha256", "status"],
+        "properties": {
+          "runId": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" },
+          "path": { "type": "string", "pattern": "^(?:runs/[a-z0-9]+(?:-[a-z0-9]+)*/evaluation-record|evaluation-summaries/[a-z0-9]+(?:-[a-z0-9]+)*)\\.json$" },
+          "sha256": { "$ref": "artifact.schema.json#/$defs/sha256" },
+          "status": { "enum": ["admitted", "artifact-invalid"] }
+        }
+      }
+    },
+    "modelGroups": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/groupAggregate" }
+    },
+    "compositeScore": { "type": "null" },
+    "compositeScorePublished": { "const": false }
+  },
+  "$defs": {
+    "groupAggregate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["groupId", "runIds", "runCount", "admission", "qualification", "dimensions", "gates", "attainment", "rawMetrics", "efficiency", "compositeScore", "compositeScorePublished"],
+      "properties": {
+        "groupId": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" },
+        "runIds": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" } },
+        "runCount": { "type": "integer", "minimum": 1 },
+        "admission": { "$ref": "#/$defs/countRate" },
+        "qualification": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["baseline", "change"],
+          "properties": { "baseline": { "$ref": "#/$defs/countRate" }, "change": { "$ref": "#/$defs/countRate" } }
+        },
+        "dimensions": {
+          "type": "array",
+          "minItems": 10,
+          "maxItems": 10,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "label", "runCount", "evaluableCount", "median", "observedInterval", "failureCauses"],
+            "properties": {
+              "id": { "type": "string", "pattern": "^D(?:0[1-9]|10)$" },
+              "label": { "type": "string", "minLength": 1 },
+              "runCount": { "type": "integer", "minimum": 0 },
+              "evaluableCount": { "type": "integer", "minimum": 0 },
+              "median": { "type": ["number", "null"], "minimum": 0, "maximum": 4 },
+              "observedInterval": { "type": ["array", "null"], "minItems": 2, "maxItems": 2, "items": { "type": "number", "minimum": 0, "maximum": 4 } },
+              "failureCauses": { "type": "object", "additionalProperties": { "type": "integer", "minimum": 0 } }
+            }
+          }
+        },
+        "gates": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "runCount", "passCount", "passRate", "resultCounts"],
+            "properties": {
+              "id": { "type": "string", "minLength": 1 },
+              "runCount": { "type": "integer", "minimum": 0 },
+              "passCount": { "type": "integer", "minimum": 0 },
+              "passRate": { "type": ["number", "null"], "minimum": 0, "maximum": 1 },
+              "resultCounts": { "type": "object", "additionalProperties": { "type": "integer", "minimum": 0 } }
+            }
+          }
+        },
+        "attainment": { "type": "object", "additionalProperties": false, "required": ["highestCheckpointCounts"], "properties": { "highestCheckpointCounts": { "type": "object", "additionalProperties": { "type": "integer", "minimum": 0 } } } },
+        "rawMetrics": { "$ref": "#/$defs/separateRecords" },
+        "efficiency": { "$ref": "#/$defs/separateRecords" },
+        "compositeScore": { "type": "null" },
+        "compositeScorePublished": { "const": false }
+      }
+    },
+    "countRate": { "type": "object", "additionalProperties": false, "required": ["count", "rate"], "properties": { "count": { "type": "integer", "minimum": 0 }, "rate": { "type": "number", "minimum": 0, "maximum": 1 } } },
+    "separateRecords": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["separateFromDesignQuality", "records"],
+      "properties": {
+        "separateFromDesignQuality": { "const": true },
+        "records": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["runId", "values"],
+            "properties": { "runId": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" }, "values": {} }
+          }
+        }
+      }
+    }
+  }
+}

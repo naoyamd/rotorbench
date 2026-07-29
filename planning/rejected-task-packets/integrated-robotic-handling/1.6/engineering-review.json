@@ -1,0 +1,16 @@
+{
+  "schemaVersion": "3.0",
+  "kind": "engineering",
+  "reviewer": {
+    "id": "sol-engineering-reviewer-v16",
+    "name": "Sol xhigh engineering reviewer"
+  },
+  "authorId": "rotorbench-engineering-benchmark",
+  "packetDigest": "1b235c7da05194aefae36bc64ce249b541fda3cf50556ce5ad6a4df5e5cebed1",
+  "bundleDigest": "ade77b16c6251034b71687536c03b88f79bcdc2264d872da118b23228d2730da",
+  "status": "changes-requested",
+  "blockingIssues": [
+    "P1 — Bind COMMON-EVIDENCE-COVERAGE to the actual frozen v1.6 input bytes. canonicalInputByteSet records inputs/calibration-provenance.json as the stale v1.5 SHA-256 5ab447742fea81580f5a1473f18d00f8d14f9b60332510de546116d5d2ae5da8, while the frozen v1.6 file and packet declaration are 6301f0dd96e66855e6dd81f1e1fd61325ebf89cdac0c95488adbf4bd0a07cead. Consequently the published expectedInputDigest 7add1d4d56c1871650ae20b8b4bf9d645c7cc532a935a7050478bb5eeec7d6e4 is a digest of a stale hash table; using the actual frozen input hashes yields 427695031053a14c76779990a82c3e74b5905e5d70ca142385103e92f24ef08e. The validator currently recomputes only from the declared table and never hashes the table's referenced files, so the stale binding and all five conformance tests pass. Replace every canonical record with its exact v1.6 raw-file digest, recompute expectedInputDigest, make the validator resolve only the allowlisted packet-relative paths and compare each declared digest with the actual raw bytes before accepting evidence, and add a negative test proving a stale or substituted canonical-input file/hash is rejected."
+  ],
+  "reviewedAt": "2026-07-29T15:23:09.9326619Z"
+}

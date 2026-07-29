@@ -1,0 +1,13 @@
+{
+  "schemaVersion": "4.0",
+  "status": "packet-frozen",
+  "taskPacket": {
+    "id": "integrated-robotic-handling",
+    "version": "1.6"
+  },
+  "taskDefinitionDigest": "838a37de1e6f7c5d7bfbb967b1629b21bb00d6342620f14bab80f1ef27883774",
+  "packetDigest": "1b235c7da05194aefae36bc64ce249b541fda3cf50556ce5ad6a4df5e5cebed1",
+  "bundleDigest": "ade77b16c6251034b71687536c03b88f79bcdc2264d872da118b23228d2730da",
+  "bundleAlgorithm": "sha256-packet-bundle-v1",
+  "frozenAt": "2026-07-29T15:17:27.896Z"
+}

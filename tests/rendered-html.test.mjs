@@ -141,6 +141,7 @@ async function makeRunFixture(artifact, id = "fixture-run") {
     JSON.stringify({
       schemaVersion: "1.0",
       id: "fixture-cohort",
+      openedAt: "2026-07-29T00:00:00Z",
       launchId: launch.id,
       fairnessFingerprint: launch.fairnessFingerprint,
       status: "open",
@@ -365,7 +366,7 @@ test("static export counts match the generated catalog and preserves every legac
   const layout = await readFile(path.join(projectRoot, "app", "layout.tsx"), "utf8");
   assert.match(layout, /https:\/\/rotorbench-lab\.naoyamd\.chatgpt\.site/);
   assert.doesNotMatch(layout, /og-engineering-framework\.png/);
-  assert.ok(home.includes(renderedAbsoluteUrl("og-stage0.png")));
+  assert.ok(home.includes(renderedAbsoluteUrl("engineering-benchmark-og.png")));
   assert.doesNotMatch(home, /\/rotorbench\/rotorbench\/og-stage0\.png/);
   await assert.rejects(
     stat(path.join(projectRoot, "public", "og-engineering-framework.png")),
@@ -439,12 +440,12 @@ test("the three-stage home and publishing guide preserve the candidate boundary"
   assert.ok(home.indexOf("STAGE 01") < home.indexOf("STAGE 02"));
   assert.match(home, /STAGE 0 PREP/);
   assert.match(home, /STAGE 1 DESIGN/);
-  assert.match(home, /STAGE 2 PUBLISH/);
-  assert.match(publish, /Stage 2 cohort publishing \| Engineering Design Benchmark Framework/);
-  assert.match(publish, /byte-for-byte/);
-  assert.match(publish, /publish the cohort together/i);
-  assert.match(publish, /stage2:publish-cohort/);
-  assert.match(publish, /never sent to a candidate model/i);
+  assert.match(home, /STAGE 2 EVALUATE/);
+  assert.match(publish, /Stage 2 handoff moved \| Engineering Design Benchmark/);
+  assert.match(publish, /publish-only procedure is obsolete/i);
+  assert.match(publish, /complete cohort can be published/i);
+  assert.match(publish, /EVALUATE_TASK\.md/);
+  assert.match(publish, /no old command or prompt is executable/i);
 });
 
 /*

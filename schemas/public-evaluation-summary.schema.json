@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rotorbench.example/schemas/public-evaluation-summary.schema.json",
+  "title": "Publication-safe evaluator summary",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "runId", "status", "evaluationRecordSha256", "finalization", "qualification", "attainment", "gates", "dimensions", "rawMetrics", "efficiency", "compositeScore", "compositeScorePublished"],
+  "properties": {
+    "schemaVersion": { "const": "1.0" },
+    "runId": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" },
+    "status": { "enum": ["admitted", "artifact-invalid"] },
+    "evaluationRecordSha256": { "$ref": "artifact.schema.json#/$defs/sha256" },
+    "finalization": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "required": ["status", "finalizedAt", "candidateBundleSha256", "candidateSubmissionSha256", "pendingRecordSha256", "sourceEvaluationSha256"],
+      "properties": {
+        "status": { "const": "finalized" },
+        "finalizedAt": { "type": "string", "format": "date-time" },
+        "candidateBundleSha256": { "$ref": "artifact.schema.json#/$defs/sha256" },
+        "candidateSubmissionSha256": { "$ref": "artifact.schema.json#/$defs/sha256" },
+        "pendingRecordSha256": { "$ref": "artifact.schema.json#/$defs/sha256" },
+        "sourceEvaluationSha256": { "$ref": "artifact.schema.json#/$defs/sha256" }
+      }
+    },
+    "qualification": { "type": "object" },
+    "attainment": { "type": "object" },
+    "gates": { "type": "array", "items": { "type": "object" } },
+    "dimensions": { "type": "array", "items": { "type": "object" } },
+    "rawMetrics": { "type": "array" },
+    "efficiency": { "type": "object" },
+    "compositeScore": { "type": "null" },
+    "compositeScorePublished": { "const": false }
+  }
+}

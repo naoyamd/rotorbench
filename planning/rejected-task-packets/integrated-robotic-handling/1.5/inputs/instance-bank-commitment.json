@@ -1,0 +1,9 @@
+{
+  "document": "Public fixed-anchor instance manifest",
+  "version": "1.0",
+  "status": "candidate-public-fixed-anchor-v1",
+  "fixedAnchor": "The public cell, complete CSG/interface geometry, workpieces and grasp surfaces, foundation/anchor model, requirements, closed catalogue, component interface cards, static neutral-handoff contract/tool, common evidence-only evaluation method, and output contract in this packet are the complete v1.5 fixed-anchor baseline. They are disclosed before every candidate begins and are hash-bound by the packet.",
+  "baselineScope": "The fixed-anchor baseline is the primary result panel for this public URL. It uses no undisclosed numerical instance values or hidden design requirement.",
+  "optionalHiddenRobustness": "A future evaluator-hidden robustness panel may perturb only publicly stated requirement categories: workpiece mass/centre-of-mass/friction within a published band, fixture/cell placement tolerance, process pose, payload state, and duty/load profile. It shall not introduce a new task, gripper modality, or requirement category.",
+  "freshGeneralization": "Fresh generalization uses independently authored public or provisioned instances and is reported separately; it never alters historical fixed-anchor results."
+}

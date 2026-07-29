@@ -1,0 +1,10 @@
+{
+  "document": "Candidate-artifact sanitization commitment",
+  "version": "1.0",
+  "status": "sealed-commitment-descriptor-v1",
+  "allowlistedArtifactTypes": ["STEP", "JSON", "CSV", "PDF", "plain text", "static image"],
+  "rejectedArtifactTypes": ["executable", "macro", "embedded CAD script", "credential", "symbolic link", "network-dependent resource", "external-link-only evidence", "candidate HTML or JavaScript"],
+  "evaluatorBoundary": "Submitted candidate artefacts are copied to a sealed, read-only evaluation location after path, type, hash, and archive checks. The evaluator does not execute candidate code or CAD macros and does not provide network, credentials, other candidate data, or sealed evaluation inputs to the candidate.",
+  "resourcePolicy": "The frozen launch defines file-size, archive-expansion, time, memory, and parser limits. A limit breach is reported as artifact-invalid or evaluator-uncertain with evidence.",
+  "freezeRequirement": "The exact sanitizer implementation, version, and digest are bound in the launch execution contract."
+}

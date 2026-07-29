@@ -1,6 +1,7 @@
 {
   "schemaVersion": "1.0",
   "id": "cohort-id",
+  "openedAt": "2026-07-29T00:00:00Z",
   "launchId": "launch-id",
   "fairnessFingerprint": "0000000000000000000000000000000000000000000000000000000000000000",
   "status": "open",

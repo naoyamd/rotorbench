@@ -1,0 +1,51 @@
+{
+  "schemaVersion": "1.0",
+  "frozenAt": "2026-07-29T00:00:00Z",
+  "launchId": "<live-verified-launch-id>",
+  "launchDigest": "<64hex-launch-digest>",
+  "fairnessFingerprint": "<64hex-fairness-fingerprint>",
+  "executionProfileDigest": "<64hex-execution-profile-digest>",
+  "candidateRunIds": [
+    "opaque-model-a-run-01",
+    "opaque-model-a-run-02",
+    "opaque-model-a-run-03",
+    "opaque-model-b-run-01",
+    "opaque-model-b-run-02",
+    "opaque-model-b-run-03"
+  ],
+  "modelGroups": [
+    {
+      "groupId": "opaque-model-group-a",
+      "runIds": [
+        "opaque-model-a-run-01",
+        "opaque-model-a-run-02",
+        "opaque-model-a-run-03"
+      ]
+    },
+    {
+      "groupId": "opaque-model-group-b",
+      "runIds": [
+        "opaque-model-b-run-01",
+        "opaque-model-b-run-02",
+        "opaque-model-b-run-03"
+      ]
+    }
+  ],
+  "runConditions": {
+    "elapsedTimeLimitMinutes": 480,
+    "tokenBudget": {
+      "mode": "exact-limit",
+      "maximumTokens": 1000000
+    },
+    "reasoningPreset": "<common-reasoning-preset>",
+    "toolAccessProfile": "<common-tool-access-profile-id>",
+    "networkPolicy": "public-research-allowed",
+    "randomnessPolicy": "provider-default-recorded",
+    "humanInterventionLimit": 0
+  },
+  "repetitionPolicy": {
+    "runsPerModel": 3,
+    "assignmentRecordedOutsideCandidate": true
+  },
+  "notes": "Replace every placeholder before opening the cohort. All candidate runs in this cohort use these exact conditions."
+}

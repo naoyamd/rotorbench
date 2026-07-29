@@ -1,0 +1,12 @@
+{
+  "document": "Change-event commitment",
+  "version": "1.0",
+  "status": "sealed-commitment-descriptor-v1",
+  "policy": "Exactly one benchmark-owned change event is disclosed only after the candidate's baseline submission receipt is sealed. The response is evaluated separately from the baseline.",
+  "permittedCategories": ["workpiece parameter change", "fixture or cell interface change", "cycle/load-profile change", "mechanical safety/interface change"],
+  "prohibitedCategories": ["new design domain", "new actuator family unavailable in the public catalogue", "change requiring undisclosed external software", "change that invalidates the public task boundary"],
+  "candidateDisclosure": "The candidate receives the complete changed requirement and affected input values at change-event start. Later candidates do not receive earlier candidate change responses.",
+  "integrity": "The event payload, trigger checkpoint, response checkpoint, and prior receipt digest must be hash-bound before disclosure. The response begins with artifacts/design/change-impact.json. If the disclosed category affects candidate CAD source, STEP, BOM, or controlled drawing/PMI definition, the candidate must mark OUT-001, OUT-002, OUT-004, and/or OUT-006 as affected and reissue the current affected artifact set under the output contract.",
+  "baselineProtection": "CKPT-050 is optional for the baseline. No missing, invalid, or failed change response removes a valid CKPT-040 baseline receipt or qualification.",
+  "freezeRequirement": "The actual payload and digest are evaluator-sealed before any official cohort begins."
+}

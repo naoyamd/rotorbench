@@ -1,0 +1,383 @@
+{
+  "schemaVersion": "4.0",
+  "id": "integrated-robotic-handling-scoring",
+  "version": "1.1",
+  "status": "frozen-vector-no-composite",
+  "benchmarkId": "integrated-robotic-handling",
+  "purpose": "Measure engineering-design attainment without collapsing unlike capabilities into a single opaque leaderboard number.",
+  "panels": [
+    {
+      "id": "public-demonstration",
+      "label": "Public demonstration",
+      "longitudinalRole": "diagnostic-only"
+    },
+    {
+      "id": "fixed-anchor-baseline",
+      "label": "Fixed public anchor baseline",
+      "longitudinalRole": "primary"
+    },
+    {
+      "id": "hidden-robustness",
+      "label": "Evaluator-hidden robustness",
+      "longitudinalRole": "separate"
+    },
+    {
+      "id": "change-response",
+      "label": "Post-freeze change response",
+      "longitudinalRole": "separate"
+    },
+    {
+      "id": "fresh-generalization",
+      "label": "Fresh private generalization",
+      "longitudinalRole": "separate-never-backfilled"
+    }
+  ],
+  "admissionGate": {
+    "id": "A0",
+    "label": "Submission admission",
+    "failureEffect": "artifact-invalid",
+    "checks": [
+      "launch, packet, bundle, prompt, execution-contract and fairness digests match",
+      "submission manifest is readable and schema-valid",
+      "all submitted paths are safe and all declared hashes match",
+      "no prohibited executable, macro, external link, credential or network-dependent payload reaches the evaluator",
+      "the bundle addresses this benchmark rather than another task"
+    ],
+    "note": "Missing engineering content is not an A0 failure. It remains measurable as partial attainment."
+  },
+  "baselineGates": [
+    {
+      "id": "B0",
+      "label": "Evidence completeness",
+      "checks": [
+        "declared output coverage is reported",
+        "required neutral artifacts can be opened or are explicitly marked missing",
+        "requirement and evidence references are non-dangling"
+      ]
+    },
+    {
+      "id": "B1",
+      "label": "Geometry and kinematics",
+      "checks": [
+        "the hash-bound static validator passes its published STEP-envelope and kinematic-manifest checks",
+        "base interface and cell envelope compliance are evidence-backed against the complete fixed geometry",
+        "required poses, paths, singularities, self-collision and cell collision are evaluated at declared fidelity rather than inferred from a static validator pass",
+        "gripper opening states and workpiece states are represented"
+      ]
+    },
+    {
+      "id": "B2",
+      "label": "Grasp and workpiece integrity",
+      "checks": [
+        "all baseline workpieces have a permitted grasp",
+        "opening range, jaw travel and retention load path are feasible",
+        "normal operation, emergency deceleration and loss-of-power retention are evaluated",
+        "contact pressure and prohibited-surface constraints are respected, including WP-C-CONTACT-001"
+      ]
+    },
+    {
+      "id": "B3",
+      "label": "Mechanical capacity",
+      "checks": [
+        "governing static, dynamic, emergency and loss-of-power cases are defined",
+        "motors, reducers, brakes, bearings, fasteners, links and gripper transmission have traceable margins",
+        "fatigue, wear and duty assumptions are stated with uncertainty",
+        "loads propagate from workpiece contact to floor interface without an unexplained break and use the fixed FND-ANCH-001 anchor/foundation lower-bound model"
+      ]
+    },
+    {
+      "id": "B4",
+      "label": "Accuracy and tolerance",
+      "checks": [
+        "mechanical and common-control error contributions are separated",
+        "datum, backlash, compliance, thermal, calibration and assembly effects are allocated",
+        "critical stack-ups close against the supplied acceptance limits",
+        "claims are reproducible from submitted evidence; static RSS arithmetic is not treated as a physical repeatability pass"
+      ]
+    },
+    {
+      "id": "B5",
+      "label": "Manufacturing, assembly and service",
+      "checks": [
+        "critical manufactured parts have material, process, datum, tolerance and inspection definitions",
+        "assembly sequence and tool access are feasible",
+        "wear parts, bearings, brakes, drives, fingers and utilities can be serviced",
+        "BOM and CAD are mutually consistent"
+      ]
+    },
+    {
+      "id": "B6",
+      "label": "Mechanical safety",
+      "checks": [
+        "brake and loss-of-power holding capacity meet declared fault loads",
+        "gravity and stored-energy motion are controlled",
+        "mechanical stops, maintenance support and residual-energy release are defined",
+        "pinch and crush hazards have a mechanical control or an explicit integrator interface",
+        "residual risks are not misrepresented as certification"
+      ]
+    }
+  ],
+  "qualificationRules": {
+    "baselineQualified": "B1 through B6 are pass; B0 is reported separately",
+    "changeQualified": "the changed design independently passes change-context B1 through B6",
+    "changeFailureDoesNotEraseBaseline": true,
+    "notEvaluableIsNotPass": true,
+    "evaluatorUnsupportedIsNotDesignFailure": true
+  },
+  "checkpoints": [
+    {
+      "id": "CKPT-000",
+      "label": "Initial plan frozen",
+      "requiredForBaseline": true,
+      "evidence": "all disclosed input hashes and launch bindings verified; initial requirements, assumptions, alternatives and verification plan frozen"
+    },
+    {
+      "id": "CKPT-010",
+      "label": "System concept selected",
+      "requiredForBaseline": true,
+      "evidence": "requirements trace, evaluated alternatives, integrated arm/gripper architecture and verification strategy receipt"
+    },
+    {
+      "id": "CKPT-020",
+      "label": "Embodiment established",
+      "requiredForBaseline": true,
+      "evidence": "topology, frames, joints, workspace, powered gripper, neutral CAD/STEP, motion manifest and structured BOM receipt"
+    },
+    {
+      "id": "CKPT-030",
+      "label": "Critical verification established",
+      "requiredForBaseline": true,
+      "evidence": "loads, drives, grasp retention, structure, accuracy, production definition, safety and service evidence receipt"
+    },
+    {
+      "id": "CKPT-040",
+      "label": "Baseline submission sealed",
+      "requiredForBaseline": true,
+      "evidence": "complete neutral handoff, requirement-linked verification record and immutable baseline submission receipt"
+    },
+    {
+      "id": "CKPT-050",
+      "label": "Change response sealed",
+      "requiredForBaseline": false,
+      "evidence": "pre-edit impact analysis plus changed-design receipt"
+    }
+  ],
+  "attainmentProfile": {
+    "label": "Engineering Attainment Profile",
+    "fieldsPerDimension": [
+      "attempted",
+      "evidenceCoverage",
+      "evaluable",
+      "passFail",
+      "scoreInterval",
+      "failureCause",
+      "highestVerifiedCheckpoint"
+    ],
+    "failureCauses": [
+      "not-attempted",
+      "missing-evidence",
+      "design-failed",
+      "artifact-invalid",
+      "evaluator-unsupported",
+      "evaluator-uncertain",
+      "requirement-failed",
+      "not-applicable"
+    ]
+  },
+  "ratingScale": {
+    "type": "ordinal",
+    "minimum": 0,
+    "maximum": 4,
+    "anchors": [
+      {
+        "score": 0,
+        "meaning": "No credible engineering case: absent, contradicted, unsafe, or unsupported by inspectable evidence."
+      },
+      {
+        "score": 1,
+        "meaning": "Fragmentary concept evidence: important interfaces or assumptions are missing and conclusions are not reproducible."
+      },
+      {
+        "score": 2,
+        "meaning": "Plausible preliminary design: principal decisions and calculations exist, but coverage, integration, uncertainty, or production definition remains materially incomplete."
+      },
+      {
+        "score": 3,
+        "meaning": "Complete and traceable engineering design: requirements, decisions, analyses and production evidence are mutually consistent and independently reproducible."
+      },
+      {
+        "score": 4,
+        "meaning": "Release-quality engineering evidence: independent checks support the design, uncertainty and failure behavior are controlled, and the evidence predicts common analysis or test outcomes."
+      }
+    ]
+  },
+  "dimensions": [
+    {
+      "id": "D01",
+      "label": "Requirements decomposition and system concept",
+      "evidenceFocus": [
+        "requirement coverage",
+        "assumption quality",
+        "architecture alternatives",
+        "interface ownership",
+        "decision traceability"
+      ]
+    },
+    {
+      "id": "D02",
+      "label": "Kinematics, workspace and cycle feasibility",
+      "evidenceFocus": [
+        "neutral topology",
+        "reachability",
+        "singularity and collision treatment",
+        "waypoints and payload states",
+        "published static neutral-handoff validation and evidence-backed trajectory feasibility"
+      ]
+    },
+    {
+      "id": "D03",
+      "label": "Gripper, grasp and workpiece protection",
+      "evidenceFocus": [
+        "opening and closing mechanism",
+        "guidance and transmission",
+        "grasp coverage",
+        "retention margins",
+        "contact and surface protection"
+      ]
+    },
+    {
+      "id": "D04",
+      "label": "Load path, structure, drives and life",
+      "evidenceFocus": [
+        "load cases",
+        "drive and brake selection",
+        "bearing and fastener checks",
+        "strength and stiffness",
+        "fatigue, wear and duty"
+      ]
+    },
+    {
+      "id": "D05",
+      "label": "Accuracy, tolerance and calibration",
+      "evidenceFocus": [
+        "error budget",
+        "datum architecture",
+        "tolerance stacks",
+        "backlash and compliance",
+        "calibration and inspection"
+      ]
+    },
+    {
+      "id": "D06",
+      "label": "Manufacturing, assembly, inspection and service",
+      "evidenceFocus": [
+        "DFM and DFA",
+        "critical drawings and PMI",
+        "process and material choices",
+        "tool and service access",
+        "inspection feasibility"
+      ]
+    },
+    {
+      "id": "D07",
+      "label": "Safety, reliability and failure behavior",
+      "evidenceFocus": [
+        "hazard identification",
+        "objective mechanical safeguards",
+        "loss-of-power behavior",
+        "FMEA reasoning",
+        "residual-risk ownership"
+      ]
+    },
+    {
+      "id": "D08",
+      "label": "Verification and traceability",
+      "evidenceFocus": [
+        "requirement-evidence links",
+        "reproducible calculations",
+        "independent common analysis",
+        "model limitations",
+        "claim-to-artifact consistency"
+      ]
+    },
+    {
+      "id": "D09",
+      "label": "Change response",
+      "evidenceFocus": [
+        "impact analysis before editing",
+        "dependency identification",
+        "controlled revision",
+        "regression verification",
+        "baseline versus changed-design qualification"
+      ]
+    },
+    {
+      "id": "D10",
+      "label": "Mass, cost and energy Pareto quality",
+      "evidenceFocus": [
+        "declared boundaries",
+        "versioned cost data",
+        "mass and inertia",
+        "cycle energy",
+        "trade-off quality without unsafe optimization"
+      ]
+    }
+  ],
+  "reviewProtocol": {
+    "normalization": "Host-generated neutral renders, normalized BOM tables and evidence sheets; candidate identity and free-form metadata are withheld.",
+    "reviewerIsolation": "Each primary and secondary reviewer sees only evaluator-sanitized, identity-neutral evidence and records a locked rating before seeing another review. Candidate model identity, other reviews, other candidates, and cohort results remain hidden until the independent ratings are sealed.",
+    "minimumIndependentRaters": 2,
+    "adjudication": "A third independent rater is required when any dimension differs by more than one ordinal level or when a gate result conflicts.",
+    "dimensionConsensus": "median with observed minimum and maximum retained as the score interval",
+    "automaticEvidence": "Automatic checks and common analyses remain separately visible and do not silently override an expert rating.",
+    "permittedStatuses": [
+      "scored",
+      "not-evaluable",
+      "evaluator-unsupported",
+      "evaluator-uncertain"
+    ]
+  },
+  "rawMetrics": [
+    "requirement evidence coverage",
+    "required-output coverage",
+    "reachable required poses",
+    "collision-free required paths",
+    "minimum grasp retention margin",
+    "minimum brake holding margin",
+    "minimum declared structural margin",
+    "predicted TCP mechanical error",
+    "critical tolerance closure",
+    "designed mass",
+    "estimated cycle energy",
+    "versioned estimated cost",
+    "service operations with verified access",
+    "change regression coverage"
+  ],
+  "efficiencyRecord": {
+    "separateFromDesignQuality": true,
+    "notUsedForQualityRanking": true,
+    "fields": [
+      "wallClockDuration",
+      "modelInputTokens",
+      "modelOutputTokens",
+      "toolCalls",
+      "retries",
+      "humanInterventions",
+      "computeProfile",
+      "estimatedExecutionCost"
+    ]
+  },
+  "longitudinalRules": {
+    "primaryPanel": "fixed-anchor-baseline",
+    "contractFreezeMonths": 12,
+    "freshVariantsDoNotAlterHistoricalPrimaryScores": true,
+    "percentilesAreNotScores": true,
+    "profileChangesRequireBridgeRuns": true,
+    "withoutBridgeCompareOnlyWithinProfile": true,
+    "repeatedRuns": "Report every run and a model-level median/range; the official repeat count is fixed in the launch execution profile."
+  },
+  "compositeScore": {
+    "published": false,
+    "reason": "The ten-dimensional ordinal vector, qualification state, raw metrics and uncertainty are the official result. No uncalibrated weighting is used."
+  }
+}

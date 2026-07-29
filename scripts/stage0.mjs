@@ -84,7 +84,7 @@ switch (command) {
       workspace: path.resolve(argument("--workspace")),
     });
     console.log(
-      `Frozen Stage 1 v3 launch ${launchId} (${result.launch.launchDigest}, prompt ${result.launch.promptSha256}).`,
+      `Frozen Stage 1 v${result.launch.protocolVersion} launch ${launchId} (${result.launch.launchDigest}, prompt ${result.launch.promptSha256}).`,
     );
     break;
   }

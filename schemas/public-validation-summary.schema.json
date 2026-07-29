@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rotorbench.example/schemas/public-validation-summary.schema.json",
+  "title": "Publication-safe validation summary",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "runId", "status", "generatedAt", "sourceReportSha256", "checkCounts", "issueCodes"],
+  "properties": {
+    "schemaVersion": { "const": "1.0" },
+    "runId": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" },
+    "status": { "enum": ["valid", "invalid", "warning", "processing"] },
+    "generatedAt": { "type": "string", "format": "date-time" },
+    "sourceReportSha256": { "$ref": "artifact.schema.json#/$defs/sha256" },
+    "checkCounts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["pass", "fail", "warning"],
+      "properties": {
+        "pass": { "type": "integer", "minimum": 0 },
+        "fail": { "type": "integer", "minimum": 0 },
+        "warning": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "issueCodes": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$" }
+    }
+  }
+}

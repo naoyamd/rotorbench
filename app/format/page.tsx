@@ -20,9 +20,9 @@ export default function FormatPage() {
       <SiteHeader />
       <main className="listing-page">
         <section className="page-intro">
-          <p className="eyebrow">PUBLICATION FORMAT / 1.0</p>
-          <h1>Common submission format</h1>
-          <p>The framework separates Stage 0 protocol governance, the Stage 1 candidate-owned evidence bundle, and the Stage 2-owned publication record. It does not supply an engineering task, score, or reference answer.</p>
+          <p className="eyebrow">EVIDENCE FORMAT / EDBF 4.0</p>
+          <h1>Sealed engineering evidence format</h1>
+          <p>The framework separates Stage 0 protocol governance, the Stage 1 candidate-owned engineering bundle, and the Stage 2-owned sanitization, assessment, and publication records. The current task and public scoring contract are frozen separately from every candidate answer.</p>
         </section>
         <section className="content-section">
           <h2>Three-stage sequence</h2>
@@ -36,22 +36,30 @@ launches/<launch-id>/
   prompt.txt
   baseline-attestation.json
   execution-profile.json
+  execution-contract/
   release.json
 
-cohorts/<cohort-id>/cohort.json
+cohorts/<cohort-id>/
+  cohort.json
+  measurement-conditions.json
 
 candidate-output/
+  workspace-receipt.json
   submission.json
   plan.json
   initial-plan.sha256
   work-record.json
+  receipts/
   artifacts/...
 
-runs/<candidate-id>/
+runs/<opaque-run-id>/
   run.json
+  evaluation-record.json
+  sanitization-report.json
   publication-report.json
-  submitted/  # byte-identical candidate-output bundle`}</code></pre>
-          <p>Stage 0 freezes versioned packet, Git baseline, execution contract, prompt, independent reviews, and release state. Stage 1 starts only from a live-verified launch, writes <code>initial-plan.sha256</code> as the single line <code>&lt;64hex&gt;  plan.json</code>, and preserves it with <code>plan.json</code>. Protocol v3 carries the packet bundle, execution contract, prompt, and launch digests through <code>submission.json</code>. Stage 2 validates the same bindings, seals the complete bundle, and publishes every planned cohort member together.</p>
+  submitted/   # byte-identical candidate-output
+  sanitized/   # evaluator-admitted static evidence only`}</code></pre>
+          <p>Stage 0 freezes the versioned task, Git baseline, workspace bootstrap, execution contract, prompt, independent reviews, scoring runtime, and release state. Stage 1 starts only from a live-verified launch and an operator-created isolated workspace; its immutable receipt is hash-bound into the pre-run authorization. The candidate preserves that receipt and the immutable initial plan, then appends checkpoint receipts as work advances. Protocol v4 carries packet, bundle, execution-contract, prompt, launch, scoring, sanitization, and fairness digests through <code>submission.json</code>. Stage 2 validates the same bindings, seals the original bytes, sanitizes without executing candidate code, finalizes independent engineering ratings, and publishes every planned cohort member together.</p>
         </section>
         <section className="content-section">
           <h2>Process evidence</h2>
@@ -64,8 +72,8 @@ runs/<candidate-id>/
           </dl>
         </section>
         <section className="content-section">
-          <h2>STEP display boundary</h2>
-          <p>STEP files are checked and triangulated with the common Node/OpenCascade preprocessing step. The browser displays only the generated mesh JSON; it never parses the submitted STEP source. A failed STEP conversion becomes a visible validation report and download fallback, rather than breaking the run page.</p>
+          <h2>Static evaluation boundary</h2>
+          <p>STEP, indexed drawings/PMI, structured evidence, and opaque native CAD are admitted only through the launch-frozen sanitizer and artifact contract. Native CAD is retained read-only. The evaluator and browser never execute candidate scripts, macros, binaries, HTML, JavaScript, or embedded CAD code. Browser geometry uses only common derived mesh output.</p>
         </section>
       </main>
       <SiteFooter />

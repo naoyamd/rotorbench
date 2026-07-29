@@ -1,0 +1,48 @@
+{
+  "document": "Deterministic neutral STEP and kinematics validation contract",
+  "version": "1.0",
+  "contractId": "robotic-handling-neutral-handoff-v1",
+  "validatorInputId": "neutral-handoff-validator",
+  "execution": {
+    "command": "node inputs/neutral-handoff-validator.mjs --candidate-root <sealed-candidate-root> --contract <packet-root>/inputs/neutral-handoff-contract.json",
+    "owner": "The script is benchmark-owned packet input. The evaluator runs its hash-bound bytes; it never imports, executes, renders, or follows a candidate file, macro, URL, or embedded script.",
+    "network": "Forbidden. The script uses only Node built-in filesystem and path modules and reads the two named static candidate artefacts.",
+    "candidateUse": "Candidates may run an unmodified copy as a preflight check. Its JSON report is advisory until the evaluator reruns the hash-bound packet copy.",
+    "automaticScope": "The tool validates a static STEP exchange envelope and the exact JSON handoff structure, fixed pose identities, target vectors, joint-limit values, reference paths, trajectory arithmetic, and RSS arithmetic. It does not solve arbitrary kinematics, import B-rep topology, calculate collision, verify reachability, synthesize a trajectory, establish physical repeatability, or validate contact/structural claims. Those matters remain evidence-backed expert evaluation, with evaluator-unsupported or evaluator-uncertain status where applicable."
+  },
+  "candidateArtifacts": {
+    "stepPath": "artifacts/cad/assembly.step",
+    "kinematicsPath": "artifacts/motion/kinematics.json",
+    "requiredAtCheckpoint": "CKPT-020"
+  },
+  "kinematics": {
+    "requiredTopLevelFields": ["contractId", "units", "coordinateFrames", "jointTopology", "jointLimits", "tcpTransform", "payloadStates", "requiredPoseResults", "trajectory", "geometryReferences", "repeatabilityBudget"],
+    "units": { "linear": "mm", "angular": "deg", "time": "s" },
+    "jointKinds": ["revolute", "prismatic", "fixed", "parallel-derived"],
+    "poseTolerance": { "position": 0.001, "toolAxis": 0.000001, "meaning": "The manifest's requested target values must equal the fixed target after rounding to these numerical tolerances. This is a handoff identity check, not a measured pose error." },
+    "requiredPoseTargets": [
+      { "id": "POSE-RAW-PICK", "position": [770, -610, 910], "toolAxis": [0, 0, -1] },
+      { "id": "POSE-CNC-APPROACH", "position": [1040, 0, 945], "toolAxis": [-1, 0, 0] },
+      { "id": "POSE-CNC-SEAT", "position": [1220, 0, 945], "toolAxis": [-1, 0, 0] },
+      { "id": "POSE-CNC-RETRACT", "position": [1040, 0, 945], "toolAxis": [-1, 0, 0] },
+      { "id": "POSE-INS-APPROACH", "position": [700, 560, 1035], "toolAxis": [0, 0, -1] },
+      { "id": "POSE-INS-SEAT", "position": [700, 560, 875], "toolAxis": [0, 0, -1] },
+      { "id": "POSE-INS-RETRACT", "position": [700, 560, 1035], "toolAxis": [0, 0, -1] },
+      { "id": "POSE-FIN-PLACE", "position": [770, 800, 910], "toolAxis": [0, 0, -1] }
+    ],
+    "requiredGeometryReferenceIds": ["CELL-FLOOR-001", "CNC-BODY-001", "CNC-FIXTURE-001", "INSPECTION-NEST-001", "RAW-TRAY-001", "FINISHED-TRAY-001", "WP-A", "WP-B", "WP-C"],
+    "jointLimitRule": "For every non-fixed joint, jointLimits contains a unique record with jointId, minimum, maximum, unit, and every requiredPoseResults[].jointValues record contains that jointId once. Every value must be finite and lie inclusively within its declared limit.",
+    "trajectoryRule": "trajectory contains segments with unique id, fromPoseId, toPoseId, durationSeconds, payloadState, and declaredCycleSeconds. The validator checks a connected declared sequence covering each required pose and that declaredCycleSeconds equals the arithmetic sum of durationSeconds. It reports, but does not qualify, comparison with the 32 s engineering target.",
+    "repeatabilityRule": "repeatabilityBudget contains components with id and valueMm plus rssMm. The validator checks non-negative finite values and rssMm equals root-sum-square of component values. It neither establishes that a component list is complete nor turns the 0.20 mm target into an automatic pass."
+  },
+  "step": {
+    "requiredHeaderTokens": ["ISO-10303-21;", "HEADER;", "FILE_SCHEMA", "DATA;", "END-ISO-10303-21;"],
+    "pathRule": "The STEP path is fixed by candidateArtifacts.stepPath and must be a regular file below candidate root. The static envelope check is not a topology or PMI import claim."
+  },
+  "calibrationCoverage": {
+    "coverageClass": "virtual-static-contract-only",
+    "supportedAutomaticClaims": ["static STEP envelope recognizable", "mandatory manifest fields and fixed pose targets present", "declared joint values lie within declared limits", "declared cycle sum and RSS arithmetic are internally consistent"],
+    "unsupportedAutomaticClaims": ["physical motion correlation", "kinematic reachability", "self or cell collision", "path collision clearance", "32 s feasibility", "0.20 mm repeatability", "contact pressure", "foundation compliance", "structural capacity"],
+    "reportingPolicy": "An automatic result outside supportedAutomaticClaims is evaluator-unsupported, not a candidate engineering failure. Expert reviewers may evaluate submitted evidence at their stated model fidelity."
+  }
+}
