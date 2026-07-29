@@ -26,7 +26,7 @@ export default async function LaunchPage({ params }: { params: Promise<{ id: str
   const entry = getLaunch(id);
   if (!entry) notFound();
   const executable = (
-    entry.launch.releaseStatus === "live-verified"
+    entry.launch.handoffEligible === true
     && typeof entry.launch.promptText === "string"
   );
   return (
@@ -36,6 +36,9 @@ export default async function LaunchPage({ params }: { params: Promise<{ id: str
         data-stage1-launch-id={entry.launch.id}
         data-launch-digest={entry.launch.launchDigest}
         data-prompt-sha256={entry.launch.promptSha256}
+        data-activation-verification-digest={
+          executable ? entry.launch.activationVerificationDigest : undefined
+        }
       >
         <p className="eyebrow">
           {executable ? "EXECUTABLE STAGE 01" : "RELEASE VERIFICATION PENDING"}
@@ -91,12 +94,12 @@ export default async function LaunchPage({ params }: { params: Promise<{ id: str
           </section>
         ) : null}
         {executable ? (
-          <pre className="prompt-block"><code>{entry.launch.promptText}</code></pre>
+          <pre className="prompt-block" data-stage1-handoff="executable"><code>{entry.launch.promptText}</code></pre>
         ) : (
           <div className="final-note">
-            Stage 1 is fail-closed until the canonical page, launch manifest,
-            and prompt bytes have been live-verified and the verified state has
-            been redeployed.
+            Stage 1 is fail-closed until the live-verified state has been
+            deployed and a create-only post-activation verification records the
+            canonical marker projection and exact manifest and prompt bytes.
           </div>
         )}
         <p className="prompt-source">

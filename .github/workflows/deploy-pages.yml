@@ -52,7 +52,61 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     needs: build
+    outputs:
+      page_url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - name: Deploy
         id: deployment
         uses: actions/deploy-pages@v4
+
+  audit:
+    runs-on: ubuntu-latest
+    needs: deploy
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Install
+        run: pnpm install --frozen-lockfile
+      - name: Build activation audit catalog
+        run: pnpm framework:index
+      - name: Read-only post-deploy activation audit
+        env:
+          PAGES_URL: ${{ needs.deploy.outputs.page_url }}
+        shell: bash
+        run: |
+          base_url="${PAGES_URL%/}"
+          mapfile -t launch_ids < <(node --input-type=module <<'NODE'
+          import { readFile } from "node:fs/promises";
+          const catalog = JSON.parse(await readFile("public/framework/catalog.json", "utf8"));
+          for (const launch of catalog.launches ?? []) {
+            if (launch.handoffEligible === true) console.log(launch.id);
+          }
+          NODE
+          )
+          if [[ "${#launch_ids[@]}" -eq 0 ]]; then
+            echo "No activation-verified launches require a post-deploy audit."
+            exit 0
+          fi
+          for launch_id in "${launch_ids[@]}"; do
+            for attempt in {1..120}; do
+              if pnpm stage0 -- audit-live \
+                --launch-id "${launch_id}" \
+                --launch-url "${base_url}/launch/${launch_id}/" \
+                --launch-json-url "${base_url}/framework/launches/${launch_id}/launch.json" \
+                --prompt-url "${base_url}/framework/launches/${launch_id}/prompt.txt"; then
+                break
+              fi
+              if [[ "$attempt" -eq 120 ]]; then
+                echo "Activation audit failed for ${launch_id}."
+                exit 1
+              fi
+              sleep 5
+            done
+          done

@@ -7,7 +7,7 @@ import { buildModelLaunchMessage } from "../../shared/prompts.mjs";
 export const metadata: Metadata = {
   title: "Stage 1 launcher | Engineering Design Benchmark Framework",
   description:
-    "Live-verified, self-contained engineering benchmark launch handoffs.",
+    "Activation-verified, self-contained engineering benchmark launch handoffs.",
 };
 
 function canonicalLaunchUrl(
@@ -21,14 +21,14 @@ function canonicalLaunchUrl(
 
 export default function ModelTaskPage() {
   const launches = getFrameworkCatalog().launches.filter(
-    ({ releaseStatus }) => releaseStatus === "live-verified",
+    ({ handoffEligible }) => handoffEligible === true,
   );
   return (
     <>
       <SiteHeader />
       <main className="listing-page">
         <section className="page-intro">
-          <p className="eyebrow">STAGE 01 / LIVE-VERIFIED HANDOFF</p>
+          <p className="eyebrow">STAGE 01 / ACTIVATION-VERIFIED HANDOFF</p>
           <h1>Prepare one isolated run, then paste one prompt</h1>
           <p>
             候補モデルへ渡すのは、最後に表示される固定文と正規URLの
@@ -61,7 +61,8 @@ export default function ModelTaskPage() {
                     pnpm stage2:open-cohort -- --cohort-id &lt;id&gt; --launch-id
                     {" "}&lt;launch-id&gt; --conditions &lt;measurement-conditions.json&gt;
                   </code>
-                  .
+                  . The cohort must be opened after the detached launch
+                  activation; pre-activation state is not measurement-eligible.
                 </li>
                 <li>
                   For every run, create a new directory outside this repository
@@ -70,7 +71,9 @@ export default function ModelTaskPage() {
                     pnpm stage1:prepare-workspace -- --launch-id
                     {" "}&lt;launch-id&gt; --target &lt;new-absolute-directory&gt;
                   </code>
-                  . Save the returned <code>receiptSha256</code>.
+                  . Save the returned <code>receiptSha256</code>. Its
+                  <code>createdAt</code> must be at or after launch activation
+                  and cohort opening.
                 </li>
                 <li>
                   Enforce the generated <code>isolation-policy.json</code> in
@@ -101,7 +104,8 @@ export default function ModelTaskPage() {
                 auditable attestations, not cryptographic proof of provider
                 start time or external network enforcement. Stage 2 rejects a
                 missing, changed, late, or differently authorized workspace
-                receipt.
+                receipt. Use only the package commands shown here; direct
+                execution of a frozen runtime file is not an authorized run.
               </p>
             </section>
             <section className="content-section" aria-labelledby="live-launches">
@@ -138,11 +142,12 @@ export default function ModelTaskPage() {
           </>
         ) : (
           <section className="empty-state">
-            <p className="eyebrow">0 LIVE-VERIFIED LAUNCHES</p>
+            <p className="eyebrow">0 ACTIVATION-VERIFIED HANDOFFS</p>
             <h2>Stage 1 is intentionally closed</h2>
             <p>
               No task prompt is available until Stage 0 has completed
-              independent approval and live endpoint verification.
+              independent approval, live endpoint verification, and the
+              post-activation semantic audit.
             </p>
             <a className="button-link" href={sitePath("stage0/")}>
               OPEN STAGE 0 PREPARATION

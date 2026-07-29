@@ -32,6 +32,7 @@ import {
   validateTaskPacket,
   validateWorkRecord,
 } from "../scripts/framework-lib.mjs";
+import { runActivationGatedCommand } from "../scripts/activation-gated-command.mjs";
 import { validateCandidateBundle } from "../scripts/stage-contract.mjs";
 import {
   MODEL_LAUNCH_MESSAGE,
@@ -242,6 +243,7 @@ test("all Stage 1, Stage 2, and publication schemas compile and reject unknown f
     "protocol-review.schema.json",
     "launch-release.schema.json",
     "live-verification.schema.json",
+    "activation-verification.schema.json",
   ];
   for (const name of schemaNames) {
     const schema = JSON.parse(await readFile(path.join(projectRoot, "schemas", name), "utf8"));
@@ -1015,14 +1017,80 @@ test("official entrypoints invoke only the launch-frozen execution contract", as
     "evaluation:score",
     "evaluation:aggregate",
   ];
+  const expectedRuntimes = {
+    "stage1:authorize-run": "stage1-authorize-run",
+    "stage2:integrate": "stage2-integrate",
+    "stage2:open-cohort": "stage2-open-cohort",
+    "stage2:sanitize": "stage2-sanitize",
+    "stage2:prepare-review": "stage2-prepare-review",
+    "stage2:seal-review": "stage2-seal-review",
+    "stage2:finalize-evaluation": "stage2-finalize-evaluation",
+    "stage2:publish-cohort": "stage2-publish-cohort",
+    "stage2:export-publication": "stage2-export-publication",
+    "evaluation:score": "evaluation-score",
+    "evaluation:aggregate": "evaluation-aggregate",
+  };
   for (const name of officialCommands) {
-    assert.match(
+    if (name === "stage1:prepare-workspace") {
+      assert.equal(scripts[name], "node scripts/stage1-prepare-workspace.mjs");
+      continue;
+    }
+    assert.equal(
       scripts[name],
-      /^node launches\/integrated-robotic-handling-v1\/execution-contract\/scripts\/[a-z0-9-]+\.mjs$/,
+      `node scripts/activation-gated-command.mjs --runtime ${expectedRuntimes[name]}`,
       name,
     );
-    assert.doesNotMatch(scripts[name], /-runner\.mjs$/, name);
   }
+});
+
+test("the Stage 0 CLI accepts pnpm's preserved argument separator", async () => {
+  const cli = await readFile(path.join(projectRoot, "scripts", "stage0.mjs"), "utf8");
+  assert.match(cli, /process\.argv\[2\] === "--" \? process\.argv\[3\]/);
+});
+
+test("activation-gated commands reject selectors that their frozen runtime cannot use", async () => {
+  await assert.rejects(
+    runActivationGatedCommand({
+      runtime: "stage2-sanitize",
+      forwarded: [
+        "--project-root",
+        projectRoot,
+        "--run-id",
+        "candidate-run",
+        "--launch-id",
+        "different-launch",
+      ],
+    }),
+    /--launch-id is not a valid selector for this runtime/,
+  );
+
+  await assert.rejects(
+    runActivationGatedCommand({
+      runtime: "stage2-integrate",
+      forwarded: [
+        "--cohort-id",
+        "candidate-cohort",
+        "--project-root",
+        projectRoot,
+      ],
+    }),
+    /--project-root cannot select a different activation-gate root/,
+  );
+
+  await assert.rejects(
+    runActivationGatedCommand({
+      runtime: "stage2-open-cohort",
+      forwarded: [
+        "--project-root",
+        projectRoot,
+        "--launch-id",
+        "candidate-launch",
+        "--launch-id",
+        "different-launch",
+      ],
+    }),
+    /Duplicate --launch-id is not allowed/,
+  );
 });
 
 test("official integration binds the submitted workspace receipt to pre-run authorization", async () => {
@@ -1041,6 +1109,12 @@ test("official integration binds the submitted workspace receipt to pre-run auth
   assert.match(integrateSource, /workspaceReceiptBindingIssues/);
   assert.match(frameworkSource, /candidateWorkspaceReceiptSha256/);
   assert.match(frameworkSource, /candidate-workspace-receipt-time-order/);
+  assert.match(
+    frameworkSource,
+    /candidate-workspace-receipt-before-activation/,
+  );
+  assert.match(frameworkSource, /activationVerification\?\.activatedAt/);
+  assert.match(frameworkSource, /cohort-open-before-activation/);
 });
 
 test("launch rendering uses frozen prompt bytes while Stage 1 listing remains live-only", async () => {
@@ -1052,8 +1126,10 @@ test("launch rendering uses frozen prompt bytes while Stage 1 listing remains li
   assert.doesNotMatch(launchPage, /buildLaunchPrompt/);
   assert.match(launchPage, /data-launch-digest/);
   assert.match(launchPage, /data-prompt-sha256/);
+  assert.match(launchPage, /data-activation-verification-digest/);
+  assert.match(launchPage, /data-stage1-handoff="executable"/);
   assert.match(launchPage, /Version 4 execution boundary/);
   assert.match(launchPage, /packet-lock\.json/);
-  assert.match(modelTaskPage, /releaseStatus.*live-verified/s);
+  assert.match(modelTaskPage, /handoffEligible/);
   assert.match(modelTaskPage, /private payloads remain withheld/);
 });

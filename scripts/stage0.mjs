@@ -1,7 +1,9 @@
 import { writeFile } from "node:fs/promises";
 import path from "node:path";
 import {
+  activateLive,
   approveLaunch,
+  auditLive,
   freezeLaunch,
   freezePacket,
   issueText,
@@ -28,7 +30,9 @@ function identity(name, value) {
   return value;
 }
 
-const command = process.argv[2];
+// pnpm 11 may preserve the conventional `--` script-argument separator.
+// Accept both `pnpm stage0 command` and `pnpm stage0 -- command`.
+const command = process.argv[2] === "--" ? process.argv[3] : process.argv[2];
 const rootValue = argument("--root", { required: false });
 const projectRoot = rootValue ? path.resolve(rootValue) : process.cwd();
 
@@ -161,8 +165,32 @@ switch (command) {
     console.log(`Launch ${launchId} is live-verified.`);
     break;
   }
+  case "activate-live": {
+    const launchId = identity("launch ID", argument("--launch-id"));
+    await activateLive({
+      projectRoot,
+      launchId,
+      launchUrl: argument("--launch-url"),
+      launchJsonUrl: argument("--launch-json-url"),
+      promptUrl: argument("--prompt-url"),
+    });
+    console.log(`Launch ${launchId} has a create-only post-activation verification.`);
+    break;
+  }
+  case "audit-live": {
+    const launchId = identity("launch ID", argument("--launch-id"));
+    const result = await auditLive({
+      projectRoot,
+      launchId,
+      launchUrl: argument("--launch-url"),
+      launchJsonUrl: argument("--launch-json-url"),
+      promptUrl: argument("--prompt-url"),
+    });
+    console.log(`Activation audit passed for ${launchId} (observed page ${result.observedPageSha256}).`);
+    break;
+  }
   default:
     throw new Error(
-      "Use stage0 lint, freeze-packet, verify-workspace, freeze-launch, check-packet, check-launch, review, approve, preview, release-ready, or live-verify",
+      "Use stage0 lint, freeze-packet, verify-workspace, freeze-launch, check-packet, check-launch, review, approve, preview, release-ready, live-verify, activate-live, or audit-live",
     );
 }

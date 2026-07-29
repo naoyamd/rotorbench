@@ -419,7 +419,7 @@ test("Stage 0 pages render the exact shared contracts and no task content", asyn
   }
 });
 
-test("the Stage 1 guide exposes only live-verified launch handoffs", async () => {
+test("the Stage 1 guide exposes only activation-verified launch handoffs", async () => {
   const html = await readFile(
     path.join(projectRoot, "out", "model-task", "index.html"),
     "utf8",
@@ -429,19 +429,19 @@ test("the Stage 1 guide exposes only live-verified launch handoffs", async () =>
     "utf8",
   ));
   const liveLaunches = catalog.launches.filter(
-    ({ releaseStatus }) => releaseStatus === "live-verified",
+    ({ handoffEligible }) => handoffEligible === true,
   );
   assert.match(html, /Stage 1 launcher \| Engineering Design Benchmark Framework/);
   assert.match(html, /STAGE 01/);
   assert.doesNotMatch(html, /&lt;launch-url&gt;/);
   assert.doesNotMatch(html, /runs\/&lt;candidate-id&gt;\//);
   if (liveLaunches.length === 0) {
-    assert.match(html, /0 LIVE-VERIFIED LAUNCHES/);
+    assert.match(html, /0 ACTIVATION-VERIFIED HANDOFFS/);
     assert.ok(html.includes(`href="${renderedSitePath("stage0/")}"`));
     assert.doesNotMatch(html, new RegExp(MODEL_LAUNCH_MESSAGE.slice(0, 24)));
     return;
   }
-  assert.doesNotMatch(html, /0 LIVE-VERIFIED LAUNCHES/);
+  assert.doesNotMatch(html, /0 ACTIVATION-VERIFIED HANDOFFS/);
   assert.match(html, /Stage A — prepare and authorize the run/);
   assert.match(html, /Stage B — paste one launch prompt/);
   assert.match(html, /external-run-configuration-sha256/);

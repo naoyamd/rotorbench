@@ -26,6 +26,8 @@ import {
 import { validateCandidateBundle } from "../scripts/stage-contract.mjs";
 import {
   approveLaunch,
+  activateLive,
+  auditLive,
   computeExecutionContractDigest,
   executionContractFiles,
   freezeLaunch,
@@ -576,6 +578,14 @@ test("Stage 0 v3 freezes immutable versions and gates public release", async () 
       }),
       /launch\.json bytes differ/,
     );
+    await assert.rejects(
+      () => activateLive({
+        projectRoot: root,
+        ...liveUrls,
+        fetchImpl: successfulFetch,
+      }),
+      /not already live-verified/,
+    );
     await markLiveVerified({
       projectRoot: root,
       ...liveUrls,
@@ -583,8 +593,266 @@ test("Stage 0 v3 freezes immutable versions and gates public release", async () 
       fetchImpl: successfulFetch,
     });
 
+    const postActivationPageBytes = Buffer.from(
+      `<html><body><section data-stage1-launch-id="neutral-launch" data-launch-digest="${launch.launch.launchDigest}" data-prompt-sha256="${launch.launch.promptSha256}">activated</section></body></html>`,
+    );
+    const postActivationFetch = async (url) => {
+      if (url === liveUrls.launchUrl) return response(url, postActivationPageBytes);
+      if (url === liveUrls.launchJsonUrl) return response(url, localLaunchBytes);
+      if (url === liveUrls.promptUrl) return response(url, localPromptBytes);
+      throw new Error(`Unexpected URL ${url}`);
+    };
+    const commentOnlyPageBytes = Buffer.from(
+      `<!-- <section data-stage1-launch-id="neutral-launch" data-launch-digest="${launch.launch.launchDigest}" data-prompt-sha256="${launch.launch.promptSha256}"></section> -->`,
+    );
+    await assert.rejects(
+      () => activateLive({
+        projectRoot: root,
+        ...liveUrls,
+        fetchImpl: async (url) =>
+          url === liveUrls.launchUrl
+            ? response(url, commentOnlyPageBytes)
+            : postActivationFetch(url),
+      }),
+      /exactly one data-stage1-launch-id marker/,
+    );
+    for (const [label, inertPageBytes] of [
+      ["textarea", Buffer.from(
+        `<textarea><section data-stage1-launch-id="neutral-launch" data-launch-digest="${launch.launch.launchDigest}" data-prompt-sha256="${launch.launch.promptSha256}"></section></textarea>`,
+      )],
+      ["template", Buffer.from(
+        `<template><section data-stage1-launch-id="neutral-launch" data-launch-digest="${launch.launch.launchDigest}" data-prompt-sha256="${launch.launch.promptSha256}"></section></template>`,
+      )],
+      ["scripting-enabled noscript", Buffer.from(
+        `<noscript><section data-stage1-launch-id="neutral-launch" data-launch-digest="${launch.launch.launchDigest}" data-prompt-sha256="${launch.launch.promptSha256}"></section></noscript>`,
+      )],
+      ["self-closing script remains script data", Buffer.from(
+        `<script/><section data-stage1-launch-id="neutral-launch" data-launch-digest="${launch.launch.launchDigest}" data-prompt-sha256="${launch.launch.promptSha256}"></section>`,
+      )],
+      ["script escaped-state closing tag remains script data", Buffer.from(
+        `<script><!--<script></script><section data-stage1-launch-id="neutral-launch" data-launch-digest="${launch.launch.launchDigest}" data-prompt-sha256="${launch.launch.promptSha256}"></section>`,
+      )],
+      ["select parsing context", Buffer.from(
+        `<select><section data-stage1-launch-id="neutral-launch" data-launch-digest="${launch.launch.launchDigest}" data-prompt-sha256="${launch.launch.promptSha256}"></section></select>`,
+      )],
+      ["foreign SVG namespace", Buffer.from(
+        `<svg><section data-stage1-launch-id="neutral-launch" data-launch-digest="${launch.launch.launchDigest}" data-prompt-sha256="${launch.launch.promptSha256}"></section></svg>`,
+      )],
+      ["attribute-value decoy", Buffer.from(
+        `<section data-note='data-stage1-launch-id="neutral-launch"' data-launch-digest="${launch.launch.launchDigest}" data-prompt-sha256="${launch.launch.promptSha256}"></section>`,
+      )],
+      ["prefixed attribute", Buffer.from(
+        `<section x-data-stage1-launch-id="neutral-launch" data-launch-digest="${launch.launch.launchDigest}" data-prompt-sha256="${launch.launch.promptSha256}"></section>`,
+      )],
+    ]) {
+      await assert.rejects(
+        () => activateLive({
+          projectRoot: root,
+          ...liveUrls,
+          fetchImpl: async (url) =>
+            url === liveUrls.launchUrl
+              ? response(url, inertPageBytes)
+              : postActivationFetch(url),
+        }),
+        /exactly one data-stage1-launch-id marker/,
+        label,
+      );
+    }
+    await assert.rejects(
+      () => activateLive({
+        projectRoot: root,
+        ...liveUrls,
+        fetchImpl: async (url) =>
+          url === liveUrls.promptUrl
+            ? response(url, Buffer.from("wrong"))
+            : postActivationFetch(url),
+      }),
+      /prompt\.txt bytes differ/,
+    );
+    const releaseBeforeActivation = await readFile(releasePath, "utf8");
+    const liveVerificationBeforeActivation = await readFile(
+      path.join(launch.root, "live-verification.json"),
+      "utf8",
+    );
+    const activation = await activateLive({
+      projectRoot: root,
+      ...liveUrls,
+      now: "2026-01-05T00:00:00Z",
+      fetchImpl: postActivationFetch,
+    });
+    const activationPath = path.join(
+      root,
+      "activations",
+      "neutral-launch",
+      "verification.json",
+    );
+    assert.deepEqual(
+      JSON.parse(await readFile(activationPath, "utf8")),
+      activation,
+    );
+    assert.equal(activation.observedPageSha256, sha256(postActivationPageBytes));
+    assert.equal(activation.markerProjection.launchId, launch.launch.id);
+    assert.equal(
+      activation.markerProjectionDigest,
+      manifestDigest(activation.markerProjection),
+    );
+    assert.equal(await readFile(releasePath, "utf8"), releaseBeforeActivation);
+    assert.equal(
+      await readFile(path.join(launch.root, "live-verification.json"), "utf8"),
+      liveVerificationBeforeActivation,
+    );
+    await assert.rejects(
+      () => activateLive({
+        projectRoot: root,
+        ...liveUrls,
+        fetchImpl: postActivationFetch,
+      }),
+      /create-only/,
+    );
+    const activationBytes = await readFile(activationPath);
+    const activationDigest = manifestDigest(activation);
+    const renderedPrompt = localPromptBytes.toString("utf8")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+    const finalPage = (body) => Buffer.from(
+      `<main><section data-stage1-launch-id="neutral-launch" data-launch-digest="${launch.launch.launchDigest}" data-prompt-sha256="${launch.launch.promptSha256}" data-activation-verification-digest="${activationDigest}">${body}</section></main>`,
+    );
+    const finalPageBytes = finalPage(
+      `<pre class="prompt-block" data-stage1-handoff="executable"><code>${renderedPrompt}</code></pre>`,
+    );
+    const finalFetch = async (url, page = finalPageBytes, record = activationBytes) => {
+      if (url === liveUrls.launchUrl) return response(url, page);
+      if (url === liveUrls.launchJsonUrl) return response(url, localLaunchBytes);
+      if (url === liveUrls.promptUrl) return response(url, localPromptBytes);
+      if (url === "https://example.invalid/base/framework/activations/neutral-launch/verification.json") {
+        return response(url, record);
+      }
+      throw new Error(`Unexpected URL ${url}`);
+    };
+    const changedButSemanticallyEquivalentPage = Buffer.from(
+      `<main><aside>different HTML bytes</aside><section data-stage1-launch-id="neutral-launch" data-launch-digest="${launch.launch.launchDigest}" data-prompt-sha256="${launch.launch.promptSha256}" data-activation-verification-digest="${activationDigest}"><pre class="prompt-block" data-stage1-handoff="executable"><code>${renderedPrompt}</code></pre></section></main>`,
+    );
+    const auditSnapshot = await Promise.all([
+      readFile(releasePath, "utf8"),
+      readFile(path.join(launch.root, "live-verification.json"), "utf8"),
+      readFile(activationPath, "utf8"),
+    ]);
+    const audit = await auditLive({
+      projectRoot: root,
+      ...liveUrls,
+      now: "2026-01-06T00:00:00Z",
+      fetchImpl: async (url) =>
+        finalFetch(url, changedButSemanticallyEquivalentPage),
+    });
+    assert.equal(audit.observedPageSha256, sha256(changedButSemanticallyEquivalentPage));
+    assert.notEqual(audit.observedPageSha256, activation.observedPageSha256);
+    assert.deepEqual(await Promise.all([
+      readFile(releasePath, "utf8"),
+      readFile(path.join(launch.root, "live-verification.json"), "utf8"),
+      readFile(activationPath, "utf8"),
+    ]), auditSnapshot);
+    await assert.rejects(
+      () => auditLive({
+        projectRoot: root,
+        ...liveUrls,
+        fetchImpl: async (url) =>
+          url === liveUrls.launchUrl
+            ? response(url, Buffer.from("<section></section>"))
+            : finalFetch(url),
+      }),
+      /exactly one data-stage1-launch-id marker/,
+    );
+    await assert.rejects(
+      () => auditLive({
+        projectRoot: root,
+        ...liveUrls,
+        fetchImpl: async (url) => finalFetch(url, postActivationPageBytes),
+      }),
+      /data-stage1-handoff marker/,
+    );
+    await assert.rejects(
+      () => auditLive({
+        projectRoot: root,
+        ...liveUrls,
+        fetchImpl: async (url) => finalFetch(url, finalPage(
+          `<pre class="prompt-block" data-stage1-handoff="executable"><code>wrong prompt</code></pre>`,
+        )),
+      }),
+      /rendered prompt does not exactly match prompt\.txt/,
+    );
+    await assert.rejects(
+      () => auditLive({
+        projectRoot: root,
+        ...liveUrls,
+        fetchImpl: async (url) => finalFetch(
+          url,
+          Buffer.from(
+            `<main><section data-stage1-launch-id="neutral-launch" data-launch-digest="${launch.launch.launchDigest}" data-prompt-sha256="${launch.launch.promptSha256}" data-activation-verification-digest="${"0".repeat(64)}"><pre class="prompt-block" data-stage1-handoff="executable"><code>${renderedPrompt}</code></pre></section></main>`,
+          ),
+        ),
+      }),
+      /activation verification marker does not bind/,
+    );
+    await assert.rejects(
+      () => auditLive({
+        projectRoot: root,
+        ...liveUrls,
+        fetchImpl: async (url) => finalFetch(url, finalPageBytes, Buffer.from("wrong activation")),
+      }),
+      /Remote activation verification bytes differ/,
+    );
+
+    const preActivationCohortRoot = path.join(
+      root,
+      "cohorts",
+      "pre-activation-cohort",
+    );
+    const preActivationCohort = {
+      schemaVersion: "1.0",
+      id: "pre-activation-cohort",
+      openedAt: "2026-01-04T12:00:00Z",
+      launchId: "neutral-launch",
+      fairnessFingerprint: launch.launch.fairnessFingerprint,
+      status: "open",
+      candidateIds: ["candidate-pre-activation"],
+      extensions: {},
+    };
+    await writeJson(
+      path.join(preActivationCohortRoot, "cohort.json"),
+      preActivationCohort,
+    );
+    assert.ok((await validateFramework(root)).issues.some(
+      ({ code }) => code === "cohort-open-before-activation",
+    ));
+    await writeJson(
+      path.join(preActivationCohortRoot, "cohort.json"),
+      { ...preActivationCohort, openedAt: "2026-01-06T00:00:00Z" },
+    );
+    assert.ok(!(await validateFramework(root)).issues.some(
+      ({ code }) => code === "cohort-open-before-activation"
+        || code === "cohort-launch-not-activated",
+    ));
+    await rm(preActivationCohortRoot, { recursive: true, force: true });
+
     const framework = await validateFramework(root);
     assert.deepEqual(framework.issues, []);
+    await writeJson(activationPath, {
+      ...activation,
+      liveVerificationDigest: "0".repeat(64),
+    });
+    assert.ok((await validateFramework(root)).issues.some(
+      ({ code }) => code === "activation-live-verification-binding",
+    ));
+    await writeJson(activationPath, activation);
+    await writeJson(
+      path.join(root, "activations", "orphan-activation", "verification.json"),
+      activation,
+    );
+    assert.ok((await validateFramework(root)).issues.some(
+      ({ code }) => code === "orphan-activation-verification",
+    ));
+    await rm(path.join(root, "activations", "orphan-activation"), { recursive: true });
     assert.equal(framework.launches.find(
       ({ manifest }) => manifest?.id === "neutral-launch",
     ).publicEligible, true);

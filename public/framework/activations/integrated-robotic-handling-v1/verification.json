@@ -1,0 +1,35 @@
+{
+  "schemaVersion": "1.0",
+  "algorithm": "sha256-canonical-launch-markers-v1",
+  "launchId": "integrated-robotic-handling-v1",
+  "launchDigest": "7e7d237aeabecc6097299e48463f2ecc99798c6efd671117179c5f40a3e45f07",
+  "promptSha256": "a8de972729844fdaf44d2081471f8b9b5a9ccbaf500f8e7964a2e1d46f3cf4f8",
+  "launchJsonSha256": "b8c72d50d3900e42d90c2ab42679968ee807a413c4a4405fe8993b99e6bb2a70",
+  "liveVerificationDigest": "034c3d2db82a1efa64c7c9af36ae7d7687d6dec044c1f6d5ffaa9bc6dac76271",
+  "markerProjection": {
+    "schemaVersion": "1.0",
+    "algorithm": "sha256-canonical-launch-markers-v1",
+    "launchId": "integrated-robotic-handling-v1",
+    "launchDigest": "7e7d237aeabecc6097299e48463f2ecc99798c6efd671117179c5f40a3e45f07",
+    "promptSha256": "a8de972729844fdaf44d2081471f8b9b5a9ccbaf500f8e7964a2e1d46f3cf4f8",
+    "launchJsonSha256": "b8c72d50d3900e42d90c2ab42679968ee807a413c4a4405fe8993b99e6bb2a70"
+  },
+  "markerProjectionDigest": "664db70315ea1fc8157b5720872bc5a886a23e1e57ff794c8c6345e11003e3e9",
+  "observedPageSha256": "a25fd1e65ef7fa6b8b00303a561d8de4f5a9781813896bb422218384f4777ccc",
+  "canonicalBaseUrl": "https://naoyamd.github.io/rotorbench",
+  "canonicalOrigin": "https://naoyamd.github.io",
+  "basePath": "/rotorbench",
+  "launchUrl": "https://naoyamd.github.io/rotorbench/launch/integrated-robotic-handling-v1/",
+  "launchJsonUrl": "https://naoyamd.github.io/rotorbench/framework/launches/integrated-robotic-handling-v1/launch.json",
+  "promptUrl": "https://naoyamd.github.io/rotorbench/framework/launches/integrated-robotic-handling-v1/prompt.txt",
+  "checks": {
+    "redirectFree": true,
+    "sameOrigin": true,
+    "basePathMatched": true,
+    "launchJsonExact": true,
+    "promptExact": true,
+    "pageMarkerMatched": true
+  },
+  "status": "activated",
+  "activatedAt": "2026-07-29T17:43:42.916Z"
+}

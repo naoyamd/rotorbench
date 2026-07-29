@@ -43,6 +43,7 @@ const schemaNames = [
   "protocol-review.schema.json",
   "launch-release.schema.json",
   "live-verification.schema.json",
+  "activation-verification.schema.json",
   "evaluation-record.schema.json",
   "assessment-evidence.schema.json",
   "sanitization-report.schema.json",
@@ -85,6 +86,7 @@ const schemaValidators = {
   protocolReview: ajv.getSchema("https://rotorbench.example/schemas/protocol-review.schema.json"),
   launchRelease: ajv.getSchema("https://rotorbench.example/schemas/launch-release.schema.json"),
   liveVerification: ajv.getSchema("https://rotorbench.example/schemas/live-verification.schema.json"),
+  activationVerification: ajv.getSchema("https://rotorbench.example/schemas/activation-verification.schema.json"),
   evaluationRecord: ajv.getSchema("https://rotorbench.example/schemas/evaluation-record.schema.json"),
   assessmentEvidence: ajv.getSchema("https://rotorbench.example/schemas/assessment-evidence.schema.json"),
   sanitizationReport: ajv.getSchema("https://rotorbench.example/schemas/sanitization-report.schema.json"),
@@ -599,6 +601,23 @@ async function validateRunAuthorizationStorage(run, cohort, launch) {
               `${receiptRelativePath}.createdAt`,
             );
           }
+          if (
+            ["3.0", "4.0"].includes(launch?.manifest?.protocolVersion)
+            && (
+              launch?.handoffEligible !== true
+              || Date.parse(receipt.createdAt)
+                < Date.parse(launch?.activationVerification?.activatedAt ?? "")
+              || Date.parse(receipt.createdAt)
+                < Date.parse(cohort?.manifest?.openedAt ?? "")
+            )
+          ) {
+            addIssue(
+              issues,
+              "candidate-workspace-receipt-before-activation",
+              "current-protocol candidate workspace must be created after launch activation and cohort opening",
+              `${receiptRelativePath}.createdAt`,
+            );
+          }
         } catch {
           addIssue(
             issues,
@@ -745,6 +764,10 @@ export function validateLaunchRelease(value) {
 
 export function validateLiveVerification(value) {
   return schemaIssues(schemaValidators.liveVerification, value);
+}
+
+export function validateActivationVerification(value) {
+  return schemaIssues(schemaValidators.activationVerification, value);
 }
 
 export function validateEvaluationRecord(value) {
@@ -1634,10 +1657,12 @@ export async function loadFramework(projectRoot) {
   const benchmarksRoot = path.join(projectRoot, "benchmarks");
   const taskPacketsRoot = path.join(projectRoot, "task-packets");
   const launchesRoot = path.join(projectRoot, "launches");
+  const activationsRoot = path.join(projectRoot, "activations");
   const cohortsRoot = path.join(projectRoot, "cohorts");
   const runsRoot = path.join(projectRoot, "runs");
   const benchmarkDirectories = await listContentDirectories(benchmarksRoot);
   const launchDirectories = await listContentDirectories(launchesRoot);
+  const activationDirectories = await listContentDirectories(activationsRoot);
   const cohortDirectories = await listContentDirectories(cohortsRoot);
   const runDirectories = await listContentDirectories(runsRoot);
   return {
@@ -1659,6 +1684,11 @@ export async function loadFramework(projectRoot) {
         entry.loadIssues.push(...release.issues, ...verification.issues);
         return entry;
       }),
+    ),
+    activations: await Promise.all(
+      activationDirectories.map((directory) =>
+        loadManifest(activationsRoot, directory, "verification.json"),
+      ),
     ),
     cohorts: await Promise.all(
       cohortDirectories.map((directory) =>
@@ -1778,6 +1808,7 @@ export async function validateFramework(projectRoot) {
     benchmarks,
     taskPackets,
     launches,
+    activations,
     cohorts,
     runs,
   } = await loadFramework(projectRoot);
@@ -1795,6 +1826,7 @@ export async function validateFramework(projectRoot) {
   const benchmarksById = new Map();
   const packetsById = new Map();
   const cohortsById = new Map();
+  const activationsByDirectory = new Map();
 
   for (const benchmark of benchmarks) {
     const local = [...benchmark.loadIssues];
@@ -1879,6 +1911,23 @@ export async function validateFramework(projectRoot) {
         ...entry,
       })));
     }
+  }
+
+  for (const activation of activations) {
+    const local = [...activation.loadIssues];
+    if (activation.manifest) {
+      local.push(...validateActivationVerification(activation.manifest));
+      if (activation.manifest.launchId !== activation.directory) {
+        addIssue(
+          local,
+          "activation-directory-id",
+          "Activation directory and launchId must match",
+          "launchId",
+        );
+      }
+    }
+    activation.validationIssues = local;
+    activationsByDirectory.set(activation.directory, activation);
   }
 
   for (const launch of launches) {
@@ -1973,6 +2022,8 @@ export async function validateFramework(projectRoot) {
       }
     }
     const isCurrent = ["3.0", "4.0"].includes(launch.manifest?.protocolVersion);
+    let activationVerified = false;
+    let activationPending = false;
     if (isCurrent) {
       if (!launch.release) {
         addIssue(local, "missing-release", "Stage 1 v3 launch requires release.json", "release.json");
@@ -2022,16 +2073,63 @@ export async function validateFramework(projectRoot) {
               addIssue(local, "live-verification-digest-mismatch", "live verification digest differs from release");
             }
           }
+          const activation = activationsByDirectory.get(launch.manifest.id);
+          launch.activationVerification = activation?.manifest ?? null;
+          if (!activation?.manifest) {
+            activationPending = true;
+            addIssue(
+              local,
+              "missing-activation-verification",
+              "Stage B requires activations/<launch-id>/verification.json",
+              "activation-verification.json",
+            );
+          } else {
+            local.push(...activation.validationIssues);
+            const { validateActivationVerificationBindings } =
+              await import("./stage0-lib.mjs");
+            const activationIssues = await validateActivationVerificationBindings(
+              launch.root,
+              launch.manifest,
+              launch.release,
+              activation.manifest,
+            );
+            local.push(...activationIssues);
+            activationVerified = activation.validationIssues.length === 0
+              && activationIssues.length === 0;
+          }
         }
       }
     }
+    launch.activationVerified = activationVerified;
+    launch.handoffEligible = isCurrent
+      ? launch.release?.status === "live-verified" && activationVerified
+      : launch.v2Grandfathered === true;
     launch.publicEligible = isCurrent
       ? ["release-ready", "live-verified"].includes(launch.release?.status)
       : launch.v2Grandfathered === true;
     launch.stage0Issues = local;
-    launch.validationIssues = isCurrent && !launch.publicEligible ? [] : local;
+    launch.validationIssues = activationPending
+      ? local.filter(({ code }) => code !== "missing-activation-verification")
+      : (isCurrent && !launch.publicEligible ? [] : local);
     if (!isCurrent || launch.publicEligible) {
-      issues.push(...local.map((entry) => ({ scope: `launches/${launch.directory}`, ...entry })));
+      issues.push(...launch.validationIssues.map((entry) => ({
+        scope: `launches/${launch.directory}`,
+        ...entry,
+      })));
+    }
+  }
+
+  for (const activation of activations) {
+    if (!launches.some((launch) => launch.manifest?.id === activation.directory)) {
+      const local = [{
+        code: "orphan-activation-verification",
+        message: "Activation verification does not correspond to a launch directory",
+      }];
+      activation.validationIssues = [...activation.validationIssues, ...local];
+      issues.push(...[...activation.validationIssues].map((entry) => ({
+        scope: `activations/${activation.directory}`,
+        ...entry,
+      })));
     }
   }
 
@@ -2065,6 +2163,30 @@ export async function validateFramework(projectRoot) {
             "cohort-launch-not-live-verified",
             "Current-protocol cohorts require a live-verified launch",
             "launchId",
+          );
+        }
+        if (
+          ["3.0", "4.0"].includes(launch.manifest.protocolVersion)
+          && launch.handoffEligible !== true
+        ) {
+          addIssue(
+            local,
+            "cohort-launch-not-activated",
+            "Current-protocol cohorts require an activation-verified Stage B launch",
+            "launchId",
+          );
+        }
+        if (
+          ["3.0", "4.0"].includes(launch.manifest.protocolVersion)
+          && launch.handoffEligible === true
+          && Date.parse(cohort.manifest.openedAt)
+            < Date.parse(launch.activationVerification?.activatedAt ?? "")
+        ) {
+          addIssue(
+            local,
+            "cohort-open-before-activation",
+            "Current-protocol cohort openedAt must be at or after launch activation",
+            "openedAt",
           );
         }
         if (

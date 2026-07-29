@@ -2,6 +2,7 @@ import { cp, mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import {
   ensureInside,
+  manifestDigest,
   pathExists,
   validateFramework,
   validateReport,
@@ -20,6 +21,7 @@ const workRoot = path.join(projectRoot, ".framework-staging");
 const stagedReportRoot = path.join(workRoot, "reports");
 const stagedMeshRoot = path.join(workRoot, "meshes");
 const contractsRoot = path.join(outputRoot, "contracts");
+const activationsOutputRoot = path.join(outputRoot, "activations");
 const launchFilesRoot = path.join(outputRoot, "launches");
 const evaluationRoot = path.join(outputRoot, "evaluation");
 const publicEvaluationRoot = path.join(outputRoot, "evaluations");
@@ -53,6 +55,8 @@ await rm(meshRoot, { recursive: true, force: true });
 await mkdir(meshRoot, { recursive: true });
 await rm(contractsRoot, { recursive: true, force: true });
 await mkdir(contractsRoot, { recursive: true });
+await rm(activationsOutputRoot, { recursive: true, force: true });
+await mkdir(activationsOutputRoot, { recursive: true });
 await rm(launchFilesRoot, { recursive: true, force: true });
 await mkdir(launchFilesRoot, { recursive: true });
 await rm(evaluationRoot, { recursive: true, force: true });
@@ -132,13 +136,21 @@ for (const launch of publicLaunches) {
     path.join(launch.root, "launch.json"),
     path.join(launchDestination, "launch.json"),
   );
+  if (launch.activationVerified === true) {
+    await mkdir(path.join(activationsOutputRoot, launch.manifest.id), { recursive: true });
+    await cp(
+      path.join(projectRoot, "activations", launch.manifest.id, "verification.json"),
+      path.join(activationsOutputRoot, launch.manifest.id, "verification.json"),
+      { recursive: false, errorOnExist: true, force: false },
+    );
+  }
   if (currentProtocol(launch.manifest.protocolVersion)
     && await pathExists(path.join(launch.root, "prompt.txt"))) {
     await cp(
       path.join(launch.root, "prompt.txt"),
       path.join(launchDestination, "prompt.txt"),
     );
-    if (launch.release?.status === "live-verified") {
+    if (launch.handoffEligible === true) {
       const contractDigest = launch.manifest.executionContractDigest;
       const snapshot = await validateExecutionContractSnapshot(
         path.join(launch.root, "execution-contract"),
@@ -163,13 +175,18 @@ for (const launch of publicLaunches) {
   catalogLaunches.push({
     ...launch.manifest,
     releaseStatus: launch.release?.status ?? "release-ready",
+    activationVerified: launch.activationVerified === true,
+    handoffEligible: launch.handoffEligible === true,
+    ...(launch.handoffEligible === true && launch.activationVerification ? {
+      activationVerificationDigest: manifestDigest(launch.activationVerification),
+    } : {}),
     ...(currentProtocol(launch.manifest.protocolVersion)
-      && launch.release?.status === "live-verified" ? {
+      && launch.handoffEligible === true ? {
       promptText: await readFile(path.join(launch.root, "prompt.txt"), "utf8"),
     } : {}),
     manifestDownload: `framework/launches/${launch.manifest.id}/launch.json`,
     ...(currentProtocol(launch.manifest.protocolVersion)
-      && launch.release?.status === "live-verified" ? {
+      && launch.handoffEligible === true ? {
       promptDownload: `framework/launches/${launch.manifest.id}/prompt.txt`,
       executionContractRoot:
         `framework/contracts/${launch.manifest.executionContractDigest}`,
@@ -475,7 +492,7 @@ await writeFile(
         taskPackets.filter((entry) => entry.stage0Issues?.length > 0).length
         + launches.filter((entry) => entry.stage0Issues?.length > 0).length,
       liveVerifiedLaunches: launches.filter(
-        (entry) => entry.release?.status === "live-verified" && entry.validationIssues.length === 0,
+        (entry) => entry.handoffEligible === true && entry.validationIssues.length === 0,
       ).length,
     },
   }, null, 2)}\n`,
