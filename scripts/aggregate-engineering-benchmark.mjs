@@ -32,6 +32,15 @@ function assertSame(records, selector, label) {
   return [...values][0];
 }
 
+function nonEvaluationCause(dimension) {
+  // `failureCauses` is a published aggregate field name from v1. Newer
+  // evaluation records distinguish non-evaluation from a design failure, so
+  // prefer that name while retaining old-record compatibility.
+  return Object.hasOwn(dimension, "nonEvaluationCause")
+    ? dimension.nonEvaluationCause
+    : dimension.failureCause;
+}
+
 export function aggregateEngineeringEvaluations(records) {
   if (!Array.isArray(records) || records.length === 0) {
     throw new Error("At least one evaluation record is required");
@@ -105,12 +114,15 @@ export function aggregateEngineeringEvaluations(records) {
       observedInterval: scores.length > 0
         ? [Math.min(...scores), Math.max(...scores)]
         : null,
+      // Kept as `failureCauses` for the existing cohort aggregate schema. For
+      // v1.10 inputs its counts are non-evaluation causes; v1 failureCause is
+      // used only when the new field is absent.
       failureCauses: Object.fromEntries(
-        [...new Set(entries.map(({ failureCause }) => failureCause).filter(Boolean))]
+        [...new Set(entries.map(nonEvaluationCause).filter(Boolean))]
           .sort()
           .map((cause) => [
             cause,
-            entries.filter(({ failureCause }) => failureCause === cause).length,
+            entries.filter((entry) => nonEvaluationCause(entry) === cause).length,
           ]),
       ),
     };

@@ -64,7 +64,14 @@ function noForbiddenContent(value, label, { allowModelDisclosure = false } = {})
       for (const [key, child] of Object.entries(node)) {
         const isAllowedDisclosureKey = allowModelDisclosure
           && (key === "model" || key === "provider" || key === "name" || key === "version" || key === "reasoningSetting" || key === "policy");
-        if (!isAllowedDisclosureKey && PROHIBITED_KEY.test(key)) {
+        // v1.10 publishes this aggregate evaluator result, not an individual
+        // reviewer rating. Keep the broad rating-family rejection for every
+        // other key (including `rating` and `ratings`), and only permit the
+        // schema-defined field at its exact public dimension location.
+        const isAllowedPublicEvaluationKey = key === "ratingStatus"
+          && /^dimensions\[\d+\]$/.test(pathLabel)
+          && (child === "scored" || child === "not-evaluable");
+        if (!isAllowedDisclosureKey && !isAllowedPublicEvaluationKey && PROHIBITED_KEY.test(key)) {
           throw new Error(`${label} contains prohibited field ${pathLabel ? `${pathLabel}.` : ""}${key}`);
         }
         walk(child, pathLabel ? `${pathLabel}.${key}` : key);

@@ -93,6 +93,7 @@ const schemaValidators = {
   reviewPackage: ajv.getSchema("https://rotorbench.example/schemas/review-package.schema.json"),
   reviewSubmission: ajv.getSchema("https://rotorbench.example/schemas/review-submission.schema.json"),
   reviewRecord: ajv.getSchema("https://rotorbench.example/schemas/review-record.schema.json"),
+  checkpointReceiptRecord: ajv.getSchema("https://rotorbench.example/schemas/stage-contract-v4.schema.json#/$defs/checkpointReceiptRecord"),
   publicRunMetadata: ajv.getSchema("https://rotorbench.example/schemas/public-run-metadata.schema.json"),
   publicValidationSummary: ajv.getSchema("https://rotorbench.example/schemas/public-validation-summary.schema.json"),
   publicEvaluationSummary: ajv.getSchema("https://rotorbench.example/schemas/public-evaluation-summary.schema.json"),
@@ -321,6 +322,10 @@ export function validateWorkRecord(manifest) {
 
 export function validateSubmission(manifest) {
   return schemaIssues(schemaValidators.submission, manifest);
+}
+
+export function validateCheckpointReceiptRecord(manifest) {
+  return schemaIssues(schemaValidators.checkpointReceiptRecord, manifest);
 }
 
 export function validateProcessTrace(
@@ -651,10 +656,284 @@ async function validateRunAuthorizationStorage(run, cohort, launch) {
   return issues;
 }
 
-export function validateRequiredOutputBindings(packet, artifacts = []) {
+export function deriveV4CheckpointAttainment(packet, submission) {
+  if (
+    packet?.schemaVersion !== "4.0"
+    || submission?.protocolVersion !== "4.0"
+  ) {
+    return {
+      status: "not-applicable",
+      issues: [],
+      attemptedCheckpointIds: [],
+      completedCheckpointIds: [],
+      highestVerifiedCheckpointId: null,
+      baselineCheckpointIds: [],
+      baselineComplete: false,
+      dueOutputIds: [],
+    };
+  }
+
+  const issues = [];
+  const checkpoints = Array.isArray(packet?.checkpoints)
+    ? packet.checkpoints
+    : [];
+  const checkpointById = new Map(
+    checkpoints.map((checkpoint) => [checkpoint.id, checkpoint]),
+  );
+  const orderedCheckpoints = [...checkpoints].sort(
+    (left, right) =>
+      left.sequence - right.sequence || left.id.localeCompare(right.id),
+  );
+  const attemptedList =
+    submission?.partialAttainment?.attemptedCheckpointIds ?? [];
+  const completedList =
+    submission?.partialAttainment?.completedCheckpointIds ?? [];
+  const receipts = submission?.checkpointReceipts ?? [];
+  const attempted = new Set(attemptedList);
+  const completed = new Set(completedList);
+  const receiptCheckpointIds = receipts.map(({ checkpointId }) => checkpointId);
+  const receiptCheckpoints = new Set(receiptCheckpointIds);
+
+  for (const checkpointId of attempted) {
+    if (!checkpointById.has(checkpointId)) {
+      issues.push({
+        code: "unknown-attempted-checkpoint",
+        message: `attempted checkpoint is not declared by the packet: ${checkpointId}`,
+        path: "partialAttainment.attemptedCheckpointIds",
+      });
+    }
+  }
+  for (const checkpointId of completed) {
+    if (!checkpointById.has(checkpointId)) {
+      issues.push({
+        code: "unknown-completed-checkpoint",
+        message: `completed checkpoint is not declared by the packet: ${checkpointId}`,
+        path: "partialAttainment.completedCheckpointIds",
+      });
+    }
+    if (!attempted.has(checkpointId)) {
+      issues.push({
+        code: "completed-checkpoint-not-attempted",
+        message: `completed checkpoint is not listed as attempted: ${checkpointId}`,
+        path: "partialAttainment.completedCheckpointIds",
+      });
+    }
+  }
+  for (const checkpointId of receiptCheckpoints) {
+    if (!checkpointById.has(checkpointId)) {
+      issues.push({
+        code: "unknown-receipt-checkpoint",
+        message: `receipt checkpoint is not declared by the packet: ${checkpointId}`,
+        path: "checkpointReceipts",
+      });
+    }
+  }
+  for (const checkpointId of completed) {
+    if (!receiptCheckpoints.has(checkpointId)) {
+      issues.push({
+        code: "completed-checkpoint-without-receipt",
+        message: `completed checkpoint has no receipt: ${checkpointId}`,
+        path: "partialAttainment.completedCheckpointIds",
+      });
+    }
+  }
+  for (const checkpointId of receiptCheckpoints) {
+    if (!completed.has(checkpointId)) {
+      issues.push({
+        code: "receipt-checkpoint-not-completed",
+        message: `receipt checkpoint is not listed as completed: ${checkpointId}`,
+        path: "checkpointReceipts",
+      });
+    }
+  }
+
+  if (
+    receipts[0]?.checkpointId !== "CKPT-000"
+    || receipts[0]?.sequence !== 0
+  ) {
+    issues.push({
+      code: "initial-checkpoint-not-first",
+      message: "the first append-only receipt must be sequence 0 for CKPT-000",
+      path: "checkpointReceipts.0",
+    });
+  }
+  let previousPacketSequence = Number.NEGATIVE_INFINITY;
+  for (const [index, receipt] of receipts.entries()) {
+    if (receipt.sequence !== index) {
+      issues.push({
+        code: "non-contiguous-receipt-sequence",
+        message: `receipt ${receipt.id ?? index} must use append-only sequence ${index}`,
+        path: `checkpointReceipts.${index}.sequence`,
+      });
+    }
+    const checkpoint = checkpointById.get(receipt.checkpointId);
+    if (
+      checkpoint
+      && (
+        !Number.isInteger(checkpoint.sequence)
+        || checkpoint.sequence <= previousPacketSequence
+      )
+    ) {
+      issues.push({
+        code: "receipt-checkpoint-order",
+        message:
+          `receipt checkpoint ${receipt.checkpointId} does not advance packet checkpoint order`,
+        path: `checkpointReceipts.${index}.checkpointId`,
+      });
+    }
+    if (checkpoint) previousPacketSequence = checkpoint.sequence;
+  }
+
+  for (const checkpointId of attempted) {
+    const checkpoint = checkpointById.get(checkpointId);
+    if (!checkpoint) continue;
+    for (const prerequisite of checkpoint.requiresPriorCheckpointIds ?? []) {
+      if (!completed.has(prerequisite)) {
+        issues.push({
+          code: "attempted-checkpoint-prerequisite-missing",
+          message:
+            `attempted checkpoint ${checkpointId} requires completed checkpoint ${prerequisite}`,
+          path: "partialAttainment.attemptedCheckpointIds",
+        });
+      }
+    }
+  }
+  for (const checkpointId of completed) {
+    const checkpoint = checkpointById.get(checkpointId);
+    if (!checkpoint) continue;
+    for (const prerequisite of checkpoint.requiresPriorCheckpointIds ?? []) {
+      if (!completed.has(prerequisite)) {
+        issues.push({
+          code: "completed-checkpoint-prerequisite-missing",
+          message:
+            `completed checkpoint ${checkpointId} requires completed checkpoint ${prerequisite}`,
+          path: "partialAttainment.completedCheckpointIds",
+        });
+      }
+    }
+  }
+
+  const recognizedCompleted = orderedCheckpoints
+    .filter(({ id }) => completed.has(id));
+  const derivedHighest = recognizedCompleted.at(-1)?.id ?? null;
+  const declaredHighest =
+    submission?.partialAttainment?.highestVerifiedCheckpointId ?? null;
+  if (declaredHighest !== derivedHighest) {
+    issues.push({
+      code: "highest-checkpoint-not-maximal-completed",
+      message:
+        `highestVerifiedCheckpointId must equal maximal completed checkpoint ${derivedHighest ?? "none"}`,
+      path: "partialAttainment.highestVerifiedCheckpointId",
+    });
+  }
+
+  const baselineCheckpointIds = orderedCheckpoints
+    .filter(({ requiredForBaseline }) => requiredForBaseline !== false)
+    .map(({ id }) => id);
+  const baselineComplete =
+    baselineCheckpointIds.length > 0
+    && baselineCheckpointIds.every((checkpointId) => completed.has(checkpointId));
+  if (submission?.status === "complete" && !baselineComplete) {
+    issues.push({
+      code: "complete-submission-baseline-incomplete",
+      message: "complete submission must attain every baseline checkpoint",
+      path: "status",
+    });
+  }
+  if (submission?.status === "partial" && baselineComplete) {
+    issues.push({
+      code: "partial-submission-baseline-complete",
+      message:
+        "a submission that attained every baseline checkpoint must use complete status",
+      path: "status",
+    });
+  }
+  if (
+    submission?.status === "complete"
+    && submission?.partialAttainment?.stoppedReason !== "completed"
+  ) {
+    issues.push({
+      code: "complete-submission-stop-reason",
+      message: "complete submission must record stoppedReason completed",
+      path: "partialAttainment.stoppedReason",
+    });
+  }
+  if (
+    submission?.status === "partial"
+    && submission?.partialAttainment?.stoppedReason === "completed"
+  ) {
+    issues.push({
+      code: "partial-submission-stop-reason",
+      message: "partial submission cannot record stoppedReason completed",
+      path: "partialAttainment.stoppedReason",
+    });
+  }
+
+  const dueOutputIds = new Set();
+  for (const checkpoint of recognizedCompleted) {
+    for (const outputId of checkpoint.requiredOutputRefs ?? []) {
+      dueOutputIds.add(outputId);
+    }
+  }
+  return {
+    status: issues.length === 0 ? "valid" : "invalid",
+    issues,
+    attemptedCheckpointIds: orderedCheckpoints
+      .filter(({ id }) => attempted.has(id))
+      .map(({ id }) => id),
+    completedCheckpointIds: recognizedCompleted.map(({ id }) => id),
+    highestVerifiedCheckpointId: derivedHighest,
+    baselineCheckpointIds,
+    baselineComplete,
+    dueOutputIds: [...dueOutputIds].sort(),
+  };
+}
+
+function requiredOutputScope(packet, submission) {
+  const allOutputIds = (packet?.requiredOutputs ?? [])
+    .map((output) => typeof output === "string" ? null : output.id)
+    .filter(Boolean);
+  if (
+    packet?.schemaVersion !== "4.0"
+    || submission?.protocolVersion !== "4.0"
+    || submission?.status !== "partial"
+  ) {
+    const attainment = deriveV4CheckpointAttainment(packet, submission);
+    return {
+      outputIds: allOutputIds,
+      issues: attainment.issues,
+      attainment,
+    };
+  }
+
+  const attainment = deriveV4CheckpointAttainment(packet, submission);
+  return {
+    outputIds: attainment.dueOutputIds,
+    issues: attainment.issues,
+    attainment,
+  };
+}
+
+export function validateRequiredOutputBindings(
+  packet,
+  artifacts = [],
+  { requiredOutputIds = null } = {},
+) {
   const issues = [];
   if (!['3.0', '4.0'].includes(packet?.schemaVersion)) return issues;
   const outputs = new Map((packet.requiredOutputs ?? []).map((output) => [output.id, output]));
+  const required = requiredOutputIds === null
+    ? new Set(outputs.keys())
+    : new Set(requiredOutputIds);
+  for (const outputId of required) {
+    if (!outputs.has(outputId)) {
+      issues.push({
+        code: "unknown-required-output-scope",
+        message: `required output scope contains unknown output ${outputId}`,
+        path: "partialAttainment.highestVerifiedCheckpointId",
+      });
+    }
+  }
   const bindings = new Map();
   for (const [artifactIndex, artifact] of (artifacts ?? []).entries()) {
     const refs = Array.isArray(artifact?.requiredOutputRefs)
@@ -698,6 +977,7 @@ export function validateRequiredOutputBindings(packet, artifacts = []) {
     }
   }
   for (const [outputId] of outputs) {
+    if (!required.has(outputId)) continue;
     const bound = bindings.get(outputId) ?? [];
     if (bound.length === 0) {
       issues.push({
@@ -728,6 +1008,41 @@ export function validateRequiredOutputBindings(packet, artifacts = []) {
     }
   }
   return issues;
+}
+
+export function validateSubmissionRequiredOutputBindings(packet, submission) {
+  const scope = requiredOutputScope(packet, submission);
+  const postAttainmentIssues = [];
+  if (
+    packet?.schemaVersion === "4.0"
+    && submission?.protocolVersion === "4.0"
+    && submission?.status === "partial"
+  ) {
+    const dueOutputIds = new Set(scope.outputIds);
+    for (const [artifactIndex, artifact] of (
+      submission?.artifacts ?? []
+    ).entries()) {
+      for (const outputId of artifact?.requiredOutputRefs ?? []) {
+        if (!dueOutputIds.has(outputId)) {
+          postAttainmentIssues.push({
+            code: "post-attainment-output-binding",
+            message:
+              `partial submission artifact ${artifact?.id ?? artifactIndex} binds output ${outputId} before its checkpoint is attained`,
+            path: `artifacts.${artifactIndex}.requiredOutputRefs`,
+          });
+        }
+      }
+    }
+  }
+  return [
+    ...scope.issues,
+    ...postAttainmentIssues,
+    ...validateRequiredOutputBindings(
+      packet,
+      submission?.artifacts ?? [],
+      { requiredOutputIds: scope.outputIds },
+    ),
+  ];
 }
 
 export function validateReport(report) {
@@ -2438,9 +2753,15 @@ export async function validateFramework(projectRoot) {
         if (packet.validationIssues.length > 0) {
           addIssue(local, "invalid-task-packet", "run references an invalid task packet", "benchmarkId");
         }
-        local.push(...validateRequiredOutputBindings(
+        local.push(...validateSubmissionRequiredOutputBindings(
           packet.manifest,
-          run.manifest.artifacts,
+          {
+            protocolVersion: run.manifest.extensions?.protocolVersion,
+            status: run.manifest.extensions?.submissionStatus,
+            partialAttainment: run.manifest.partialAttainment,
+            checkpointReceipts: run.manifest.checkpointReceipts,
+            artifacts: run.manifest.artifacts,
+          },
         ));
         const availableRoles = new Set(
           (Array.isArray(run.manifest.artifacts) ? run.manifest.artifacts : [])

@@ -396,6 +396,11 @@ async function validateOutputContractArtifactAssignments(sourceRoot, task) {
 
   const artefacts = contract?.artefacts;
   const candidateCheckpoints = contract?.candidateCheckpoints;
+  const snapshotReceiptContract = (
+    task?.schemaVersion === "4.0"
+    && contract?.snapshotHandoffRule
+    && typeof contract.snapshotHandoffRule === "object"
+  );
   if (!Array.isArray(artefacts)) {
     addIssue(
       issues,
@@ -474,6 +479,21 @@ async function validateOutputContractArtifactAssignments(sourceRoot, task) {
       );
       continue;
     }
+    if (
+      snapshotReceiptContract
+      && (
+      !Array.isArray(candidateCheckpoint.requiresPriorCheckpointIds)
+      || JSON.stringify([...candidateCheckpoint.requiresPriorCheckpointIds].sort())
+        !== JSON.stringify([...(packetCheckpoint.requiresPriorCheckpointIds ?? [])].sort())
+      )
+    ) {
+      addIssue(
+        issues,
+        "output-contract-checkpoint-prerequisites-mismatch",
+        `${checkpointId} requiresPriorCheckpointIds must exactly match the packet checkpoint`,
+        declaration.path,
+      );
+    }
     for (const artefactPath of candidateCheckpoint.requiredArtefacts) {
       const artefact = artefactsByPath.get(artefactPath);
       if (!artefact) {
@@ -506,6 +526,38 @@ async function validateOutputContractArtifactAssignments(sourceRoot, task) {
         issues,
         "unassigned-output-contract-artefact",
         `${artefact.id} (${artefact.path}) must be assigned to at least one valid packet checkpoint before freeze`,
+        declaration.path,
+      );
+    }
+  }
+  const conditional = contract.conditionalChangeResponse;
+  if (snapshotReceiptContract && conditional) {
+    const event = (task.changeEvents ?? []).find(({ id }) => id === conditional.changeEventId);
+    if (
+      typeof conditional.changeEventId !== "string"
+      || !event
+      || event.responseCheckpointId !== conditional.triggerCheckpoint
+    ) {
+      addIssue(
+        issues,
+        "output-contract-change-event-mismatch",
+        "conditionalChangeResponse must bind the exact packet change event and response checkpoint",
+        declaration.path,
+      );
+    }
+    const baselineCheckpoint = candidateCheckpoints.find(({ id }) => id === "CKPT-040");
+    const baselinePaths = [...artefactsByPath.keys()]
+      .filter((artefactPath) => artefactPath !== conditional.impactArtifact)
+      .sort();
+    if (
+      !baselineCheckpoint
+      || JSON.stringify([...(baselineCheckpoint.requiredArtefacts ?? [])].sort())
+        !== JSON.stringify(baselinePaths)
+    ) {
+      addIssue(
+        issues,
+        "output-contract-final-baseline-incomplete",
+        "CKPT-040 requiredArtefacts must exactly contain every baseline contract artefact except the conditional change-impact artefact",
         declaration.path,
       );
     }
@@ -982,6 +1034,7 @@ export const executionContractFiles = [
   "schemas/candidate-workspace-isolation-policy.schema.json",
   "schemas/candidate-workspace-receipt.schema.json",
   "evaluation/integrated-robotic-handling-v1/assessment.schema.json",
+  "evaluation/integrated-robotic-handling-v1.10/assessment.schema.json",
   "scripts/artifact-contract.mjs",
   "scripts/evaluate-engineering-submission.mjs",
   "scripts/framework-lib.mjs",
@@ -997,6 +1050,8 @@ export const executionContractFiles = [
   "scripts/stage2-integrate.mjs",
   "scripts/stage2-sanitize.mjs",
   "scripts/stage2-review-package.mjs",
+  "scripts/review-evidence-lib.mjs",
+  "scripts/review-evidence-step-worker.mjs",
   "scripts/stage2-seal-review.mjs",
   "scripts/stage2-finalize-evaluation.mjs",
   "scripts/stage2-publish-cohort.mjs",
@@ -1086,7 +1141,12 @@ async function frozenRuntimePackageRecords(projectRoot) {
     const packageRoot = path.dirname(manifestPath);
     const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
     seen.add(packageName);
-    for (const packageFile of await listExactRegularFiles(packageRoot)) {
+    const packageFiles = (await listExactRegularFiles(packageRoot)).filter((packageFile) => (
+      packageName !== "occt-import-js"
+      || packageFile === "package.json"
+      || packageFile.startsWith("dist/")
+    ));
+    for (const packageFile of packageFiles) {
       // Dotfiles such as .npmignore and test fixtures cannot participate in
       // Node resolution and are intentionally excluded from the safe runtime
       // module tree.
@@ -1103,6 +1163,7 @@ async function frozenRuntimePackageRecords(projectRoot) {
   };
   await collect("ajv", rootRequire);
   await collect("ajv-formats", rootRequire);
+  await collect("occt-import-js", rootRequire);
   return records;
 }
 

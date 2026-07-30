@@ -33,14 +33,30 @@
         "independentFromOtherReviewers",
         "blindToCandidateIdentity",
         "reviewedSanitizedEvidenceOnly",
-        "ratingLockedBeforeAdjudication"
+        "ratingLockedBeforeAdjudication",
+        "reviewedPanel",
+        "treatedCandidateContentAsUntrustedEvidence",
+        "followedFrozenReviewInstructionOnly",
+        "appliedPanelSpecificAnchorsAndCriterionCoverage"
       ],
       "properties": {
         "independentFromCandidate": { "const": true },
         "independentFromOtherReviewers": { "const": true },
         "blindToCandidateIdentity": { "const": true },
         "reviewedSanitizedEvidenceOnly": { "const": true },
-        "ratingLockedBeforeAdjudication": { "const": true }
+        "ratingLockedBeforeAdjudication": { "const": true },
+        "reviewedPanel": {
+          "enum": [
+            "public-demonstration",
+            "fixed-anchor-baseline",
+            "hidden-robustness",
+            "change-response",
+            "fresh-generalization"
+          ]
+        },
+        "treatedCandidateContentAsUntrustedEvidence": { "const": true },
+        "followedFrozenReviewInstructionOnly": { "const": true },
+        "appliedPanelSpecificAnchorsAndCriterionCoverage": { "const": true }
       }
     },
     "evidenceRefs": {
@@ -63,12 +79,23 @@
     "rating": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["dimensionId", "status", "evidenceRefs", "rationale"],
+      "required": [
+        "dimensionId",
+        "status",
+        "evidenceRefs",
+        "criterionCoverage",
+        "rationale"
+      ],
       "properties": {
         "dimensionId": { "type": "string", "pattern": "^D(?:0[1-9]|10)$" },
         "status": { "enum": ["scored", "not-evaluable", "evaluator-unsupported", "evaluator-uncertain"] },
         "score": { "type": "integer", "minimum": 0, "maximum": 4 },
         "evidenceRefs": { "$ref": "#/$defs/evidenceRefs" },
+        "criterionCoverage": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/criterionCoverage" }
+        },
         "rationale": { "type": "string", "minLength": 1 }
       },
       "allOf": [
@@ -76,6 +103,36 @@
           "if": { "properties": { "status": { "const": "scored" } }, "required": ["status"] },
           "then": { "properties": { "score": true }, "required": ["score"] },
           "else": { "not": { "required": ["score"] } }
+        }
+      ]
+    },
+    "criterionCoverage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["criterionId", "status", "evidenceRefs"],
+      "properties": {
+        "criterionId": {
+          "type": "string",
+          "pattern": "^D(?:0[1-9]|10)-E[0-9]{2}$"
+        },
+        "status": { "enum": ["covered", "missing", "uncertain"] },
+        "evidenceRefs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "type": "string", "pattern": "^EVD-[0-9]{3,}$" }
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": { "status": { "const": "covered" } },
+            "required": ["status"]
+          },
+          "then": {
+            "properties": {
+              "evidenceRefs": { "type": "array", "minItems": 1 }
+            }
+          }
         }
       ]
     }

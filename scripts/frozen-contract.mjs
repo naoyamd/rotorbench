@@ -73,6 +73,12 @@ export async function loadFrozenContractValidators(
   const reviewPackageValidator = get(reviewPackage, "review package schema");
   const reviewSubmissionValidator = get(reviewSubmission, "review submission schema");
   const reviewRecordValidator = get(reviewRecord, "review record schema");
+  const checkpointReceiptRecordValidator = ajv.getSchema(
+    `${v4Contract.$id}#/$defs/checkpointReceiptRecord`,
+  );
+  if (typeof checkpointReceiptRecordValidator !== "function") {
+    throw new Error("Frozen execution contract cannot compile checkpoint receipt record schema");
+  }
   const runValidator = run ? get(run, "run schema") : null;
   const assessmentValidator = assessment ? get(assessment, "assessment schema") : null;
   const validateRun = (value) => {
@@ -98,6 +104,8 @@ export async function loadFrozenContractValidators(
     validatePlan: (value) => schemaIssues(planValidator, value),
     validateWorkRecord: (value) => schemaIssues(workRecordValidator, value),
     validateSubmission: (value) => schemaIssues(submissionValidator, value),
+    validateCheckpointReceiptRecord: (value) =>
+      schemaIssues(checkpointReceiptRecordValidator, value),
     validateSanitizationReport: (value) => schemaIssues(sanitizationReportValidator, value),
     validateReviewPackage: (value) => schemaIssues(reviewPackageValidator, value),
     validateReviewSubmission: (value) => schemaIssues(reviewSubmissionValidator, value),

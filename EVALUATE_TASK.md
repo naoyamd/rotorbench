@@ -71,7 +71,7 @@ not cryptographic proof of the candidate's actual start time.
    reviewer the `submitted/` tree or a separate reviewer's work. The tool also
    refuses evidence that contains a nontrivial provider, model-name, or model-
    version value declared in `submission.json`.
-5. Copy `evaluation/integrated-robotic-handling-v1/reviewer-template.json`
+5. Copy `evaluation/integrated-robotic-handling-v1.10/reviewer-template.json`
    outside the repository once per reviewer. Each reviewer fills only its
    role, required attestations, gate ratings, dimension ratings, and `EVD-*`
    references. Reviewer input has no name, account, provider, model, or
@@ -88,7 +88,7 @@ not cryptographic proof of the candidate's actual start time.
    conflicts or a dimension differs by more than one level, obtain and seal a
    third adjudicator record before scoring. Do not edit a sealed record.
 7. Use the frozen neutral-handoff checks and sanitized evidence to fill a copy
-   of `evaluation/integrated-robotic-handling-v1/assessment-template.json`.
+   of `evaluation/integrated-robotic-handling-v1.10/assessment-template.json`.
    Bind the exact run, launch, scoring contract, sealed candidate tree,
    sanitization-report path/hash, automatic checks, checkpoint receipts, raw
    metrics, the review-package manifest hash, and every sealed review-record

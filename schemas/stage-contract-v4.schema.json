@@ -87,9 +87,24 @@
         "sha256": { "$ref": "#/$defs/sha256" },
         "previousReceiptSha256": { "$ref": "#/$defs/sha256" },
         "changeEventId": { "type": "string", "pattern": "^CHG-[0-9]{3,}$" }
-      }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "checkpointId": { "const": "CKPT-050" } }, "required": ["checkpointId"] },
+          "then": {
+            "properties": { "changeEventId": true },
+            "required": ["changeEventId"]
+          },
+          "else": {
+            "not": {
+              "properties": { "changeEventId": true },
+              "required": ["changeEventId"]
+            }
+          }
+        }
+      ]
     },
-    "checkpointReceiptRecord": {
+    "checkpointReceiptRecordV10": {
       "type": "object",
       "additionalProperties": false,
       "required": ["schemaVersion", "id", "sequence", "checkpointId", "previousReceiptSha256", "createdAt", "evidence"],
@@ -110,7 +125,108 @@
             "properties": { "path": { "$ref": "#/$defs/safePath" }, "sha256": { "$ref": "#/$defs/sha256" } }
           }
         }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "checkpointId": { "const": "CKPT-050" } }, "required": ["checkpointId"] },
+          "then": {
+            "properties": { "changeEventId": true },
+            "required": ["changeEventId"]
+          },
+          "else": {
+            "not": {
+              "properties": { "changeEventId": true },
+              "required": ["changeEventId"]
+            }
+          }
+        }
+      ]
+    },
+    "checkpointArtifactSnapshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sourcePath", "snapshotPath", "sha256"],
+      "properties": {
+        "sourcePath": { "$ref": "#/$defs/safePath" },
+        "snapshotPath": { "$ref": "#/$defs/safePath" },
+        "sha256": { "$ref": "#/$defs/sha256" }
       }
+    },
+    "checkpointOutputContractBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["componentVersion", "sha256", "requiredArtefactPaths"],
+      "properties": {
+        "componentVersion": { "type": "string", "minLength": 1 },
+        "sha256": { "$ref": "#/$defs/sha256" },
+        "requiredArtefactPaths": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/safePath" }
+        }
+      }
+    },
+    "checkpointReceiptRecordV11": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "id", "sequence", "checkpointId", "previousReceiptSha256", "createdAt", "evidence", "artifactSnapshots"],
+      "properties": {
+        "schemaVersion": { "const": "1.1" },
+        "id": { "type": "string", "pattern": "^RCP-[0-9]{3,}$" },
+        "sequence": { "type": "integer", "minimum": 0 },
+        "checkpointId": { "type": "string", "pattern": "^CKPT-[0-9]{3,}$" },
+        "previousReceiptSha256": { "$ref": "#/$defs/sha256" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "changeEventId": { "type": "string", "pattern": "^CHG-[0-9]{3,}$" },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["path", "sha256"],
+            "properties": { "path": { "$ref": "#/$defs/safePath" }, "sha256": { "$ref": "#/$defs/sha256" } }
+          }
+        },
+        "outputContract": { "$ref": "#/$defs/checkpointOutputContractBinding" },
+        "artifactSnapshots": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/checkpointArtifactSnapshot" }
+        }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "checkpointId": { "const": "CKPT-000" } }, "required": ["checkpointId"] },
+          "then": {
+            "not": {
+              "properties": { "outputContract": true },
+              "required": ["outputContract"]
+            }
+          },
+          "else": {
+            "properties": { "outputContract": true },
+            "required": ["outputContract"]
+          }
+        },
+        {
+          "if": { "properties": { "checkpointId": { "const": "CKPT-050" } }, "required": ["checkpointId"] },
+          "then": {
+            "properties": { "changeEventId": true },
+            "required": ["changeEventId"]
+          },
+          "else": {
+            "not": {
+              "properties": { "changeEventId": true },
+              "required": ["changeEventId"]
+            }
+          }
+        }
+      ]
+    },
+    "checkpointReceiptRecord": {
+      "oneOf": [
+        { "$ref": "#/$defs/checkpointReceiptRecordV10" },
+        { "$ref": "#/$defs/checkpointReceiptRecordV11" }
+      ]
     },
     "changeEvent": {
       "type": "object",

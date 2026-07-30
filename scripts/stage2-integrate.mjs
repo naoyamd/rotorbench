@@ -12,6 +12,7 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 import {
   bundleTreeHash,
+  loadAuthoritativeOutputContract,
   loadFrozenContractValidators,
   readCandidateSubmissionIdentity,
   validateCandidateBundle,
@@ -23,7 +24,7 @@ import {
   sha256,
   validateMeasurementConditions,
   validateFramework,
-  validateRequiredOutputBindings,
+  validateSubmissionRequiredOutputBindings,
 } from "./framework-lib.mjs";
 import { validateArtifactContract } from "./artifact-contract.mjs";
 import { validateExecutionContractSnapshot } from "./stage0-lib.mjs";
@@ -69,6 +70,14 @@ const launch = launchEntry?.manifest;
 if (!launch || launchEntry.validationIssues.length > 0) {
   throw new Error("Submission launchId does not name a validated launch");
 }
+const packetEntry = framework.taskPackets.find(
+  (entry) =>
+    entry.manifest?.id === launch.taskPacket.id
+    && entry.manifest?.version === launch.taskPacket.version,
+);
+if (!packetEntry?.manifest || packetEntry.validationIssues.length > 0) {
+  throw new Error("Submission task packet is not valid");
+}
 let contractValidators;
 let artifactContractValidator = validateArtifactContract;
 if (["3.0", "4.0"].includes(launch.protocolVersion)) {
@@ -95,7 +104,16 @@ if (["3.0", "4.0"].includes(launch.protocolVersion)) {
     artifactContractValidator = frozenArtifactContract.validateArtifactContract;
   }
 }
-const validation = await validateCandidateBundle(source, { contractValidators });
+const authoritativeOutputContract = (
+  packetEntry.manifest.id === "integrated-robotic-handling"
+  && packetEntry.manifest.version === "1.10"
+)
+  ? await loadAuthoritativeOutputContract(packetEntry.root, packetEntry.manifest)
+  : {};
+const validation = await validateCandidateBundle(source, {
+  contractValidators,
+  ...authoritativeOutputContract,
+});
 if (validation.status !== "valid") {
   throw new Error(`Candidate bundle is invalid:\n${validation.issues.join("\n")}`);
 }
@@ -140,14 +158,6 @@ if (
 ) {
   throw new Error("Submission v4 contract does not match the validated launch");
 }
-const packetEntry = framework.taskPackets.find(
-  (entry) =>
-    entry.manifest?.id === submission.taskPacket.id
-    && entry.manifest?.version === submission.taskPacket.version,
-);
-if (!packetEntry?.manifest || packetEntry.validationIssues.length > 0) {
-  throw new Error("Submission task packet is not valid");
-}
 if (
   launch.protocolVersion === "2.0"
   && (
@@ -183,11 +193,11 @@ if (artifactContract.status === "invalid" || artifactContract.status === "invali
       .join("\n")}`,
   );
 }
-const requiredOutputIssues = validateRequiredOutputBindings(
+const requiredOutputIssues = validateSubmissionRequiredOutputBindings(
   packetEntry.manifest,
-  submission.artifacts,
+  submission,
 );
-if (submission.status === "complete" && requiredOutputIssues.length > 0) {
+if (requiredOutputIssues.length > 0) {
   throw new Error(
     `Candidate bundle required output bindings are invalid:\n${requiredOutputIssues
       .map((issue) => `${issue.code}: ${issue.message}`)
@@ -202,7 +212,11 @@ const availableRoles = new Set(
 const missingRoles = packetEntry.manifest.requiredOutputs
   .map((output) => typeof output === "string" ? output : output.role)
   .filter((role) => !availableRoles.has(role));
-if (submission.status === "complete" && missingRoles.length > 0) {
+if (
+  !["3.0", "4.0"].includes(submission.protocolVersion)
+  && submission.status === "complete"
+  && missingRoles.length > 0
+) {
   throw new Error(
     `Candidate bundle is missing required output role(s): ${missingRoles.join(", ")}`,
   );
@@ -400,6 +414,12 @@ if (submission.protocolVersion === "4.0") {
       if (!planRequirementIds.has(requirementRef)) {
         throw new Error(`v4 change event ${event.id} references a requirement absent from the submitted plan: ${requirementRef}`);
       }
+    }
+    const responseReceipt = receiptByCheckpoint.get(event.responseCheckpointId);
+    if (responseReceipt && responseReceipt.changeEventId !== event.id) {
+      throw new Error(
+        `v4 response checkpoint ${event.responseCheckpointId} must bind exact change event ${event.id}`,
+      );
     }
   }
   for (const receipt of submission.checkpointReceipts) {

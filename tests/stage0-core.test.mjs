@@ -21,6 +21,7 @@ import {
   sha256,
   validateFramework,
   validateRequiredOutputBindings,
+  validateSubmissionRequiredOutputBindings,
   validateSubmission,
 } from "../scripts/framework-lib.mjs";
 import { validateCandidateBundle } from "../scripts/stage-contract.mjs";
@@ -1328,6 +1329,201 @@ test("v2 requires an explicit grandfather entry and v3 output IDs bind exactly o
     assert.ok(
       !v4PackageBindings.some(({ code }) => code === "duplicate-required-output-binding"),
       "v4 logical output packages may be represented by multiple inspectable artifacts",
+    );
+    const checkpointScopedV4Packet = {
+      ...v4Packet,
+      requiredOutputs: [
+        { id: "OUT-001", role: "supporting", description: "Concept evidence" },
+        { id: "OUT-002", role: "step", description: "Embodiment evidence" },
+      ],
+      checkpoints: [
+        {
+          id: "CKPT-000",
+          sequence: 0,
+          requiredOutputRefs: [],
+          requiresPriorCheckpointIds: [],
+        },
+        {
+          id: "CKPT-010",
+          sequence: 10,
+          requiredOutputRefs: ["OUT-001"],
+          requiresPriorCheckpointIds: ["CKPT-000"],
+        },
+        {
+          id: "CKPT-020",
+          sequence: 20,
+          requiredOutputRefs: ["OUT-001", "OUT-002"],
+          requiresPriorCheckpointIds: ["CKPT-010"],
+        },
+      ],
+    };
+    assert.deepEqual(
+      validateSubmissionRequiredOutputBindings(checkpointScopedV4Packet, {
+        protocolVersion: "4.0",
+        status: "partial",
+        partialAttainment: {
+          attemptedCheckpointIds: ["CKPT-000"],
+          completedCheckpointIds: ["CKPT-000"],
+          highestVerifiedCheckpointId: "CKPT-000",
+          stoppedReason: "candidate-stop",
+        },
+        checkpointReceipts: [
+          { id: "RCP-000", sequence: 0, checkpointId: "CKPT-000" },
+        ],
+        artifacts: [],
+      }),
+      [],
+      "a schema-valid CKPT-000 partial submission defers every later output",
+    );
+    const attainedMissingOutput =
+      validateSubmissionRequiredOutputBindings(checkpointScopedV4Packet, {
+        protocolVersion: "4.0",
+        status: "partial",
+        partialAttainment: {
+          attemptedCheckpointIds: ["CKPT-000", "CKPT-010"],
+          completedCheckpointIds: ["CKPT-000", "CKPT-010"],
+          highestVerifiedCheckpointId: "CKPT-010",
+          stoppedReason: "candidate-stop",
+        },
+        checkpointReceipts: [
+          { id: "RCP-000", sequence: 0, checkpointId: "CKPT-000" },
+          { id: "RCP-010", sequence: 1, checkpointId: "CKPT-010" },
+        ],
+        artifacts: [],
+      });
+    assert.ok(
+      attainedMissingOutput.some(
+        ({ code, message }) =>
+          code === "missing-required-output-binding"
+          && message.includes("OUT-001"),
+      ),
+      "a partial submission still owes every output due at its attained checkpoint",
+    );
+    assert.ok(
+      !attainedMissingOutput.some(({ message }) => message.includes("OUT-002")),
+      "outputs first due after the attained checkpoint remain deferred",
+    );
+    const falseAttainedEvidence =
+      validateSubmissionRequiredOutputBindings(checkpointScopedV4Packet, {
+        protocolVersion: "4.0",
+        status: "partial",
+        partialAttainment: {
+          attemptedCheckpointIds: ["CKPT-000", "CKPT-010"],
+          completedCheckpointIds: ["CKPT-000", "CKPT-010"],
+          highestVerifiedCheckpointId: "CKPT-010",
+          stoppedReason: "candidate-stop",
+        },
+        checkpointReceipts: [
+          { id: "RCP-000", sequence: 0, checkpointId: "CKPT-000" },
+          { id: "RCP-010", sequence: 1, checkpointId: "CKPT-010" },
+        ],
+        artifacts: [{
+          id: "false-evidence",
+          role: "supporting",
+          status: "missing",
+          requiredOutputRefs: ["OUT-001"],
+        }],
+      });
+    assert.ok(
+      falseAttainedEvidence.some(
+        ({ code }) => code === "required-output-not-present",
+      ),
+      "declared but non-present evidence never satisfies a due output",
+    );
+    assert.ok(
+      validateSubmissionRequiredOutputBindings(checkpointScopedV4Packet, {
+        protocolVersion: "4.0",
+        status: "complete",
+        partialAttainment: {
+          attemptedCheckpointIds: ["CKPT-000", "CKPT-010", "CKPT-020"],
+          completedCheckpointIds: ["CKPT-000", "CKPT-010", "CKPT-020"],
+          highestVerifiedCheckpointId: "CKPT-020",
+          stoppedReason: "completed",
+        },
+        checkpointReceipts: [
+          { id: "RCP-000", sequence: 0, checkpointId: "CKPT-000" },
+          { id: "RCP-010", sequence: 1, checkpointId: "CKPT-010" },
+          { id: "RCP-020", sequence: 2, checkpointId: "CKPT-020" },
+        ],
+        artifacts: [],
+      }).filter(({ code }) => code === "missing-required-output-binding")
+        .length === 2,
+      "complete submissions remain strict regardless of checkpoint metadata",
+    );
+    const overstatedHighest =
+      validateSubmissionRequiredOutputBindings(checkpointScopedV4Packet, {
+        protocolVersion: "4.0",
+        status: "partial",
+        partialAttainment: {
+          attemptedCheckpointIds: ["CKPT-000", "CKPT-010", "CKPT-020"],
+          completedCheckpointIds: ["CKPT-000"],
+          highestVerifiedCheckpointId: "CKPT-020",
+          stoppedReason: "candidate-stop",
+        },
+        checkpointReceipts: [
+          { id: "RCP-000", sequence: 0, checkpointId: "CKPT-000" },
+        ],
+        artifacts: [],
+      });
+    assert.ok(
+      overstatedHighest.some(
+        ({ code }) => code === "highest-checkpoint-not-maximal-completed",
+      ),
+      "the due-output scope is derived from completed receipts rather than a self-reported highest checkpoint",
+    );
+    assert.ok(
+      !overstatedHighest.some(
+        ({ code }) => code === "missing-required-output-binding",
+      ),
+      "an invalid overstated highest checkpoint cannot make unreceipted outputs look attained",
+    );
+    const skippedPrerequisite =
+      validateSubmissionRequiredOutputBindings(checkpointScopedV4Packet, {
+        protocolVersion: "4.0",
+        status: "partial",
+        partialAttainment: {
+          attemptedCheckpointIds: ["CKPT-000", "CKPT-020"],
+          completedCheckpointIds: ["CKPT-000", "CKPT-020"],
+          highestVerifiedCheckpointId: "CKPT-020",
+          stoppedReason: "candidate-stop",
+        },
+        checkpointReceipts: [
+          { id: "RCP-000", sequence: 0, checkpointId: "CKPT-000" },
+          { id: "RCP-020", sequence: 1, checkpointId: "CKPT-020" },
+        ],
+        artifacts: [],
+      });
+    assert.ok(
+      skippedPrerequisite.some(
+        ({ code }) => code === "completed-checkpoint-prerequisite-missing",
+      ),
+      "a partial cannot skip a prerequisite checkpoint",
+    );
+    const futureArtifact =
+      validateSubmissionRequiredOutputBindings(checkpointScopedV4Packet, {
+        protocolVersion: "4.0",
+        status: "partial",
+        partialAttainment: {
+          attemptedCheckpointIds: ["CKPT-000"],
+          completedCheckpointIds: ["CKPT-000"],
+          highestVerifiedCheckpointId: "CKPT-000",
+          stoppedReason: "candidate-stop",
+        },
+        checkpointReceipts: [
+          { id: "RCP-000", sequence: 0, checkpointId: "CKPT-000" },
+        ],
+        artifacts: [{
+          id: "future-step",
+          role: "step",
+          status: "present",
+          requiredOutputRefs: ["OUT-002"],
+        }],
+      });
+    assert.ok(
+      futureArtifact.some(
+        ({ code }) => code === "post-attainment-output-binding",
+      ),
+      "post-attainment artifacts cannot leak into review, scoring, or publication",
     );
     assert.ok(invalidBindings.some(({ code }) => code === "unknown-required-output-ref"));
   } finally {

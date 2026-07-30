@@ -4,7 +4,7 @@
   "title": "Integrated industrial robot arm and powered gripper",
   "summary": "A fixed public anchor task measuring how an LLM plans, embodies, verifies, and documents a manufacturable machine-tending robot arm with an integrated powered opening/closing gripper.",
   "status": "active",
-  "version": "1.7",
+  "version": "1.10",
   "extensions": {
     "taskClass": "mechanical-system-design",
     "primaryPanel": "fixed-anchor-baseline",
@@ -18,8 +18,8 @@
     ],
     "scoringContract": {
       "id": "integrated-robotic-handling-scoring",
-      "version": "1.1",
-      "publicPath": "framework/evaluation/integrated-robotic-handling-v1/scoring-contract.json",
+      "version": "1.2",
+      "publicPath": "framework/evaluation/integrated-robotic-handling-v1.10/scoring-contract.json",
       "compositeScorePublished": false
     },
     "optionalControlledPanels": [

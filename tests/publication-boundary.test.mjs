@@ -9,6 +9,7 @@ import {
   importPublicCohortPublication,
   validatePublicCohortPublication,
 } from "../scripts/publication-lib.mjs";
+import { publicEvaluationSummary } from "../scripts/public-evaluation-summary.mjs";
 
 const sha256 = (bytes) => createHash("sha256").update(bytes).digest("hex");
 const jsonBytes = (value) => Buffer.from(`${JSON.stringify(value, null, 2)}\n`);
@@ -70,7 +71,53 @@ function aggregate({ disclosureSha256, evaluationRecordSha256 }) {
   };
 }
 
-async function createBundle({ artifactBytes = Buffer.from("safe static artifact"), mutate } = {}) {
+function v110PublicEvaluationSummary() {
+  const privateRecord = {
+    runId: "opaque-run-a-01",
+    status: "admitted",
+    qualification: { baselineQualified: true, changeQualified: null },
+    attainment: { highestVerifiedCheckpoint: "CKPT-040" },
+    gates: [{ id: "A0", label: "Admission", result: "pass", checks: [] }],
+    dimensions: [{
+      id: "D01",
+      label: "Dimension",
+      attempted: true,
+      evidenceCoverage: {
+        required: 2,
+        covered: 1,
+        missing: 1,
+        uncertain: 0,
+        ratio: 0.5,
+        criteria: [
+          { id: "D01-E01", criterion: "private criterion", consensusStatus: "covered" },
+          { id: "D01-E02", criterion: "private criterion", consensusStatus: "missing" },
+        ],
+        reviewerObservations: [{
+          raterId: "rater-0123456789abcdef",
+          rationale: "private rationale",
+          path: "sanitized/private-evidence.json",
+        }],
+      },
+      evaluable: true,
+      ratingStatus: "scored",
+      score: 3,
+      scoreInterval: [3, 3],
+      nonEvaluationCause: null,
+      highestVerifiedCheckpoint: "CKPT-040",
+      ratings: [{ raterId: "rater-0123456789abcdef", rationale: "private rationale" }],
+    }],
+    rawMetrics: [],
+    efficiency: { separateFromDesignQuality: true, values: {} },
+  };
+  return publicEvaluationSummary(privateRecord, jsonBytes(privateRecord));
+}
+
+async function createBundle({
+  artifactBytes = Buffer.from("safe static artifact"),
+  mutate,
+  evaluationVersion = "legacy",
+  evaluationMutate,
+} = {}) {
   const root = await mkdtemp(path.join(os.tmpdir(), "rotorbench-publication-"));
   const disclosure = {
     schemaVersion: "1.0",
@@ -85,12 +132,11 @@ async function createBundle({ artifactBytes = Buffer.from("safe static artifact"
     }],
   };
   const disclosureFile = await write(root, "cohort-disclosure.json", disclosure);
-  const evaluationRecordSha256 = hex("a");
-  const evaluation = {
+  const legacyEvaluation = {
     schemaVersion: "1.0",
     runId: "opaque-run-a-01",
     status: "admitted",
-    evaluationRecordSha256,
+    evaluationRecordSha256: hex("a"),
     finalization: null,
     qualification: { baselineQualified: true, changeQualified: null },
     attainment: { highestVerifiedCheckpoint: "CKPT-040" },
@@ -101,6 +147,11 @@ async function createBundle({ artifactBytes = Buffer.from("safe static artifact"
     compositeScore: null,
     compositeScorePublished: false,
   };
+  const evaluation = evaluationVersion === "v110"
+    ? v110PublicEvaluationSummary()
+    : legacyEvaluation;
+  evaluationMutate?.(evaluation);
+  const evaluationRecordSha256 = evaluation.evaluationRecordSha256;
   const evaluationFile = await write(root, "evaluation-summaries/opaque-run-a-01.json", evaluation);
   const validation = {
     schemaVersion: "1.0",
@@ -185,6 +236,43 @@ test("portable publication rejects private reviewer tokens, private paths, and m
   await assert.rejects(validatePublicCohortPublication(secret), /prohibited private token/);
   await assert.rejects(validatePublicCohortPublication(traversal), /schema-invalid|unsafe/);
   await assert.rejects(validatePublicCohortPublication(tampered), /hash or size mismatch/);
+});
+
+test("v1.10 ratingStatus crosses the portable publication boundary while reviewer fields remain prohibited", async (t) => {
+  const valid = await createBundle({ evaluationVersion: "v110" });
+  const privateFields = ["rating", "ratings", "raterId", "reviewerObservations"];
+  const invalid = await Promise.all(privateFields.map((field) => createBundle({
+    evaluationVersion: "v110",
+    evaluationMutate: (evaluation) => {
+      evaluation.dimensions[0][field] = field === "raterId" ? "anonymous" : [];
+    },
+  })));
+  const misplacedRatingStatuses = await Promise.all([
+    ["rawMetrics", [1, 4]],
+    ["qualification", 3],
+    ["attainment", "scored"],
+    ["gates", "not-evaluable"],
+    ["efficiency", { primary: "scored" }],
+  ].map(([location, value]) => createBundle({
+    evaluationVersion: "v110",
+    evaluationMutate: (evaluation) => {
+      if (location === "rawMetrics") evaluation.rawMetrics = [{ ratingStatus: value }];
+      else if (location === "gates") evaluation.gates = [{ id: "A0", label: "Admission", result: "pass", ratingStatus: value }];
+      else evaluation[location].ratingStatus = value;
+    },
+  })));
+  const project = await mkdtemp(path.join(os.tmpdir(), "rotorbench-v110-publication-"));
+  t.after(async () => Promise.all([valid, project, ...invalid, ...misplacedRatingStatuses].map((item) => rm(item, { recursive: true, force: true }))));
+
+  const checked = await validatePublicCohortPublication(valid);
+  assert.equal(checked.parsed.get("evaluation-summaries/opaque-run-a-01.json").dimensions[0].ratingStatus, "scored");
+  assert.deepEqual((await importPublicCohortPublication({ projectRoot: project, bundlePath: valid })).runIds, ["opaque-run-a-01"]);
+  for (const [index, field] of privateFields.entries()) {
+    await assert.rejects(validatePublicCohortPublication(invalid[index]), new RegExp(`prohibited field .*${field}`));
+  }
+  for (const bundle of misplacedRatingStatuses) {
+    await assert.rejects(validatePublicCohortPublication(bundle), /prohibited field .*ratingStatus/);
+  }
 });
 
 test("failed import rolls back staging and the public catalog can be built from publication state alone", async (t) => {

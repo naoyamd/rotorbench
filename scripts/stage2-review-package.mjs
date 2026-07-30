@@ -50,6 +50,7 @@ function extensionFor(mediaType) {
     case "application/pdf": return "pdf";
     case "image/png": return "png";
     case "image/jpeg": return "jpg";
+    case "image/svg+xml": return "svg";
     case "application/x-opaque-cad": return "cad";
     default: throw new Error(`Unsupported review evidence media type: ${mediaType}`);
   }
@@ -65,6 +66,7 @@ function limitFor(mediaType, limits) {
     case "application/pdf": return limits.maxPdfBytes;
     case "image/png":
     case "image/jpeg": return limits.maxImageBytes;
+    case "image/svg+xml": return limits.maxImageBytes;
     case "application/x-opaque-cad": return limits.maxFileBytes;
     default: return 0;
   }
@@ -178,31 +180,41 @@ async function loadFrozenRuntime({ run, frozenLaunch }) {
   const snapshot = await validateExecutionContractSnapshot(snapshotRoot, run.executionContractDigest);
   if (snapshot.status !== "valid") throw new Error("Frozen execution contract snapshot is invalid");
   const reviewPackagePath = path.join(snapshotRoot, "scripts", "stage2-review-package.mjs");
+  const reviewEvidencePath = path.join(snapshotRoot, "scripts", "review-evidence-lib.mjs");
   const frameworkPath = path.join(snapshotRoot, "scripts", "framework-lib.mjs");
   const stageContractPath = path.join(snapshotRoot, "scripts", "stage-contract.mjs");
-  const [frozenReviewBytes, localReviewBytes, frameworkBytes, stageContractBytes] = await Promise.all([
+  const localReviewEvidencePath = path.join(path.dirname(fileURLToPath(import.meta.url)), "review-evidence-lib.mjs");
+  const [frozenReviewBytes, localReviewBytes, frozenReviewEvidenceBytes, localReviewEvidenceBytes, frameworkBytes, stageContractBytes] = await Promise.all([
     readFile(reviewPackagePath),
     readFile(fileURLToPath(import.meta.url)),
+    readFile(reviewEvidencePath),
+    readFile(localReviewEvidencePath),
     readFile(frameworkPath),
     readFile(stageContractPath),
   ]);
   if (sha256(frozenReviewBytes) !== sha256(localReviewBytes)) {
     throw new Error("Current review-package implementation does not match the frozen execution-contract tool binding");
   }
+  if (sha256(frozenReviewEvidenceBytes) !== sha256(localReviewEvidenceBytes)) {
+    throw new Error("Current neutral review-evidence implementation does not match the frozen execution-contract tool binding");
+  }
   const frozenValidators = await loadFrozenContractValidators(snapshotRoot, {
     runSchemaPath: path.join(snapshotRoot, "schemas", "run.schema.json"),
   });
-  const [frozenFramework, frozenStageContract] = await Promise.all([
+  const [frozenFramework, frozenStageContract, frozenReviewEvidence] = await Promise.all([
     import(`${pathToFileURL(frameworkPath).href}?sha256=${sha256(frameworkBytes)}`),
     import(`${pathToFileURL(stageContractPath).href}?sha256=${sha256(stageContractBytes)}`),
+    import(`${pathToFileURL(reviewEvidencePath).href}?sha256=${sha256(frozenReviewEvidenceBytes)}`),
   ]);
   if (
     typeof frozenFramework.validateV4SanitizationReport !== "function"
     || typeof frozenStageContract.validateCandidateBundle !== "function"
+    || typeof frozenStageContract.loadAuthoritativeOutputContract !== "function"
+    || typeof frozenReviewEvidence.deriveNeutralReviewEvidence !== "function"
   ) {
     throw new Error("Frozen execution contract does not provide review-package validation helpers");
   }
-  return { snapshotRoot, frozenValidators, frozenFramework, frozenStageContract };
+  return { snapshotRoot, frozenValidators, frozenFramework, frozenStageContract, frozenReviewEvidence };
 }
 
 async function readPassedSanitizationReport({ runRoot, run, out, frozenFramework }) {
@@ -258,7 +270,7 @@ async function scoringContractFor(packetRoot, packet, expectedSha256) {
   return { bytes: file.bytes, contract };
 }
 
-function evidenceEntry({ id, kind, mediaType, bytes, role = null }) {
+function evidenceEntry({ id, kind, mediaType, bytes, role = null, derivation = null }) {
   return {
     id,
     kind,
@@ -267,6 +279,7 @@ function evidenceEntry({ id, kind, mediaType, bytes, role = null }) {
     bytes: bytes.length,
     outputPath: `evidence/${id}.${extensionFor(mediaType)}`,
     ...(role ? { role } : {}),
+    ...(derivation ? { derivation } : {}),
     _bytes: bytes,
   };
 }
@@ -297,8 +310,11 @@ async function writePackageAndCommit({ outputPath, manifest, scoringContractByte
  * Build the only directory a blind engineering rater may receive. The package
  * contains verified static evidence with opaque labels; it never copies
  * submission.json, run.json, cohort metadata, or any model/provider identity.
- * Candidate content is read but never executed, rendered, imported, or opened
- * as native CAD.
+ * Candidate code is never executed. Allowlisted static STEP is imported and
+ * rendered by an isolated evaluator-owned worker; the allowlisted BOM,
+ * requirements-trace, and drawing-index CSV artifacts are safely parsed and
+ * normalized by the evaluator. Frozen output-contract and requirements JSON
+ * is also parsed there; every other candidate artifact remains opaque.
  */
 export async function prepareReviewPackage({
   projectRoot = process.cwd(),
@@ -364,9 +380,12 @@ export async function prepareReviewPackage({
     out: sanitized,
     frozenFramework: runtime.frozenFramework,
   });
+  const authoritativeOutputContract = await runtime.frozenStageContract
+    .loadAuthoritativeOutputContract(packetRoot, frozenPacket.packet);
   const candidate = await runtime.frozenStageContract.validateCandidateBundle(candidateRoot, {
     contractValidators: runtime.frozenValidators,
     expectedRootName: "submitted",
+    ...authoritativeOutputContract,
   });
   if (candidate.status !== "valid" || !candidate.submission) {
     throw new Error(`Sealed candidate process evidence is invalid: ${(candidate.issues ?? []).join("; ")}`);
@@ -383,6 +402,8 @@ export async function prepareReviewPackage({
       .map((receipt) => ({ kind: "checkpoint-receipt", declaration: receipt, mediaType: "application/json" })),
   ];
   const evidence = [];
+  const artifactEvidenceIds = new Map();
+  const reviewArtifacts = [];
   let nextEvidenceNumber = 1;
   for (const source of sourceEntries) {
     const file = await trustedRegularFile(candidateRoot, source.declaration.path);
@@ -412,7 +433,34 @@ export async function prepareReviewPackage({
     if (!role) throw new Error("Sanitized review artifact has no sealed role");
     const id = `EVD-${String(nextEvidenceNumber).padStart(3, "0")}`;
     nextEvidenceNumber += 1;
+    artifactEvidenceIds.set(artifact.id, id);
+    // The sanitization report intentionally omits candidate-owned role
+    // metadata. Rebind the sealed role before passing the artifact to neutral
+    // derivation so STEP and drawing-only processing cannot be silently lost.
+    reviewArtifacts.push({ ...artifact, role, bytes: file.bytes });
     evidence.push(evidenceEntry({ id, kind: "artifact", role, mediaType: artifact.mediaType, bytes: file.bytes }));
+  }
+  const derived = await runtime.frozenReviewEvidence.deriveNeutralReviewEvidence({
+    packetRoot,
+    packet: frozenPacket.packet,
+    reportArtifacts: reviewArtifacts,
+    artifactEvidenceIds,
+    executionContractDigest: run.executionContractDigest,
+  });
+  for (const item of derived) {
+    const id = `EVD-${String(nextEvidenceNumber).padStart(3, "0")}`;
+    nextEvidenceNumber += 1;
+    evidence.push(evidenceEntry({
+      id,
+      kind: "derived",
+      mediaType: item.mediaType,
+      bytes: item.bytes,
+      derivation: {
+        status: item.derivationStatus,
+        sourceEvidenceIds: item.sourceEvidenceIds,
+        tool: item.tool,
+      },
+    }));
   }
   const scoring = await scoringContractFor(
     packetRoot,
@@ -445,6 +493,12 @@ export async function prepareReviewPackage({
       return publicEntry;
     }),
   };
+  const evidenceIds = new Set(manifest.evidence.map(({ id }) => id));
+  for (const item of manifest.evidence.filter(({ kind }) => kind === "derived")) {
+    if (item.derivation.sourceEvidenceIds.some((sourceId) => !evidenceIds.has(sourceId) || sourceId === item.id)) {
+      throw new Error("Derived review evidence references an unknown source evidence identifier");
+    }
+  }
   ensureNoIdentityKeys(manifest);
   requireNoValidatorIssues("Review package", runtime.frozenValidators.validateReviewPackage(manifest));
   const afterReadBundle = await bundleTreeHash(candidateRoot);

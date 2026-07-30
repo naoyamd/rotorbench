@@ -1,0 +1,96 @@
+{
+  "document": "Frozen common evidence-only method for cycle, collision, and accuracy evaluation",
+  "version": "1.1",
+  "methodId": "ROBOTIC-HANDLING-EVIDENCE-ONLY-V1",
+  "purpose": "Give every architecture the same static inputs, units, coverage boundary, evidence record, and decision rule without asserting an uncalibrated common dynamic host or automatic engineering pass.",
+  "sharedInputs": {
+    "geometry": "inputs/fixed-geometry.json exact CSG and grasp coordinates",
+    "cell": "inputs/cell-layout.json permitted envelope and keep-out definitions",
+    "foundation": "inputs/interface-dimensions.json:FND-ANCH-001 lower-bound model",
+    "loadCases": "inputs/workpieces.json:commonHandlingCases",
+    "components": "inputs/component-catalog-snapshot.json plus inputs/component-interface-cards.json",
+    "posePayloadCoverage": "inputs/neutral-handoff-contract.json requiredPoseTargets and requiredPayloadCases",
+    "units": {
+      "length": "mm",
+      "time": "s",
+      "angle": "deg",
+      "force": "N",
+      "moment": "N*m",
+      "inertia": "kg*m^2",
+      "temperature": "K"
+    }
+  },
+  "canonicalInputByteSet": {
+    "id": "ROBOTIC-HANDLING-SHARED-INPUT-BYTES-V1",
+    "scope": "The exact benchmark-owned byte set used by every motion, collision, and accuracy evidence record. It intentionally excludes this method and the neutral-handoff contract so the public digest has no circular dependency; those two documents are separately hash-bound packet inputs.",
+    "algorithm": "sha256-utf8-sorted-path-nul-sha256-lines-v1",
+    "canonicalization": "Sort records by path using bytewise UTF-8 ascending order. For each record, append UTF-8 bytes of path, one 0x00 byte, lowercase hexadecimal SHA-256 of that exact file's raw bytes, and one 0x0A byte. inputDigest is lowercase SHA-256 of the resulting concatenation.",
+    "records": [
+      { "path": "inputs/calibration-provenance.json", "sha256": "04454a20a421c92934832c15920c41fdacbe59d11533dac13b21479446af630c" },
+      { "path": "inputs/cell-layout.json", "sha256": "1bff3dc60daa210a4c791c8e7bccb76b647604c9b7668efdc15bbfd6995355b6" },
+      { "path": "inputs/component-catalog-snapshot.json", "sha256": "8083be7703aef6d373f2ec1b57dfe0e4dfbbe3c1c275e7101199064f6afaf482" },
+      { "path": "inputs/component-interface-cards.json", "sha256": "5d6b4bf46068ab960e057ebbb50653263c87e16a1bfbf4166b1515ee28fd31c8" },
+      { "path": "inputs/fixed-geometry.json", "sha256": "2d4b9c96605f32d26845517fc316ace0f487357db49a834d51b5f4ae1e442267" },
+      { "path": "inputs/interface-dimensions.json", "sha256": "4811e629093c5ded7c92c3211e9ecd2c3f16259fdce374cc2470903d6bf83fa7" },
+      { "path": "inputs/requirements.json", "sha256": "5a9cbab00237de0d071c852546a4f48c8ea9481ffbb272f03ad999de33fa787f" },
+      { "path": "inputs/workpieces.json", "sha256": "eddd40d6badf8c712eadad763aa033130f38c3384cc5243b14e0cb803808afbc" }
+    ],
+    "expectedInputDigest": "9a56c56041263aef9dec0d15a50d57de9bb51eab0856457f49d6b82fbfeba5c3"
+  },
+  "evidenceRecords": {
+    "motion": {
+      "requiredFields": ["id", "method", "inputDigest", "segmentIds", "payloadCaseIds", "reportedCycleSeconds", "driveLimitEvidence"],
+      "fieldContracts": {
+        "id": { "kind": "non-empty-string" },
+        "method": { "kind": "non-empty-string" },
+        "inputDigest": { "kind": "canonical-input-digest" },
+        "segmentIds": { "kind": "unique-non-empty-string-array" },
+        "payloadCaseIds": { "kind": "unique-non-empty-string-array" },
+        "reportedCycleSeconds": { "kind": "finite-positive-number" },
+        "driveLimitEvidence": { "kind": "non-empty-object" }
+      },
+      "coverage": "segmentIds exactly covers every declared trajectory segment; payloadCaseIds exactly covers CASE-WP-A, CASE-WP-B, and CASE-WP-C.",
+      "decision": "Compare each reported cycle allocation against the 32 s target using submitted static kinematic, drive, and dwell evidence. A preflight arithmetic pass is never a feasibility pass."
+    },
+    "collision": {
+      "requiredFields": ["id", "method", "inputDigest", "poseIds", "payloadCaseIds", "geometryReferenceIds", "selfCollisionResult", "cellCollisionResult", "minimumClearanceMm", "modelScope"],
+      "fieldContracts": {
+        "id": { "kind": "non-empty-string" },
+        "method": { "kind": "non-empty-string" },
+        "inputDigest": { "kind": "canonical-input-digest" },
+        "poseIds": { "kind": "unique-non-empty-string-array" },
+        "payloadCaseIds": { "kind": "unique-non-empty-string-array" },
+        "geometryReferenceIds": { "kind": "unique-non-empty-string-array" },
+        "selfCollisionResult": { "kind": "evidence-decision" },
+        "cellCollisionResult": { "kind": "evidence-decision" },
+        "minimumClearanceMm": { "kind": "finite-non-negative-number" },
+        "modelScope": { "kind": "non-empty-string" }
+      },
+      "coverage": "poseIds exactly covers all required poses; payloadCaseIds exactly covers all required cases; geometryReferenceIds exactly covers every fixed object/workpiece reference.",
+      "decision": "Assess the submitted neutral CAD and declared sampled/swept-volume method against the exact CSG/keep-outs. Record evidence-supported pass, fail, evaluator-unsupported, or evaluator-uncertain; do not infer collision freedom from the static handoff validator."
+    },
+    "accuracy": {
+      "requiredFields": ["id", "method", "inputDigest", "poseIds", "payloadCaseIds", "foundationReference", "errorSources", "reportedRssMm", "thermalState", "calibrationRange"],
+      "fieldContracts": {
+        "id": { "kind": "non-empty-string" },
+        "method": { "kind": "non-empty-string" },
+        "inputDigest": { "kind": "canonical-input-digest" },
+        "poseIds": { "kind": "unique-non-empty-string-array" },
+        "payloadCaseIds": { "kind": "unique-non-empty-string-array" },
+        "foundationReference": { "kind": "non-empty-string" },
+        "errorSources": { "kind": "unique-non-empty-string-array" },
+        "reportedRssMm": { "kind": "finite-non-negative-number" },
+        "thermalState": { "kind": "non-empty-string" },
+        "calibrationRange": { "kind": "non-empty-string" }
+      },
+      "coverage": "poseIds and payloadCaseIds exactly cover the frozen sets; foundationReference is FND-ANCH-001; errorSources identify backlash, encoder/feedback, compliance, thermal, assembly/datum, and calibration contributions or explicitly justify their inapplicability.",
+      "decision": "Assess reproducibility of the submitted error model and applicability to the 0.20 mm design target. RSS arithmetic alone is not a repeatability qualification or physical certification."
+    }
+  },
+  "calibrationBoundary": {
+    "status": "no-common-dynamic-host-calibrated",
+    "prohibitedAutomaticClaims": ["32 s feasible", "self-collision-free", "cell-collision-free", "0.20 mm physically repeatable"],
+    "futureChangeRule": "A future packet may add topology-aware automatic qualification only after frozen reference architectures, input transformations, limit laws, and calibration coverage are independently reviewed and published."
+  },
+  "reviewDecisionRule": "Use the same frozen inputs and record completeness check for every candidate. A result is pass only when submitted evidence supports the stated method at its declared fidelity; otherwise label design-failed, evaluator-unsupported, or evaluator-uncertain. No reviewer may substitute an undisclosed host model, controller setting, component rating, or calibration data."
+}

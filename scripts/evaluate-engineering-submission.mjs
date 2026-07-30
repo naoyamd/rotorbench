@@ -4,6 +4,7 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 import {
   bundleTreeHash,
+  loadAuthoritativeOutputContract,
   loadFrozenContractValidators,
   validateCandidateBundle,
 } from "./stage-contract.mjs";
@@ -37,6 +38,24 @@ function problemList(label, issues) {
       ? issue
       : `${issue.code}: ${issue.message}`)
     .join("\n")}`;
+}
+
+const assessmentSchemaByScoringVersion = Object.freeze({
+  "1.1": "evaluation/integrated-robotic-handling-v1/assessment.schema.json",
+  "1.2": "evaluation/integrated-robotic-handling-v1.10/assessment.schema.json",
+});
+
+/**
+ * Assessment evidence is evaluated with the schema that was frozen with the
+ * task's public scoring contract.  This deliberately fails closed rather than
+ * letting a newer evaluator silently apply the wrong scoring-era schema.
+ */
+export function assessmentSchemaRelativePathForScoringVersion(scoringVersion) {
+  const relativePath = assessmentSchemaByScoringVersion[scoringVersion];
+  if (!relativePath) {
+    throw new Error(`No frozen assessment schema is registered for scoring version ${scoringVersion}`);
+  }
+  return relativePath;
 }
 
 function pathInside(root, relativePath) {
@@ -88,6 +107,8 @@ function reviewEvidenceRefs(record) {
   return [
     ...(record.gateRatings ?? []).flatMap(({ evidenceRefs }) => evidenceRefs ?? []),
     ...(record.expertRatings ?? []).flatMap(({ evidenceRefs }) => evidenceRefs ?? []),
+    ...(record.expertRatings ?? []).flatMap(({ criterionCoverage }) =>
+      (criterionCoverage ?? []).flatMap(({ evidenceRefs }) => evidenceRefs ?? [])),
   ];
 }
 
@@ -277,11 +298,10 @@ async function loadFrozenEvaluationContext(projectRoot, runId) {
       snapshot.issues,
     ));
   }
+  const taskScoringVersion = packet.v4Contract?.scoringVersion;
   const assessmentSchemaPath = path.join(
     snapshotRoot,
-    "evaluation",
-    "integrated-robotic-handling-v1",
-    "assessment.schema.json",
+    ...assessmentSchemaRelativePathForScoringVersion(taskScoringVersion).split("/"),
   );
   const contractValidators = await loadFrozenContractValidators(snapshotRoot, {
     assessmentSchemaPath,
@@ -305,6 +325,10 @@ async function loadFrozenEvaluationContext(projectRoot, runId) {
   const scoringPath = pathInside(packetRoot, scoringInput.path);
   const scoringBytes = await readFile(scoringPath);
   const scoringContractDigest = sha256(scoringBytes);
+  const scoringContract = JSON.parse(scoringBytes.toString("utf8"));
+  if (scoringContract.version !== taskScoringVersion) {
+    throw new Error("Task scoring version does not match the frozen scoring contract");
+  }
   if (
     scoringContractDigest !== scoringInput.sha256
     || scoringContractDigest !== launch.v4Contract?.evaluationContract?.digest
@@ -319,6 +343,7 @@ async function loadFrozenEvaluationContext(projectRoot, runId) {
     packetRoot,
     packet,
     launch,
+    scoringContract,
     scoringBytes,
     scoringContractDigest,
     contractValidators,
@@ -331,6 +356,146 @@ function compareCheckpoint(left, right, contract) {
     contract.checkpoints.map(({ id }, index) => [id, index]),
   );
   return (order.get(left) ?? -1) - (order.get(right) ?? -1);
+}
+
+function checkpointReached(highestCheckpoint, requiredCheckpoint, contract) {
+  if (!requiredCheckpoint) return true;
+  if (!highestCheckpoint) return false;
+  return compareCheckpoint(highestCheckpoint, requiredCheckpoint, contract) >= 0;
+}
+
+function checkpointAttempted(
+  attemptedCheckpointIds,
+  highestCheckpoint,
+  requiredCheckpoint,
+  contract,
+) {
+  if (!requiredCheckpoint) return true;
+  return checkpointReached(highestCheckpoint, requiredCheckpoint, contract)
+    || attemptedCheckpointIds.has(requiredCheckpoint);
+}
+
+function panelGateIds(contract, panel) {
+  const known = new Set(contract.baselineGates.map(({ id }) => id));
+  const configured = contract.panelGateApplicability?.[panel];
+  const ids = configured ?? contract.baselineGates.map(({ id }) => id);
+  if (!Array.isArray(ids) || new Set(ids).size !== ids.length || ids.some((id) => !known.has(id))) {
+    throw new Error(`Scoring contract has an invalid gate applicability declaration for panel ${panel}`);
+  }
+  return ids;
+}
+
+function gateMinimumCheckpoint(gate, panel) {
+  return gate.panelMinimumCheckpoints?.[panel] ?? gate.minimumCheckpoint ?? null;
+}
+
+function dimensionPanelRule(dimension, panel) {
+  const configured = dimension.panelApplicability?.[panel];
+  if (!configured) {
+    return { status: "applicable", mode: "legacy-default", minimumCheckpoint: null };
+  }
+  if (configured.status === "not-applicable") return configured;
+  if (configured.status === "applicable") return configured;
+  throw new Error(`Dimension ${dimension.id} has an invalid applicability declaration for panel ${panel}`);
+}
+
+function dimensionRequiredEvidence(dimension, panel) {
+  const configured = dimension.panelRequiredEvidence?.[panel]
+    ?? dimension.requiredEvidence
+    ?? [];
+  return configured.map((clause, index) => (
+    typeof clause === "string"
+      ? {
+        id: `${dimension.id}-E${String(index + 1).padStart(2, "0")}`,
+        criterion: clause,
+        legacy: true,
+      }
+      : { ...clause, legacy: false }
+  ));
+}
+
+function emptyEvidenceCoverage(dimension, panel) {
+  const clauses = dimensionRequiredEvidence(dimension, panel);
+  return {
+    required: clauses.length,
+    covered: 0,
+    missing: 0,
+    uncertain: clauses.length,
+    ratio: clauses.length === 0 ? null : 0,
+    criteria: clauses.map(({ id, criterion }) => ({
+      id,
+      criterion,
+      consensusStatus: "uncertain",
+    })),
+    reviewerObservations: [],
+  };
+}
+
+function dimensionEvidenceCoverage(dimension, ratings, panel) {
+  const clauses = dimensionRequiredEvidence(dimension, panel);
+  if (clauses.length === 0) return emptyEvidenceCoverage(dimension, panel);
+  const reviewerObservations = ratings.map((rating) => {
+    const coverage = new Map(
+      (rating.criterionCoverage ?? []).map((entry) => [entry.criterionId, entry]),
+    );
+    const statuses = Object.fromEntries(
+      clauses.map(({ id }) => [id, coverage.get(id)?.status ?? "uncertain"]),
+    );
+    const covered = clauses
+      .filter(({ id }) => statuses[id] === "covered")
+      .map(({ id }) => id);
+    const missing = clauses
+      .filter(({ id }) => statuses[id] === "missing")
+      .map(({ id }) => id);
+    const uncertain = clauses
+      .filter(({ id }) => statuses[id] === "uncertain")
+      .map(({ id }) => id);
+    return {
+      raterId: rating.raterId,
+      covered,
+      missing,
+      uncertain,
+      ratio: covered.length / clauses.length,
+    };
+  });
+  const criteria = clauses.map(({ id, criterion }) => {
+    const observed = reviewerObservations.map((observation) => {
+      if (observation.covered.includes(id)) return "covered";
+      if (observation.missing.includes(id)) return "missing";
+      return "uncertain";
+    });
+    const consensusStatus = observed.length > 0 && observed.every((status) => status === "covered")
+      ? "covered"
+      : observed.length > 0 && observed.every((status) => status === "missing")
+        ? "missing"
+        : "uncertain";
+    return { id, criterion, consensusStatus };
+  });
+  const covered = criteria.filter(({ consensusStatus }) => consensusStatus === "covered").length;
+  const missing = criteria.filter(({ consensusStatus }) => consensusStatus === "missing").length;
+  const uncertain = criteria.length - covered - missing;
+  return {
+    required: clauses.length,
+    covered,
+    missing,
+    uncertain,
+    ratio: covered / clauses.length,
+    criteria,
+    reviewerObservations,
+  };
+}
+
+function reviewExpectation(contract, panel, highestCheckpoint) {
+  const gates = contract.baselineGates.filter((gate) =>
+    panelGateIds(contract, panel).includes(gate.id)
+      && checkpointReached(highestCheckpoint, gateMinimumCheckpoint(gate, panel), contract),
+  );
+  const dimensions = contract.dimensions.filter((dimension) => {
+    const rule = dimensionPanelRule(dimension, panel);
+    return rule.status === "applicable"
+      && checkpointReached(highestCheckpoint, rule.minimumCheckpoint, contract);
+  });
+  return { gateIds: gates.map(({ id }) => id), dimensionIds: dimensions.map(({ id }) => id) };
 }
 
 function resultFromChecks(checks) {
@@ -400,7 +565,7 @@ function combineGateResults(automaticResult, reviewerResult, hasAutomaticChecks)
   return "not-evaluable";
 }
 
-function buildGateResults(contract, checks, admissionStatus, gateRatings) {
+function buildGateResults(contract, checks, admissionStatus, gateRatings, applicableGateIds) {
   const gates = [contract.admissionGate, ...contract.baselineGates];
   return gates.map(({ id, label }) => {
     if (id === "A0") {
@@ -409,6 +574,16 @@ function buildGateResults(contract, checks, admissionStatus, gateRatings) {
         label,
         result: admissionStatus,
         checks: checks.filter(({ gateId }) => gateId === id),
+      };
+    }
+    if (!applicableGateIds.includes(id)) {
+      return {
+        id,
+        label,
+        result: "not-applicable",
+        applicable: false,
+        checks: [],
+        reviewerRatings: [],
       };
     }
     const gateChecks = checks.filter(({ gateId }) => gateId === id);
@@ -427,25 +602,88 @@ function buildGateResults(contract, checks, admissionStatus, gateRatings) {
   });
 }
 
-function dimensionResult(dimension, ratings, minimumRaters, highestCheckpoint) {
+function dimensionResult(
+  dimension,
+  ratings,
+  minimumRaters,
+  highestCheckpoint,
+  attemptedCheckpointIds,
+  contract,
+  panel,
+  admissionStatus,
+) {
+  const applicability = dimensionPanelRule(dimension, panel);
+  if (applicability.status === "not-applicable") {
+    return {
+      id: dimension.id,
+      label: dimension.label,
+      applicability,
+      attempted: false,
+      evidenceCoverage: emptyEvidenceCoverage(dimension, panel),
+      evaluable: false,
+      ratingStatus: "not-evaluable",
+      score: null,
+      scoreInterval: null,
+      nonEvaluationCause: "not-applicable",
+      highestVerifiedCheckpoint: highestCheckpoint,
+      ratings: [],
+    };
+  }
+  const attempted = checkpointAttempted(
+    attemptedCheckpointIds,
+    highestCheckpoint,
+    applicability.minimumCheckpoint,
+    contract,
+  );
+  if (admissionStatus !== "pass") {
+    return {
+      id: dimension.id,
+      label: dimension.label,
+      applicability,
+      attempted,
+      evidenceCoverage: emptyEvidenceCoverage(dimension, panel),
+      evaluable: false,
+      ratingStatus: "not-evaluable",
+      score: null,
+      scoreInterval: null,
+      nonEvaluationCause: "artifact-invalid",
+      highestVerifiedCheckpoint: highestCheckpoint,
+      ratings: [],
+    };
+  }
+  if (!checkpointReached(highestCheckpoint, applicability.minimumCheckpoint, contract)) {
+    return {
+      id: dimension.id,
+      label: dimension.label,
+      applicability,
+      attempted,
+      evidenceCoverage: emptyEvidenceCoverage(dimension, panel),
+      evaluable: false,
+      ratingStatus: "not-evaluable",
+      score: null,
+      scoreInterval: null,
+      nonEvaluationCause: attempted ? "incomplete-checkpoint" : "not-attempted",
+      highestVerifiedCheckpoint: highestCheckpoint,
+      ratings: [],
+    };
+  }
   const relevant = ratings.filter(({ dimensionId }) => dimensionId === dimension.id);
   const scored = relevant.filter(({ status }) => status === "scored");
   const distinctRaters = new Set(scored.map(({ raterId }) => raterId));
   const statuses = new Set(relevant.map(({ status }) => status));
-  const evidenceRefs = [...new Set(
-    relevant.flatMap(({ evidenceRefs }) => evidenceRefs ?? []),
-  )].sort();
+  const evidenceCoverage = dimensionEvidenceCoverage(dimension, relevant, panel);
   if (statuses.has("evaluator-unsupported")) {
     return {
       id: dimension.id,
       label: dimension.label,
-      attempted: relevant.length > 0,
-      evidenceCoverage: evidenceRefs.length,
+      applicability,
+      attempted: true,
+      evidenceCoverage,
       evaluable: false,
-      passFail: "not-evaluable",
+      ratingStatus: "not-evaluable",
       score: null,
       scoreInterval: null,
-      failureCause: "evaluator-unsupported",
+      nonEvaluationCause: "evaluator-unsupported",
       highestVerifiedCheckpoint: highestCheckpoint,
       ratings: relevant,
     };
@@ -454,28 +692,30 @@ function dimensionResult(dimension, ratings, minimumRaters, highestCheckpoint) {
     return {
       id: dimension.id,
       label: dimension.label,
+      applicability,
       attempted: true,
-      evidenceCoverage: evidenceRefs.length,
+      evidenceCoverage,
       evaluable: false,
-      passFail: "not-evaluable",
+      ratingStatus: "not-evaluable",
       score: null,
       scoreInterval: null,
-      failureCause: "evaluator-uncertain",
+      nonEvaluationCause: "evaluator-uncertain",
       highestVerifiedCheckpoint: highestCheckpoint,
       ratings: relevant,
     };
   }
-  if (distinctRaters.size < minimumRaters) {
+  if (statuses.has("not-evaluable") || distinctRaters.size < minimumRaters) {
     return {
       id: dimension.id,
       label: dimension.label,
-      attempted: relevant.length > 0,
-      evidenceCoverage: evidenceRefs.length,
+      applicability,
+      attempted: true,
+      evidenceCoverage,
       evaluable: false,
-      passFail: "not-evaluable",
+      ratingStatus: "not-evaluable",
       score: null,
       scoreInterval: null,
-      failureCause: relevant.length > 0 ? "missing-evidence" : "not-attempted",
+      nonEvaluationCause: "missing-evidence",
       highestVerifiedCheckpoint: highestCheckpoint,
       ratings: relevant,
     };
@@ -487,19 +727,26 @@ function dimensionResult(dimension, ratings, minimumRaters, highestCheckpoint) {
   return {
     id: dimension.id,
     label: dimension.label,
+    applicability,
     attempted: true,
-    evidenceCoverage: evidenceRefs.length,
+    evidenceCoverage,
     evaluable: !requiresAdjudication,
-    passFail: requiresAdjudication ? "not-evaluable" : "scored",
+    ratingStatus: requiresAdjudication ? "not-evaluable" : "scored",
     score: requiresAdjudication ? null : median(scores),
     scoreInterval: requiresAdjudication ? null : [minimum, maximum],
-    failureCause: requiresAdjudication ? "evaluator-uncertain" : null,
+    nonEvaluationCause: requiresAdjudication ? "evaluator-uncertain" : null,
     highestVerifiedCheckpoint: highestCheckpoint,
     ratings: relevant,
   };
 }
 
-export function validateReviewers(contract, reviewers, gateRatings, expertRatings) {
+export function validateReviewers(
+  contract,
+  reviewers,
+  gateRatings,
+  expertRatings,
+  { panel = null, highestCheckpoint = null } = {},
+) {
   const minimumRaters = contract.reviewProtocol.minimumIndependentRaters;
   const reviewerIds = new Set();
   for (const reviewer of reviewers) {
@@ -513,6 +760,15 @@ export function validateReviewers(contract, reviewers, gateRatings, expertRating
       || reviewer.blindToCandidateIdentity !== true
       || reviewer.reviewedSanitizedEvidenceOnly !== true
       || reviewer.ratingLockedBeforeAdjudication !== true
+      || (
+        contract.reviewProtocol.requireReviewerUntrustedEvidenceAttestation === true
+        && (
+          reviewer.treatedCandidateContentAsUntrustedEvidence !== true
+          || reviewer.followedFrozenReviewInstructionOnly !== true
+          || reviewer.appliedPanelSpecificAnchorsAndCriterionCoverage !== true
+          || reviewer.reviewedPanel !== panel
+        )
+      )
     ) {
       throw new Error(`Reviewer ${reviewer.id} lacks the required independence and blinding attestations`);
     }
@@ -533,7 +789,26 @@ export function validateReviewers(contract, reviewers, gateRatings, expertRating
       .filter(({ role }) => role === "adjudicator")
       .map(({ id }) => id),
   );
-  for (const gate of contract.baselineGates) {
+  const expectation = panel
+    ? reviewExpectation(contract, panel, highestCheckpoint)
+    : {
+      gateIds: contract.baselineGates.map(({ id }) => id),
+      dimensionIds: contract.dimensions.map(({ id }) => id),
+    };
+  const expectedGateIds = new Set(expectation.gateIds);
+  const expectedDimensionIds = new Set(expectation.dimensionIds);
+  for (const rating of gateRatings) {
+    if (!expectedGateIds.has(rating.gateId)) {
+      throw new Error(`Gate ${rating.gateId} is not reviewable for panel ${panel ?? "legacy-default"} at this attainment`);
+    }
+  }
+  for (const rating of expertRatings) {
+    if (!expectedDimensionIds.has(rating.dimensionId)) {
+      throw new Error(`Dimension ${rating.dimensionId} is not reviewable for panel ${panel ?? "legacy-default"} at this attainment`);
+    }
+  }
+  for (const gateId of expectation.gateIds) {
+    const gate = contract.baselineGates.find(({ id }) => id === gateId);
     const relevant = gateRatings.filter(({ gateId }) => gateId === gate.id);
     const raters = new Set(relevant.map(({ raterId }) => raterId));
     if (raters.size < minimumRaters) {
@@ -553,7 +828,8 @@ export function validateReviewers(contract, reviewers, gateRatings, expertRating
       throw new Error(`Gate ${gate.id} conflict requires a third independent adjudicator`);
     }
   }
-  for (const dimension of contract.dimensions) {
+  for (const dimensionId of expectation.dimensionIds) {
+    const dimension = contract.dimensions.find(({ id }) => id === dimensionId);
     const relevant = expertRatings.filter(
       ({ dimensionId }) => dimensionId === dimension.id,
     );
@@ -611,11 +887,12 @@ function validateGateRatings(contract, ratings) {
   });
 }
 
-function validateRatings(contract, ratings) {
-  const dimensionIds = new Set(contract.dimensions.map(({ id }) => id));
+function validateRatings(contract, ratings, panel) {
+  const dimensions = new Map(contract.dimensions.map((dimension) => [dimension.id, dimension]));
   const permittedStatuses = new Set(contract.reviewProtocol.permittedStatuses);
   return ratings.map((rating) => {
-    if (!dimensionIds.has(rating.dimensionId)) {
+    const dimension = dimensions.get(rating.dimensionId);
+    if (!dimension) {
       throw new Error(`Unknown dimension ${rating.dimensionId}`);
     }
     if (typeof rating.raterId !== "string" || rating.raterId.length === 0) {
@@ -636,14 +913,72 @@ function validateRatings(contract, ratings) {
         `Scored rating ${rating.raterId}/${rating.dimensionId} is outside the ordinal scale`,
       );
     }
+    const evidenceRefs = Array.isArray(rating.evidenceRefs)
+      ? [...new Set(rating.evidenceRefs)].sort()
+      : [];
+    const evidenceRefSet = new Set(evidenceRefs);
+    const requiredClauses = dimensionRequiredEvidence(dimension, panel);
+    const requiresStructuredCoverage = requiredClauses.length > 0
+      && requiredClauses.every(({ legacy }) => legacy === false);
+    const rawCoverage = Array.isArray(rating.criterionCoverage)
+      ? rating.criterionCoverage
+      : [];
+    const criterionCoverage = rawCoverage.map((entry) => {
+      if (
+        !entry
+        || typeof entry.criterionId !== "string"
+        || !new Set(["covered", "missing", "uncertain"]).has(entry.status)
+      ) {
+        throw new Error(
+          `Rating ${rating.raterId}/${rating.dimensionId} has invalid criterion coverage`,
+        );
+      }
+      const refs = Array.isArray(entry.evidenceRefs)
+        ? [...new Set(entry.evidenceRefs)].sort()
+        : [];
+      if (entry.status === "covered" && refs.length === 0) {
+        throw new Error(
+          `Covered criterion ${entry.criterionId} requires inspectable evidence`,
+        );
+      }
+      if (refs.some((evidenceId) => !evidenceRefSet.has(evidenceId))) {
+        throw new Error(
+          `Criterion ${entry.criterionId} cites evidence absent from the rating evidenceRefs`,
+        );
+      }
+      return {
+        criterionId: entry.criterionId,
+        status: entry.status,
+        evidenceRefs: refs,
+      };
+    });
+    const coverageIds = criterionCoverage.map(({ criterionId }) => criterionId);
+    if (new Set(coverageIds).size !== coverageIds.length) {
+      throw new Error(`Rating ${rating.raterId}/${rating.dimensionId} repeats criterion coverage`);
+    }
+    if (requiresStructuredCoverage) {
+      const requiredIds = requiredClauses.map(({ id }) => id).sort();
+      const actualIds = [...coverageIds].sort();
+      if (canonicalJson(requiredIds) !== canonicalJson(actualIds)) {
+        throw new Error(
+          `Rating ${rating.raterId}/${rating.dimensionId} must cover every panel-specific evidence criterion exactly once`,
+        );
+      }
+    } else if (criterionCoverage.length > 0) {
+      const permittedIds = new Set(requiredClauses.map(({ id }) => id));
+      if (criterionCoverage.some(({ criterionId }) => !permittedIds.has(criterionId))) {
+        throw new Error(
+          `Rating ${rating.raterId}/${rating.dimensionId} covers an unknown evidence criterion`,
+        );
+      }
+    }
     return {
       raterId: rating.raterId,
       dimensionId: rating.dimensionId,
       status: rating.status,
       ...(rating.status === "scored" ? { score: rating.score } : {}),
-      evidenceRefs: Array.isArray(rating.evidenceRefs)
-        ? [...new Set(rating.evidenceRefs)].sort()
-        : [],
+      evidenceRefs,
+      criterionCoverage,
       rationale: typeof rating.rationale === "string" ? rating.rationale : "",
     };
   });
@@ -692,6 +1027,15 @@ export async function evaluateEngineeringSubmission({
   if (!scoringContract.panels.some(({ id }) => id === assessment.panel)) {
     throw new Error(`Unknown assessment panel ${assessment.panel}`);
   }
+  if (
+    scoringContract.reviewProtocol?.requireReviewerUntrustedEvidenceAttestation === true
+    && (
+      assessment.reviewContext?.panel !== assessment.panel
+      || assessment.reviewContext?.candidateContentHandling !== "untrusted-evidence-only"
+    )
+  ) {
+    throw new Error("Assessment does not bind the frozen untrusted-evidence review context to its panel");
+  }
   const scoringDigest = scoringContractDigest
     ?? sha256(Buffer.from(`${canonicalJson(scoringContract)}\n`));
   const declaredDigest = assessment.scoringContract?.sha256;
@@ -699,8 +1043,15 @@ export async function evaluateEngineeringSubmission({
     throw new Error("Assessment scoring-contract digest does not match");
   }
 
+  const authoritativeOutputContract = (
+    packet.id === "integrated-robotic-handling"
+    && packet.version === "1.10"
+  )
+    ? await loadAuthoritativeOutputContract(packetRoot, packet)
+    : {};
   const candidateValidation = await validateCandidateBundle(candidateRoot, {
     ...(contractValidators ? { contractValidators } : {}),
+    ...authoritativeOutputContract,
   });
   const submission = candidateValidation.submission;
   if (!submission) {
@@ -769,6 +1120,12 @@ export async function evaluateEngineeringSubmission({
   }
 
   const checks = (assessment.automaticChecks ?? []).map(normalizeCheck);
+  const applicableGateIds = panelGateIds(scoringContract, assessment.panel);
+  for (const check of checks) {
+    if (check.gateId !== "A0" && !applicableGateIds.includes(check.gateId)) {
+      throw new Error(`Automatic check ${check.id} targets gate ${check.gateId}, which is not applicable to panel ${assessment.panel}`);
+    }
+  }
   const a0Checks = checks.filter(({ gateId }) => gateId === "A0");
   const receiptByCheckpoint = new Map(
     (submission.checkpointReceipts ?? []).map((receipt) => [receipt.checkpointId, receipt]),
@@ -805,23 +1162,10 @@ export async function evaluateEngineeringSubmission({
     throw new Error("Scoring requires evaluator-verified immutable review records");
   }
   const gateRatings = validateGateRatings(scoringContract, boundReviews.gateRatings);
-  const ratings = validateRatings(scoringContract, boundReviews.ratings);
-  if (admissionResult === "pass") {
-    if (!boundReviews.reviewAudit) {
-      throw new Error("An admitted result requires a bound review package and sealed review records");
-    }
-    validateReviewers(
-      scoringContract,
-      boundReviews.reviewers,
-      gateRatings,
-      ratings,
-    );
-  }
-  const gates = buildGateResults(
+  const ratings = validateRatings(
     scoringContract,
-    checks,
-    admissionResult,
-    gateRatings,
+    boundReviews.ratings,
+    assessment.panel,
   );
   const verifiedReceipts = (
     candidateValidation.status === "valid"
@@ -833,18 +1177,66 @@ export async function evaluateEngineeringSubmission({
     )
     .sort((left, right) => compareCheckpoint(left, right, scoringContract));
   const highestCheckpoint = verifiedReceipts.at(-1) ?? null;
+  const attemptedCheckpointIds = new Set(
+    submission.partialAttainment?.attemptedCheckpointIds ?? [],
+  );
+  if (admissionResult === "pass") {
+    if (boundReviews.reviewAudit) {
+      validateReviewers(
+        scoringContract,
+        boundReviews.reviewers,
+        gateRatings,
+        ratings,
+        { panel: assessment.panel, highestCheckpoint },
+      );
+    } else if (boundReviews.reviewers.length || gateRatings.length || ratings.length) {
+      throw new Error("No review ratings may be sealed before this panel reaches a reviewable checkpoint");
+    }
+  }
+  const gates = buildGateResults(
+    scoringContract,
+    checks,
+    admissionResult,
+    gateRatings,
+    applicableGateIds,
+  );
   const dimensions = scoringContract.dimensions.map((dimension) =>
     dimensionResult(
       dimension,
       ratings,
       scoringContract.reviewProtocol.minimumIndependentRaters,
       highestCheckpoint,
+      attemptedCheckpointIds,
+      scoringContract,
+      assessment.panel,
+      admissionResult,
     ),
   );
   const gateMap = new Map(gates.map((gate) => [gate.id, gate.result]));
-  const baselineQualified = scoringContract.baselineGates
-    .filter(({ id }) => id !== "B0")
-    .every(({ id }) => gateMap.get(id) === "pass");
+  const baselineCheckpointIds = (packet.checkpoints ?? [])
+    .filter(({ requiredForBaseline }) => requiredForBaseline !== false)
+    .map(({ id }) => id);
+  const completedCheckpointIds = new Set(
+    submission.partialAttainment?.completedCheckpointIds ?? [],
+  );
+  const baselineAttained =
+    baselineCheckpointIds.length > 0
+    && baselineCheckpointIds.every((id) => completedCheckpointIds.has(id));
+  const baselineQualified = assessment.panel === "fixed-anchor-baseline"
+    ? (
+      admissionResult === "pass"
+      && baselineAttained
+      && scoringContract.baselineGates.every(({ id }) => gateMap.get(id) === "pass")
+    )
+    : null;
+  const changeQualified = assessment.panel === "change-response"
+    ? (
+      admissionResult === "pass"
+      && completedCheckpointIds.has("CKPT-050")
+      && ["B1", "B2", "B3", "B4", "B5", "B6"]
+        .every((id) => gateMap.get(id) === "pass")
+    )
+    : null;
   const completeness = outputCoverage(packet, submission, artifactContract);
 
   return {
@@ -870,10 +1262,11 @@ export async function evaluateEngineeringSubmission({
       ...(artifactContract.admissionIssues ?? []),
     ],
     qualification: {
+      admission: admissionResult,
+      baseline: baselineQualified === null ? "not-run" : (baselineQualified ? "pass" : "fail"),
+      change: changeQualified === null ? "not-run" : (changeQualified ? "pass" : "fail"),
       baselineQualified,
-      changeQualified: assessment.panel === "change-response"
-        ? baselineQualified
-        : null,
+      changeQualified,
       changeFailureDoesNotEraseBaseline: true,
     },
     gates,

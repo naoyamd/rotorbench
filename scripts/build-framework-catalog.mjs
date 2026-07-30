@@ -30,10 +30,12 @@ const portablePublicationRoot = path.join(outputRoot, "publications");
 const workspaceBootstrapSourceRoot = path.join(projectRoot, "workspace-bootstrap");
 const workspaceBootstrapOutputRoot = path.join(outputRoot, "workspaces");
 const publicEvaluationSourceFiles = new Set([
+  "README.md",
   "assessment-template.json",
   "assessment.schema.json",
   "cohort-disclosure-template.json",
   "measurement-conditions-template.json",
+  "reviewer-template.json",
   "scoring-contract.json",
 ]);
 

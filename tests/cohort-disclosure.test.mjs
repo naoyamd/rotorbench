@@ -3,6 +3,7 @@ import test from "node:test";
 import {
   validateCohortDisclosure,
   validateCohortEvaluationAggregate,
+  validatePublicEvaluationSummary,
 } from "../scripts/framework-lib.mjs";
 import {
   buildCohortEvaluationAggregate,
@@ -148,7 +149,7 @@ test("cohort aggregate keeps D01-D10, gates, records, raw metrics, and efficienc
   }), /assessment panel/);
 });
 
-test("public evaluation summary excludes reviewer identities, votes, rationale, and review paths", () => {
+test("legacy public evaluation summaries retain scalar coverage without reviewer details", () => {
   const evaluatorRecord = {
     ...record(runIds[0], 3),
     reviewers: [{ raterId: "reviewer-secret", rationale: "private rationale" }],
@@ -159,8 +160,77 @@ test("public evaluation summary excludes reviewer identities, votes, rationale, 
   };
   const summary = publicEvaluationSummary(evaluatorRecord, Buffer.from(JSON.stringify(evaluatorRecord)));
   const published = JSON.stringify(summary);
+  assert.deepEqual(validatePublicEvaluationSummary(summary), []);
   assert.doesNotMatch(published, /reviewer-secret|private rationale|reviewPackagePath|reviewAudit|raterId|ratings|rationale/);
   assert.equal(summary.evaluationRecordSha256.length, 64);
   assert.equal(summary.gates[0].result, "pass");
   assert.equal(summary.dimensions[0].score, 3);
+  assert.equal(summary.dimensions[0].evidenceCoverage, 1);
+  assert.equal(summary.dimensions[0].passFail, "scored");
+  assert.equal(summary.dimensions[0].failureCause, null);
+});
+
+test("v1.10 public evaluation summaries project only consensus evidence coverage", () => {
+  const evaluatorRecord = {
+    ...record(runIds[0], 3),
+    reviewPackagePath: "private-review-package",
+    dimensions: [{
+      id: "D01",
+      label: "Dimension",
+      attempted: true,
+      evidenceCoverage: {
+        required: 3,
+        covered: 1,
+        missing: 1,
+        uncertain: 1,
+        ratio: 1 / 3,
+        criteria: [
+          { id: "D01-E01", criterion: "private criterion text", consensusStatus: "covered" },
+          { id: "D01-E02", criterion: "private criterion text", consensusStatus: "missing" },
+          { id: "D01-E03", criterion: "private criterion text", consensusStatus: "uncertain" },
+        ],
+        reviewerObservations: [{
+          raterId: "reviewer-secret",
+          covered: ["D01-E01"],
+          missing: ["D01-E02"],
+          uncertain: ["D01-E03"],
+          rationale: "private rationale",
+          path: "private-evidence-path",
+        }],
+      },
+      evaluable: true,
+      ratingStatus: "scored",
+      score: 3,
+      scoreInterval: [2, 4],
+      nonEvaluationCause: null,
+      highestVerifiedCheckpoint: "CKPT-040",
+      ratings: [{
+        raterId: "reviewer-secret",
+        rationale: "private rationale",
+        evidenceRefs: ["private-evidence-path"],
+      }],
+    }],
+  };
+  const summary = publicEvaluationSummary(evaluatorRecord, Buffer.from(JSON.stringify(evaluatorRecord)));
+  const coverage = summary.dimensions[0].evidenceCoverage;
+  const published = JSON.stringify(summary);
+
+  assert.deepEqual(validatePublicEvaluationSummary(summary), []);
+  assert.deepEqual(coverage, {
+    required: 3,
+    covered: 1,
+    missing: 1,
+    uncertain: 1,
+    ratio: 1 / 3,
+    criterionConsensus: {
+      "D01-E01": "covered",
+      "D01-E02": "missing",
+      "D01-E03": "uncertain",
+    },
+  });
+  assert.equal(Object.hasOwn(summary.dimensions[0], "passFail"), false);
+  assert.equal(Object.hasOwn(summary.dimensions[0], "failureCause"), false);
+  assert.equal(Object.hasOwn(coverage, "criteria"), false);
+  assert.equal(Object.hasOwn(coverage, "reviewerObservations"), false);
+  assert.doesNotMatch(published, /reviewer-secret|private rationale|private-evidence-path|private criterion text|raterId|ratings|rationale|reviewPackagePath|reviewAudit/);
 });

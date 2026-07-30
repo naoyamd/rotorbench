@@ -2,6 +2,7 @@ import { lstat, readFile } from "node:fs/promises";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { createHash } from "node:crypto";
+import { deriveV4CheckpointAttainment } from "./framework-lib.mjs";
 
 function ensureInside(root, relativePath) {
   if (
@@ -142,17 +143,62 @@ async function outputContractForPacket(packetRoot, packet) {
 }
 
 function highestAttainedCheckpoint(packet, submission) {
+  if (
+    packet?.schemaVersion === "4.0"
+    && submission?.protocolVersion === "4.0"
+  ) {
+    const attainment = deriveV4CheckpointAttainment(packet, submission);
+    return {
+      id: attainment.highestVerifiedCheckpointId,
+      sequence: checkpointSequence(
+        packet,
+        attainment.highestVerifiedCheckpointId,
+      ) ?? -1,
+      completedCheckpointIds: new Set(attainment.completedCheckpointIds),
+      issues: attainment.issues,
+    };
+  }
   const id = submission?.partialAttainment?.highestVerifiedCheckpointId;
-  if (!id) return { id: null, sequence: -1, issues: [] };
+  if (!id) {
+    return {
+      id: null,
+      sequence: -1,
+      completedCheckpointIds: null,
+      issues: [],
+    };
+  }
   const sequence = checkpointSequence(packet, id);
   if (!Number.isInteger(sequence)) {
     return {
       id,
       sequence: -1,
+      completedCheckpointIds: null,
       issues: [issue("unknown-highest-checkpoint", `Submission names an unknown highest checkpoint: ${id}`)],
     };
   }
-  return { id, sequence, issues: [] };
+  return {
+    id,
+    sequence,
+    completedCheckpointIds: null,
+    issues: [],
+  };
+}
+
+function checkpointIsAttained(attained, checkpoint) {
+  return attained.completedCheckpointIds
+    ? attained.completedCheckpointIds.has(checkpoint.id)
+    : checkpoint.sequence <= attained.sequence;
+}
+
+function postAttainmentArtifactIssue(artifactPath, requiredAt) {
+  return issue(
+    "post-attainment-artifact-declared",
+    `${artifactPath} is assigned to unattained checkpoint ${requiredAt.id}`,
+    {
+      path: artifactPath,
+      requiredAtCheckpointId: requiredAt.id,
+    },
+  );
 }
 
 function matchesExpectedMetadata(expected, actual) {
@@ -555,8 +601,13 @@ export async function validateArtifactContract({ candidateRoot, packetRoot, pack
       ));
       continue;
     }
-    const isDue = requiredAt.sequence <= attained.sequence;
+    const isDue = checkpointIsAttained(attained, requiredAt);
     const declared = declaredByPath.get(expected.path) ?? [];
+    if (!isDue && declared.length > 0) {
+      admissionIssues.push(
+        postAttainmentArtifactIssue(expected.path, requiredAt),
+      );
+    }
     if (!isDue && declared.length === 0) {
       deferred.push({
         id: expected.id,
@@ -605,6 +656,18 @@ export async function validateArtifactContract({ candidateRoot, packetRoot, pack
     });
     indexedPaths.push(...drawingIndex.paths);
     indexedArtifacts.push(...drawingIndex.artifacts, ...sourceIndex.artifacts);
+    if (!isDue) {
+      for (const indexedPath of [
+        ...drawingIndex.paths,
+        ...sourceIndex.paths,
+      ]) {
+        if ((declaredByPath.get(indexedPath) ?? []).length > 0) {
+          admissionIssues.push(
+            postAttainmentArtifactIssue(indexedPath, requiredAt),
+          );
+        }
+      }
+    }
     const allIssues = [
       ...metadataIssues,
       ...inspectionIssues,

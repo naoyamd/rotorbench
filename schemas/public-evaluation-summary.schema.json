@@ -26,10 +26,90 @@
     "qualification": { "type": "object" },
     "attainment": { "type": "object" },
     "gates": { "type": "array", "items": { "type": "object" } },
-    "dimensions": { "type": "array", "items": { "type": "object" } },
+    "dimensions": { "type": "array", "items": { "$ref": "#/$defs/dimension" } },
     "rawMetrics": { "type": "array" },
     "efficiency": { "type": "object" },
     "compositeScore": { "type": "null" },
     "compositeScorePublished": { "const": false }
+  },
+  "$defs": {
+    "dimension": {
+      "oneOf": [
+        { "$ref": "#/$defs/legacyDimension" },
+        { "$ref": "#/$defs/v110Dimension" }
+      ]
+    },
+    "legacyDimension": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^D(?:0[1-9]|10)$" },
+        "label": { "type": "string", "minLength": 1 },
+        "attempted": { "type": "boolean" },
+        "evidenceCoverage": { "type": "number", "minimum": 0 },
+        "evaluable": { "type": "boolean" },
+        "passFail": { "enum": ["scored", "not-evaluable"] },
+        "score": { "type": ["number", "null"], "minimum": 0, "maximum": 4 },
+        "scoreInterval": {
+          "type": ["array", "null"],
+          "minItems": 2,
+          "maxItems": 2,
+          "items": { "type": "number", "minimum": 0, "maximum": 4 }
+        },
+        "failureCause": { "type": ["string", "null"], "minLength": 1 },
+        "highestVerifiedCheckpoint": { "type": ["string", "null"], "minLength": 1 }
+      }
+    },
+    "v110Dimension": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "label",
+        "attempted",
+        "evidenceCoverage",
+        "evaluable",
+        "ratingStatus",
+        "score",
+        "scoreInterval",
+        "nonEvaluationCause",
+        "highestVerifiedCheckpoint"
+      ],
+      "properties": {
+        "id": { "type": "string", "pattern": "^D(?:0[1-9]|10)$" },
+        "label": { "type": "string", "minLength": 1 },
+        "attempted": { "type": "boolean" },
+        "evidenceCoverage": { "$ref": "#/$defs/v110EvidenceCoverage" },
+        "evaluable": { "type": "boolean" },
+        "ratingStatus": { "enum": ["scored", "not-evaluable"] },
+        "score": { "type": ["number", "null"], "minimum": 0, "maximum": 4 },
+        "scoreInterval": {
+          "type": ["array", "null"],
+          "minItems": 2,
+          "maxItems": 2,
+          "items": { "type": "number", "minimum": 0, "maximum": 4 }
+        },
+        "nonEvaluationCause": { "type": ["string", "null"], "minLength": 1 },
+        "highestVerifiedCheckpoint": { "type": ["string", "null"], "minLength": 1 }
+      }
+    },
+    "v110EvidenceCoverage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["required", "covered", "missing", "uncertain", "ratio", "criterionConsensus"],
+      "properties": {
+        "required": { "type": "integer", "minimum": 0 },
+        "covered": { "type": "integer", "minimum": 0 },
+        "missing": { "type": "integer", "minimum": 0 },
+        "uncertain": { "type": "integer", "minimum": 0 },
+        "ratio": { "type": ["number", "null"], "minimum": 0, "maximum": 1 },
+        "criterionConsensus": {
+          "type": "object",
+          "propertyNames": { "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$" },
+          "additionalProperties": { "enum": ["covered", "missing", "uncertain"] }
+        }
+      }
+    }
   }
 }

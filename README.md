@@ -70,7 +70,7 @@ Before the first candidate starts, the operator:
 
 1. chooses one `live-verified` launch;
 2. creates a measurement-conditions file from
-   `evaluation/integrated-robotic-handling-v1/measurement-conditions-template.json`;
+   `evaluation/integrated-robotic-handling-v1.10/measurement-conditions-template.json`;
 3. preassigns opaque run IDs for the official three independent runs per model;
 4. records `frozenAt`, then fixes equal elapsed-time, token, reasoning, tool,
    network, and zero-human-intervention conditions; and

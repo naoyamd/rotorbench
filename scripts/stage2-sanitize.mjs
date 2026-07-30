@@ -425,7 +425,7 @@ export async function sanitizeRun({
   );
 
   const issues = [];
-  const files = await scanCandidateTree(candidateRoot, profile.sanitization, issues);
+  await scanCandidateTree(candidateRoot, profile.sanitization, issues);
   let bundleSha256 = run.seal.bundleSha256;
   try {
     bundleSha256 = await bundleTreeHash(candidateRoot);
@@ -472,19 +472,16 @@ export async function sanitizeRun({
       expectedByPath.set(indexed.path, indexed);
       indexedByPath.set(indexed.path, indexed);
     }
-    const allowedFiles = new Set([
-      "submission.json",
-      submission.initialPlan?.path,
-      submission.initialPlanCheckpoint?.path,
-      submission.workRecord?.path,
-      ...(submission.checkpointReceipts ?? []).map(({ path: receiptPath }) => receiptPath),
-      ...(submission.artifacts ?? []).map(({ path: artifactPath }) => artifactPath),
-    ].filter(isSafeRelativePath));
-    for (const file of files) {
-      if (!allowedFiles.has(file.path)) {
-        issues.push(issue("unexpected-candidate-file", "candidate bundle contains an undeclared file", file.path));
-      }
-    }
+    // The tree scan above applies the frozen path, file-count, byte, and
+    // symlink limits to *every* file in the sealed bundle.  A materialized
+    // candidate workspace also legitimately contains bootstrap templates,
+    // the workspace receipt, and candidate working helpers.  Those files are
+    // neither engineering evidence nor declared artifacts, so they must not
+    // be rejected merely for existing and must never be copied below.
+    //
+    // Declared process evidence and artifacts remain strict: their paths and
+    // hashes are bound by the sealed submission/run validators, and only
+    // admitted declared artifacts are read and emitted by this sanitizer.
     const declaredByPath = new Map();
     for (const artifact of submission.artifacts ?? []) {
       const entries = declaredByPath.get(artifact.path) ?? [];
