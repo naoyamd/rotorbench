@@ -1,5 +1,9 @@
 * text=auto eol=lf
 
+# Frozen execution contracts are byte-addressed snapshots. Do not let Git
+# normalize third-party package bytes after their digest has been sealed.
+launches/*/execution-contract/** -text
+
 *.png binary
 *.jpg binary
 *.jpeg binary
