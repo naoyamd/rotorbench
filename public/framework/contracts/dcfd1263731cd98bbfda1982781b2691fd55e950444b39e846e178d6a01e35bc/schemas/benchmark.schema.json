@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rotorbench.example/schemas/benchmark.schema.json",
+  "title": "Engineering Design Benchmark Framework benchmark",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "id", "title", "status", "version", "extensions"],
+  "properties": {
+    "schemaVersion": { "const": "1.0" },
+    "id": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" },
+    "title": { "type": "string", "minLength": 1 },
+    "summary": { "type": "string" },
+    "status": { "type": "string", "enum": ["draft", "active", "archived"] },
+    "version": { "type": "string", "minLength": 1 },
+    "extensions": {
+      "type": "object",
+      "description": "Benchmark-specific requirements and scoring live here, outside the shared contract."
+    }
+  }
+}
