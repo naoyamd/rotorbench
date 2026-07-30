@@ -639,6 +639,59 @@ test("v1.2 keeps baseline and change qualification separate and scopes D09", asy
     );
     assert.equal(Object.hasOwn(changedD09, "passFail"), false);
 
+    const earlyFixture = await candidateFixture({
+      launch,
+      status: "partial",
+      completedCheckpointIds: ["CKPT-000"],
+    });
+    try {
+      const earlyAssessment = {
+        ...assessment,
+        panel: "fixed-anchor-baseline",
+        reviewContext: {
+          panel: "fixed-anchor-baseline",
+          candidateContentHandling: "untrusted-evidence-only",
+        },
+        candidateBundleSha256: earlyFixture.candidateBundleSha256,
+        checkpointReceipts: earlyFixture.submission.checkpointReceipts.map(
+          ({ checkpointId, sha256: receiptSha256 }) => ({
+            checkpointId,
+            receiptSha256,
+            status: "verified",
+          }),
+        ),
+      };
+      const earlyResult = await evaluateEngineeringSubmission({
+        candidateRoot: earlyFixture.candidateRoot,
+        packetRoot,
+        packet,
+        launch,
+        assessment: earlyAssessment,
+        scoringContract,
+        scoringContractDigest,
+        contractValidators,
+        artifactContractValidator: async () => ({
+          status: "valid",
+          admissionIssues: [],
+          deferred: [],
+          coverage: null,
+        }),
+        boundReviews: boundReviews(scoringContract, "pass"),
+      });
+      assert.deepEqual(
+        earlyResult.gates
+          .filter(({ id }) => id.startsWith("B"))
+          .map(({ result: gateResult, reviewerRatings }) => [
+            gateResult,
+            reviewerRatings.length,
+          ]),
+        scoringContract.baselineGates.map(() => ["not-evaluable", 0]),
+        "ratings for unreached baseline gates must remain inert",
+      );
+    } finally {
+      await rm(earlyFixture.parent, { recursive: true, force: true });
+    }
+
     const noChangeFixture = await candidateFixture({
       launch,
       status: "complete",

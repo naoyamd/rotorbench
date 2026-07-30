@@ -565,9 +565,18 @@ function combineGateResults(automaticResult, reviewerResult, hasAutomaticChecks)
   return "not-evaluable";
 }
 
-function buildGateResults(contract, checks, admissionStatus, gateRatings, applicableGateIds) {
+function buildGateResults(
+  contract,
+  checks,
+  admissionStatus,
+  gateRatings,
+  applicableGateIds,
+  highestCheckpoint,
+  panel,
+) {
   const gates = [contract.admissionGate, ...contract.baselineGates];
-  return gates.map(({ id, label }) => {
+  return gates.map((gate) => {
+    const { id, label } = gate;
     if (id === "A0") {
       return {
         id,
@@ -582,6 +591,19 @@ function buildGateResults(contract, checks, admissionStatus, gateRatings, applic
         label,
         result: "not-applicable",
         applicable: false,
+        checks: [],
+        reviewerRatings: [],
+      };
+    }
+    if (!checkpointReached(
+      highestCheckpoint,
+      gateMinimumCheckpoint(gate, panel),
+      contract,
+    )) {
+      return {
+        id,
+        label,
+        result: "not-evaluable",
         checks: [],
         reviewerRatings: [],
       };
@@ -1192,6 +1214,8 @@ export async function evaluateEngineeringSubmission({
     admissionResult,
     gateRatings,
     applicableGateIds,
+    highestCheckpoint,
+    assessment.panel,
   );
   const dimensions = scoringContract.dimensions.map((dimension) =>
     dimensionResult(
