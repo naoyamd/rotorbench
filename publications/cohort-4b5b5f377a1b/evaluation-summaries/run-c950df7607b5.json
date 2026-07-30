@@ -1,0 +1,317 @@
+{
+  "schemaVersion": "1.0",
+  "runId": "run-c950df7607b5",
+  "status": "admitted",
+  "evaluationRecordSha256": "6e519dea2c10fb351093a82ef3b0b2c50dfec841dd68b46612445f5e3fd4acc6",
+  "finalization": {
+    "status": "finalized",
+    "finalizedAt": "2026-07-30T09:45:39.348Z",
+    "candidateBundleSha256": "cac111450427aad79a409fe4479c9827baa52a2b93229c23eb3f1e6c8a576ac9",
+    "candidateSubmissionSha256": "14f945d6cf5948666cde55f18090436fbb0fe61e962cd06ae1893904af8a1a8f",
+    "pendingRecordSha256": "d0e1d13dcfa75dddb39aafaf92c96a569ea0120835757ac4b46d25c7dbca9781",
+    "sourceEvaluationSha256": "31c5083fb676fa3af7b121e3b2e22750bcff56776f5b67bf0dc4dff7325ca092"
+  },
+  "qualification": {
+    "admission": "pass",
+    "baseline": "fail",
+    "change": "not-run",
+    "baselineQualified": false,
+    "changeQualified": null,
+    "changeFailureDoesNotEraseBaseline": true
+  },
+  "attainment": {
+    "highestVerifiedCheckpoint": "CKPT-000",
+    "verifiedCheckpointRefs": [
+      "CKPT-000"
+    ]
+  },
+  "gates": [
+    {
+      "id": "A0",
+      "label": "Submission admission",
+      "result": "pass"
+    },
+    {
+      "id": "B0",
+      "label": "Baseline required-output and evidence completeness",
+      "result": "fail"
+    },
+    {
+      "id": "B1",
+      "label": "Geometry and kinematics",
+      "result": "evaluator-uncertain"
+    },
+    {
+      "id": "B2",
+      "label": "Grasp and workpiece integrity",
+      "result": "evaluator-uncertain"
+    },
+    {
+      "id": "B3",
+      "label": "Mechanical capacity",
+      "result": "evaluator-uncertain"
+    },
+    {
+      "id": "B4",
+      "label": "Accuracy and tolerance",
+      "result": "evaluator-uncertain"
+    },
+    {
+      "id": "B5",
+      "label": "Manufacturing, assembly and service",
+      "result": "evaluator-uncertain"
+    },
+    {
+      "id": "B6",
+      "label": "Mechanical safety",
+      "result": "evaluator-uncertain"
+    }
+  ],
+  "dimensions": [
+    {
+      "id": "D01",
+      "label": "Requirements decomposition and system concept",
+      "attempted": false,
+      "evidenceCoverage": {
+        "required": 3,
+        "covered": 0,
+        "missing": 0,
+        "uncertain": 3,
+        "ratio": 0,
+        "criterionConsensus": {
+          "D01-E01": "uncertain",
+          "D01-E02": "uncertain",
+          "D01-E03": "uncertain"
+        }
+      },
+      "evaluable": false,
+      "score": null,
+      "scoreInterval": null,
+      "highestVerifiedCheckpoint": "CKPT-000",
+      "ratingStatus": "not-evaluable",
+      "nonEvaluationCause": "not-attempted"
+    },
+    {
+      "id": "D02",
+      "label": "Kinematics, workspace and cycle feasibility",
+      "attempted": false,
+      "evidenceCoverage": {
+        "required": 3,
+        "covered": 0,
+        "missing": 0,
+        "uncertain": 3,
+        "ratio": 0,
+        "criterionConsensus": {
+          "D02-E01": "uncertain",
+          "D02-E02": "uncertain",
+          "D02-E03": "uncertain"
+        }
+      },
+      "evaluable": false,
+      "score": null,
+      "scoreInterval": null,
+      "highestVerifiedCheckpoint": "CKPT-000",
+      "ratingStatus": "not-evaluable",
+      "nonEvaluationCause": "not-attempted"
+    },
+    {
+      "id": "D03",
+      "label": "Gripper, grasp and workpiece protection",
+      "attempted": false,
+      "evidenceCoverage": {
+        "required": 3,
+        "covered": 0,
+        "missing": 0,
+        "uncertain": 3,
+        "ratio": 0,
+        "criterionConsensus": {
+          "D03-E01": "uncertain",
+          "D03-E02": "uncertain",
+          "D03-E03": "uncertain"
+        }
+      },
+      "evaluable": false,
+      "score": null,
+      "scoreInterval": null,
+      "highestVerifiedCheckpoint": "CKPT-000",
+      "ratingStatus": "not-evaluable",
+      "nonEvaluationCause": "not-attempted"
+    },
+    {
+      "id": "D04",
+      "label": "Load path, structure, drives and life",
+      "attempted": false,
+      "evidenceCoverage": {
+        "required": 3,
+        "covered": 0,
+        "missing": 0,
+        "uncertain": 3,
+        "ratio": 0,
+        "criterionConsensus": {
+          "D04-E01": "uncertain",
+          "D04-E02": "uncertain",
+          "D04-E03": "uncertain"
+        }
+      },
+      "evaluable": false,
+      "score": null,
+      "scoreInterval": null,
+      "highestVerifiedCheckpoint": "CKPT-000",
+      "ratingStatus": "not-evaluable",
+      "nonEvaluationCause": "not-attempted"
+    },
+    {
+      "id": "D05",
+      "label": "Accuracy, tolerance and calibration",
+      "attempted": false,
+      "evidenceCoverage": {
+        "required": 3,
+        "covered": 0,
+        "missing": 0,
+        "uncertain": 3,
+        "ratio": 0,
+        "criterionConsensus": {
+          "D05-E01": "uncertain",
+          "D05-E02": "uncertain",
+          "D05-E03": "uncertain"
+        }
+      },
+      "evaluable": false,
+      "score": null,
+      "scoreInterval": null,
+      "highestVerifiedCheckpoint": "CKPT-000",
+      "ratingStatus": "not-evaluable",
+      "nonEvaluationCause": "not-attempted"
+    },
+    {
+      "id": "D06",
+      "label": "Manufacturing, assembly, inspection and service",
+      "attempted": false,
+      "evidenceCoverage": {
+        "required": 3,
+        "covered": 0,
+        "missing": 0,
+        "uncertain": 3,
+        "ratio": 0,
+        "criterionConsensus": {
+          "D06-E01": "uncertain",
+          "D06-E02": "uncertain",
+          "D06-E03": "uncertain"
+        }
+      },
+      "evaluable": false,
+      "score": null,
+      "scoreInterval": null,
+      "highestVerifiedCheckpoint": "CKPT-000",
+      "ratingStatus": "not-evaluable",
+      "nonEvaluationCause": "not-attempted"
+    },
+    {
+      "id": "D07",
+      "label": "Safety, reliability and failure behavior",
+      "attempted": false,
+      "evidenceCoverage": {
+        "required": 3,
+        "covered": 0,
+        "missing": 0,
+        "uncertain": 3,
+        "ratio": 0,
+        "criterionConsensus": {
+          "D07-E01": "uncertain",
+          "D07-E02": "uncertain",
+          "D07-E03": "uncertain"
+        }
+      },
+      "evaluable": false,
+      "score": null,
+      "scoreInterval": null,
+      "highestVerifiedCheckpoint": "CKPT-000",
+      "ratingStatus": "not-evaluable",
+      "nonEvaluationCause": "not-attempted"
+    },
+    {
+      "id": "D08",
+      "label": "Verification and traceability",
+      "attempted": false,
+      "evidenceCoverage": {
+        "required": 3,
+        "covered": 0,
+        "missing": 0,
+        "uncertain": 3,
+        "ratio": 0,
+        "criterionConsensus": {
+          "D08-E01": "uncertain",
+          "D08-E02": "uncertain",
+          "D08-E03": "uncertain"
+        }
+      },
+      "evaluable": false,
+      "score": null,
+      "scoreInterval": null,
+      "highestVerifiedCheckpoint": "CKPT-000",
+      "ratingStatus": "not-evaluable",
+      "nonEvaluationCause": "not-attempted"
+    },
+    {
+      "id": "D09",
+      "label": "Change response",
+      "attempted": false,
+      "evidenceCoverage": {
+        "required": 2,
+        "covered": 0,
+        "missing": 0,
+        "uncertain": 2,
+        "ratio": 0,
+        "criterionConsensus": {
+          "D09-E01": "uncertain",
+          "D09-E02": "uncertain"
+        }
+      },
+      "evaluable": false,
+      "score": null,
+      "scoreInterval": null,
+      "highestVerifiedCheckpoint": "CKPT-000",
+      "ratingStatus": "not-evaluable",
+      "nonEvaluationCause": "not-attempted"
+    },
+    {
+      "id": "D10",
+      "label": "Mass, cost and energy Pareto quality",
+      "attempted": false,
+      "evidenceCoverage": {
+        "required": 3,
+        "covered": 0,
+        "missing": 0,
+        "uncertain": 3,
+        "ratio": 0,
+        "criterionConsensus": {
+          "D10-E01": "uncertain",
+          "D10-E02": "uncertain",
+          "D10-E03": "uncertain"
+        }
+      },
+      "evaluable": false,
+      "score": null,
+      "scoreInterval": null,
+      "highestVerifiedCheckpoint": "CKPT-000",
+      "ratingStatus": "not-evaluable",
+      "nonEvaluationCause": "not-attempted"
+    }
+  ],
+  "rawMetrics": [],
+  "efficiency": {
+    "separateFromDesignQuality": true,
+    "values": {
+      "wallClockDuration": null,
+      "modelInputTokens": null,
+      "modelOutputTokens": null,
+      "toolCalls": null,
+      "retries": null,
+      "humanInterventions": null,
+      "computeProfile": null,
+      "estimatedExecutionCost": null
+    }
+  },
+  "compositeScore": null,
+  "compositeScorePublished": false
+}

@@ -961,7 +961,10 @@ test("repository catalog counts match checked-in non-template content", async ()
     catalog.launches.length,
     framework.launches.filter((launch) => launch.publicEligible).length,
   );
-  assert.equal(catalog.cohorts.length, await contentDirectories("cohorts"));
+  assert.equal(
+    catalog.cohorts.length,
+    await contentDirectories("cohorts") + await contentDirectories("publications"),
+  );
   assert.deepEqual(framework.issues, []);
 });
 
@@ -1148,6 +1151,16 @@ test("official integration binds the submitted workspace receipt to pre-run auth
   );
   assert.match(evaluatorSource, /baselineCheckpointIds\.length > 0/);
   assert.match(evaluatorSource, /baselineCheckpointIds\.every/);
+  assert.match(
+    evaluatorSource,
+    /expectedRootName:\s*path\.basename\(candidateRoot\)/,
+    "the evaluator must validate the Stage 2 seal root rather than the Stage 1 transfer name",
+  );
+  assert.doesNotMatch(
+    evaluatorSource,
+    /is not reviewable for panel/,
+    "sealed full-rubric ratings beyond the attained checkpoint must remain inert",
+  );
   assert.match(
     evaluatorSource,
     /baselineGates\s*\.every\(\(\{ id \}\) => gateMap\.get\(id\) === "pass"\)/s,

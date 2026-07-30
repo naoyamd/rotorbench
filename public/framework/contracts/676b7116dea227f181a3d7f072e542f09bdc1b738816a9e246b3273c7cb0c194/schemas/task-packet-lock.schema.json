@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rotorbench.example/schemas/task-packet-lock.schema.json",
+  "title": "Frozen task packet lock",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "status",
+    "taskPacket",
+    "taskDefinitionDigest",
+    "packetDigest",
+    "bundleDigest",
+    "bundleAlgorithm",
+    "frozenAt"
+  ],
+  "properties": {
+    "schemaVersion": { "enum": ["3.0", "4.0"] },
+    "status": { "const": "packet-frozen" },
+    "taskPacket": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "version"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" },
+        "version": { "type": "string", "minLength": 1 }
+      }
+    },
+    "taskDefinitionDigest": { "$ref": "artifact.schema.json#/$defs/sha256" },
+    "packetDigest": { "$ref": "artifact.schema.json#/$defs/sha256" },
+    "bundleDigest": { "$ref": "artifact.schema.json#/$defs/sha256" },
+    "bundleAlgorithm": { "const": "sha256-packet-bundle-v1" },
+    "frozenAt": { "type": "string", "format": "date-time" }
+  }
+}

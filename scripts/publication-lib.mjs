@@ -54,7 +54,14 @@ function requireSafePath(value, label) {
   return value;
 }
 
-function noForbiddenContent(value, label, { allowModelDisclosure = false } = {}) {
+function noForbiddenContent(
+  value,
+  label,
+  {
+    allowModelDisclosure = false,
+    allowPublicFinalizationHashes = false,
+  } = {},
+) {
   const walk = (node, pathLabel = "") => {
     if (Array.isArray(node)) {
       node.forEach((item, index) => walk(item, `${pathLabel}[${index}]`));
@@ -71,7 +78,20 @@ function noForbiddenContent(value, label, { allowModelDisclosure = false } = {})
         const isAllowedPublicEvaluationKey = key === "ratingStatus"
           && /^dimensions\[\d+\]$/.test(pathLabel)
           && (child === "scored" || child === "not-evaluable");
-        if (!isAllowedDisclosureKey && !isAllowedPublicEvaluationKey && PROHIBITED_KEY.test(key)) {
+        const isAllowedPublicFinalizationHash = allowPublicFinalizationHashes
+          && pathLabel === "finalization"
+          && [
+            "candidateBundleSha256",
+            "candidateSubmissionSha256",
+            "pendingRecordSha256",
+            "sourceEvaluationSha256",
+          ].includes(key);
+        if (
+          !isAllowedDisclosureKey
+          && !isAllowedPublicEvaluationKey
+          && !isAllowedPublicFinalizationHash
+          && PROHIBITED_KEY.test(key)
+        ) {
           throw new Error(`${label} contains prohibited field ${pathLabel ? `${pathLabel}.` : ""}${key}`);
         }
         walk(child, pathLabel ? `${pathLabel}.${key}` : key);
@@ -283,7 +303,9 @@ export async function exportPublicCohortPublication({
       const summary = publicEvaluationSummary(strictJson(evaluationBytes, `Run ${run.id} evaluator record`), evaluationBytes);
       const evaluationIssues = validatePublicEvaluationSummary(summary);
       if (evaluationIssues.length) throw failure(`Run ${run.id} public evaluator summary is invalid`, evaluationIssues);
-      noForbiddenContent(summary, `Run ${run.id} public evaluator summary`);
+      noForbiddenContent(summary, `Run ${run.id} public evaluator summary`, {
+        allowPublicFinalizationHashes: true,
+      });
       const evaluationRelative = `evaluation-summaries/${run.id}.json`;
       const evaluationOutput = canonicalBytes(summary);
       await writeBundleFile(stageRoot, files, evaluationRelative, "evaluation-summary", evaluationOutput, sha256(evaluationBytes));
@@ -443,7 +465,10 @@ export async function validatePublicCohortPublication(bundleRoot) {
       continue;
     }
     const value = strictJson(file.bytes, `Publication file ${relative}`);
-    noForbiddenContent(value, `Publication file ${relative}`, { allowModelDisclosure: entry.kind === "disclosure" });
+    noForbiddenContent(value, `Publication file ${relative}`, {
+      allowModelDisclosure: entry.kind === "disclosure",
+      allowPublicFinalizationHashes: entry.kind === "evaluation-summary",
+    });
     const issues = validatePublicationFileKind(entry, value);
     if (issues.length) throw failure(`Publication file ${relative} is schema-invalid`, issues);
     parsed.set(relative, value);

@@ -1,0 +1,9 @@
+{
+  "contractId":"robotic-handling-neutral-handoff-v1.2","units":{"linear":"mm","angular":"deg","time":"s","inertia":"kg*m^2"},
+  "coordinateFrames":[{"id":"W","parentFrameId":null,"translationMm":[0,0,0],"rotationMatrix":[[1,0,0],[0,1,0],[0,0,1]]}],
+  "jointTopology":[],"jointLimits":[],"tcpTransform":{"parentFrameId":"W","translationMm":[0,0,0],"rotationMatrix":[[1,0,0],[0,1,0],[0,0,1]]},
+  "payloadStates":[{"id":"EMPTY","workpieceId":null},{"id":"WP-A-LOADED","workpieceId":"WP-A"},{"id":"WP-B-LOADED","workpieceId":"WP-B"},{"id":"WP-C-LOADED","workpieceId":"WP-C"}],
+  "requiredPoseResults":[],"trajectory":{"segments":[],"cycleSummaries":[]},"geometryReferences":["CELL-FLOOR-001","CNC-BODY-001","CNC-FIXTURE-001","INSPECTION-NEST-001","RAW-TRAY-001","FINISHED-TRAY-001","WP-A","WP-B","WP-C"],
+  "repeatabilityBudget":{"components":[{"id":"pending","valueMm":0,"unit":"mm"}],"rssMm":0},"evaluationEvidence":[],
+  "status":"concept-checkpoint placeholder; neutral embodiment, pose solutions and evaluation evidence are intentionally not claimed until CKPT-020/030"
+}

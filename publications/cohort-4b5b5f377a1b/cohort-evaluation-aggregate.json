@@ -1,0 +1,326 @@
+{
+  "schemaVersion": "1.0",
+  "cohortId": "cohort-4b5b5f377a1b",
+  "launchId": "integrated-robotic-handling-v3",
+  "measurementConditionsSha256": "197395fe837aedf58dc04b817d6db29f5005a0e61169e8b370a05a4740541200",
+  "disclosureSha256": "8560692878a1886bb57354db8b6e4127db2107dc33be02778c170b1f69dd8103",
+  "generatedAt": "2026-07-30T09:51:45.395Z",
+  "binding": {
+    "fairnessFingerprint": "660af2de7e63f0764a922e7568f93f59def7fdb4df0c1c216d4f8c16865cb255",
+    "evaluationContractDigest": "eea1422a5ede492ed9fd57b3a4f312a813355ef5a46f39f24917c0a74dac4073",
+    "scoringVersion": "1.2",
+    "scoringContractSha256": "eea1422a5ede492ed9fd57b3a4f312a813355ef5a46f39f24917c0a74dac4073",
+    "panel": "fixed-anchor-baseline"
+  },
+  "evaluationRecords": [
+    {
+      "runId": "run-96103c9f6c9a",
+      "path": "evaluation-summaries/run-96103c9f6c9a.json",
+      "sha256": "fe773a58b9ffa5d4c9173c187eb84e7510a805378a5cda43cf2965b4156ba808",
+      "status": "admitted"
+    },
+    {
+      "runId": "run-aeef1716db18",
+      "path": "evaluation-summaries/run-aeef1716db18.json",
+      "sha256": "4baadbf465564d06c9b8427a7fe29cec1a260ebd4e70bfc24eaf3569f5c8a01a",
+      "status": "admitted"
+    },
+    {
+      "runId": "run-c950df7607b5",
+      "path": "evaluation-summaries/run-c950df7607b5.json",
+      "sha256": "6e519dea2c10fb351093a82ef3b0b2c50dfec841dd68b46612445f5e3fd4acc6",
+      "status": "admitted"
+    }
+  ],
+  "modelGroups": [
+    {
+      "groupId": "group-6a2e9d0f13b4",
+      "runIds": [
+        "run-96103c9f6c9a",
+        "run-aeef1716db18",
+        "run-c950df7607b5"
+      ],
+      "runCount": 3,
+      "admission": {
+        "count": 3,
+        "rate": 1
+      },
+      "qualification": {
+        "baseline": {
+          "count": 0,
+          "rate": 0
+        },
+        "change": {
+          "count": 0,
+          "rate": 0
+        }
+      },
+      "dimensions": [
+        {
+          "id": "D01",
+          "label": "Requirements decomposition and system concept",
+          "runCount": 3,
+          "evaluableCount": 1,
+          "median": 2,
+          "observedInterval": [
+            2,
+            2
+          ],
+          "failureCauses": {
+            "not-attempted": 2
+          }
+        },
+        {
+          "id": "D02",
+          "label": "Kinematics, workspace and cycle feasibility",
+          "runCount": 3,
+          "evaluableCount": 0,
+          "median": null,
+          "observedInterval": null,
+          "failureCauses": {
+            "not-attempted": 3
+          }
+        },
+        {
+          "id": "D03",
+          "label": "Gripper, grasp and workpiece protection",
+          "runCount": 3,
+          "evaluableCount": 0,
+          "median": null,
+          "observedInterval": null,
+          "failureCauses": {
+            "not-attempted": 3
+          }
+        },
+        {
+          "id": "D04",
+          "label": "Load path, structure, drives and life",
+          "runCount": 3,
+          "evaluableCount": 0,
+          "median": null,
+          "observedInterval": null,
+          "failureCauses": {
+            "not-attempted": 3
+          }
+        },
+        {
+          "id": "D05",
+          "label": "Accuracy, tolerance and calibration",
+          "runCount": 3,
+          "evaluableCount": 0,
+          "median": null,
+          "observedInterval": null,
+          "failureCauses": {
+            "not-attempted": 3
+          }
+        },
+        {
+          "id": "D06",
+          "label": "Manufacturing, assembly, inspection and service",
+          "runCount": 3,
+          "evaluableCount": 0,
+          "median": null,
+          "observedInterval": null,
+          "failureCauses": {
+            "not-attempted": 3
+          }
+        },
+        {
+          "id": "D07",
+          "label": "Safety, reliability and failure behavior",
+          "runCount": 3,
+          "evaluableCount": 0,
+          "median": null,
+          "observedInterval": null,
+          "failureCauses": {
+            "not-attempted": 3
+          }
+        },
+        {
+          "id": "D08",
+          "label": "Verification and traceability",
+          "runCount": 3,
+          "evaluableCount": 0,
+          "median": null,
+          "observedInterval": null,
+          "failureCauses": {
+            "not-attempted": 3
+          }
+        },
+        {
+          "id": "D09",
+          "label": "Change response",
+          "runCount": 3,
+          "evaluableCount": 0,
+          "median": null,
+          "observedInterval": null,
+          "failureCauses": {
+            "not-attempted": 3
+          }
+        },
+        {
+          "id": "D10",
+          "label": "Mass, cost and energy Pareto quality",
+          "runCount": 3,
+          "evaluableCount": 0,
+          "median": null,
+          "observedInterval": null,
+          "failureCauses": {
+            "not-attempted": 3
+          }
+        }
+      ],
+      "gates": [
+        {
+          "id": "A0",
+          "runCount": 3,
+          "passRate": 1,
+          "resultCounts": {
+            "pass": 3
+          },
+          "passCount": 3
+        },
+        {
+          "id": "B0",
+          "runCount": 3,
+          "passRate": 0,
+          "resultCounts": {
+            "fail": 3
+          },
+          "passCount": 0
+        },
+        {
+          "id": "B1",
+          "runCount": 3,
+          "passRate": 0,
+          "resultCounts": {
+            "evaluator-uncertain": 2,
+            "fail": 1
+          },
+          "passCount": 0
+        },
+        {
+          "id": "B2",
+          "runCount": 3,
+          "passRate": 0,
+          "resultCounts": {
+            "evaluator-uncertain": 2,
+            "fail": 1
+          },
+          "passCount": 0
+        },
+        {
+          "id": "B3",
+          "runCount": 3,
+          "passRate": 0,
+          "resultCounts": {
+            "evaluator-uncertain": 2,
+            "fail": 1
+          },
+          "passCount": 0
+        },
+        {
+          "id": "B4",
+          "runCount": 3,
+          "passRate": 0,
+          "resultCounts": {
+            "evaluator-uncertain": 2,
+            "fail": 1
+          },
+          "passCount": 0
+        },
+        {
+          "id": "B5",
+          "runCount": 3,
+          "passRate": 0,
+          "resultCounts": {
+            "evaluator-uncertain": 2,
+            "fail": 1
+          },
+          "passCount": 0
+        },
+        {
+          "id": "B6",
+          "runCount": 3,
+          "passRate": 0,
+          "resultCounts": {
+            "evaluator-uncertain": 2,
+            "fail": 1
+          },
+          "passCount": 0
+        }
+      ],
+      "attainment": {
+        "highestCheckpointCounts": {
+          "CKPT-000": 2,
+          "CKPT-010": 1
+        }
+      },
+      "rawMetrics": {
+        "separateFromDesignQuality": true,
+        "records": [
+          {
+            "runId": "run-96103c9f6c9a",
+            "values": []
+          },
+          {
+            "runId": "run-aeef1716db18",
+            "values": []
+          },
+          {
+            "runId": "run-c950df7607b5",
+            "values": []
+          }
+        ]
+      },
+      "efficiency": {
+        "separateFromDesignQuality": true,
+        "records": [
+          {
+            "runId": "run-96103c9f6c9a",
+            "values": {
+              "wallClockDuration": null,
+              "modelInputTokens": null,
+              "modelOutputTokens": null,
+              "toolCalls": null,
+              "retries": null,
+              "humanInterventions": null,
+              "computeProfile": null,
+              "estimatedExecutionCost": null
+            }
+          },
+          {
+            "runId": "run-aeef1716db18",
+            "values": {
+              "wallClockDuration": null,
+              "modelInputTokens": null,
+              "modelOutputTokens": null,
+              "toolCalls": null,
+              "retries": null,
+              "humanInterventions": null,
+              "computeProfile": null,
+              "estimatedExecutionCost": null
+            }
+          },
+          {
+            "runId": "run-c950df7607b5",
+            "values": {
+              "wallClockDuration": null,
+              "modelInputTokens": null,
+              "modelOutputTokens": null,
+              "toolCalls": null,
+              "retries": null,
+              "humanInterventions": null,
+              "computeProfile": null,
+              "estimatedExecutionCost": null
+            }
+          }
+        ]
+      },
+      "compositeScore": null,
+      "compositeScorePublished": false
+    }
+  ],
+  "compositeScore": null,
+  "compositeScorePublished": false
+}

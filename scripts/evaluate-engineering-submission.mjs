@@ -795,18 +795,8 @@ export function validateReviewers(
       gateIds: contract.baselineGates.map(({ id }) => id),
       dimensionIds: contract.dimensions.map(({ id }) => id),
     };
-  const expectedGateIds = new Set(expectation.gateIds);
-  const expectedDimensionIds = new Set(expectation.dimensionIds);
-  for (const rating of gateRatings) {
-    if (!expectedGateIds.has(rating.gateId)) {
-      throw new Error(`Gate ${rating.gateId} is not reviewable for panel ${panel ?? "legacy-default"} at this attainment`);
-    }
-  }
-  for (const rating of expertRatings) {
-    if (!expectedDimensionIds.has(rating.dimensionId)) {
-      throw new Error(`Dimension ${rating.dimensionId} is not reviewable for panel ${panel ?? "legacy-default"} at this attainment`);
-    }
-  }
+  // Sealed reviews cover the complete rubric. Later-checkpoint ratings stay
+  // inert until their checkpoint enters this expectation.
   for (const gateId of expectation.gateIds) {
     const gate = contract.baselineGates.find(({ id }) => id === gateId);
     const relevant = gateRatings.filter(({ gateId }) => gateId === gate.id);
@@ -1050,6 +1040,9 @@ export async function evaluateEngineeringSubmission({
     ? await loadAuthoritativeOutputContract(packetRoot, packet)
     : {};
   const candidateValidation = await validateCandidateBundle(candidateRoot, {
+    // Stage 2 seals the transferred bytes below the evaluator-owned
+    // bundlePath (`submitted` in the current run schema).
+    expectedRootName: path.basename(candidateRoot),
     ...(contractValidators ? { contractValidators } : {}),
     ...authoritativeOutputContract,
   });

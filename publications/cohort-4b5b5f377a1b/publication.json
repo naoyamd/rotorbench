@@ -1,0 +1,122 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "rotorbench-public-cohort-publication",
+  "cohortId": "cohort-4b5b5f377a1b",
+  "launchId": "integrated-robotic-handling-v3",
+  "fairnessFingerprint": "660af2de7e63f0764a922e7568f93f59def7fdb4df0c1c216d4f8c16865cb255",
+  "exportedAt": "2026-07-30T10:00:12.938Z",
+  "source": {
+    "frameworkValidationDigest": "562ff4196347ef2c834a680724920d68eafd0c444e3a28d888f10945b413f5eb",
+    "cohortManifestSha256": "853d49c91db3eddd368e8e09ce931d892368b7082810244c84a2b915a9f0a566",
+    "measurementConditionsSha256": "197395fe837aedf58dc04b817d6db29f5005a0e61169e8b370a05a4740541200",
+    "disclosureSha256": "8560692878a1886bb57354db8b6e4127db2107dc33be02778c170b1f69dd8103",
+    "aggregateSha256": "fe2fae7e4987279a2533cb5395ba75389dfd0643522f8cff6bf15c0e4bb020df"
+  },
+  "files": [
+    {
+      "path": "artifacts/run-aeef1716db18/concept-selection.download",
+      "kind": "artifact",
+      "sha256": "d638002cac7386712d5abac73ab5e798c543ca885befcca4057fec7d79a599b3",
+      "bytes": 2701,
+      "sourceSha256": "d638002cac7386712d5abac73ab5e798c543ca885befcca4057fec7d79a599b3"
+    },
+    {
+      "path": "artifacts/run-aeef1716db18/gripper-design.download",
+      "kind": "artifact",
+      "sha256": "e6ec0b0a65fd164ab7e9c0f3187006ab796a9cb307a291c84eea898c490f817d",
+      "bytes": 2365,
+      "sourceSha256": "e6ec0b0a65fd164ab7e9c0f3187006ab796a9cb307a291c84eea898c490f817d"
+    },
+    {
+      "path": "artifacts/run-aeef1716db18/kinematics.download",
+      "kind": "artifact",
+      "sha256": "1ad056b48146744c862c7597b3505f145e92cbbb0f1e67ffeafc5da5ebd1854a",
+      "bytes": 1075,
+      "sourceSha256": "1ad056b48146744c862c7597b3505f145e92cbbb0f1e67ffeafc5da5ebd1854a"
+    },
+    {
+      "path": "artifacts/run-aeef1716db18/requirements-trace.download",
+      "kind": "artifact",
+      "sha256": "ebb5f1f72b53858a788f02faa00681631d21f2e9c4a4c370694f11617f8c48de",
+      "bytes": 3369,
+      "sourceSha256": "ebb5f1f72b53858a788f02faa00681631d21f2e9c4a4c370694f11617f8c48de"
+    },
+    {
+      "path": "candidate-metadata/run-96103c9f6c9a.json",
+      "kind": "run-metadata",
+      "sha256": "62873f7f9cc29d646713c20970f1e86e10f98b0460c8941c230205eba6faaa27",
+      "bytes": 1320,
+      "sourceSha256": "5ec3c7e95729a49a17cd02b704ca5fb8086a8eb5b32f78db719e9879101a903c"
+    },
+    {
+      "path": "candidate-metadata/run-aeef1716db18.json",
+      "kind": "run-metadata",
+      "sha256": "9fc6ceaaa3ea6e19e38882853fdae05fb3310699446ab3678d70190776e1af42",
+      "bytes": 2644,
+      "sourceSha256": "eabce3493eba1cdb4ec4cfd4cfe14a66f4f6a0b7f3dc66bf8fe236fba1c567b2"
+    },
+    {
+      "path": "candidate-metadata/run-c950df7607b5.json",
+      "kind": "run-metadata",
+      "sha256": "1ebbcfe838775b701295ef3e85bab1f2c2cb4766cdc059c1ac93d255424353d9",
+      "bytes": 1320,
+      "sourceSha256": "3f6653989a381fffc0b3e647baed80b88596f13d678fb84d321423b855fd16af"
+    },
+    {
+      "path": "cohort-disclosure.json",
+      "kind": "disclosure",
+      "sha256": "8560692878a1886bb57354db8b6e4127db2107dc33be02778c170b1f69dd8103",
+      "bytes": 798,
+      "sourceSha256": "8560692878a1886bb57354db8b6e4127db2107dc33be02778c170b1f69dd8103"
+    },
+    {
+      "path": "cohort-evaluation-aggregate.json",
+      "kind": "aggregate",
+      "sha256": "b5e2a7e0d9ae2576603e01830a75ecf0cc7cfbd136e71798203359b7561dccce",
+      "bytes": 8555,
+      "sourceSha256": "fe2fae7e4987279a2533cb5395ba75389dfd0643522f8cff6bf15c0e4bb020df"
+    },
+    {
+      "path": "evaluation-summaries/run-96103c9f6c9a.json",
+      "kind": "evaluation-summary",
+      "sha256": "ee02473561e0f279454104e4c15048b0129f4d136dda6cca0c9b5af9b199216c",
+      "bytes": 8322,
+      "sourceSha256": "fe773a58b9ffa5d4c9173c187eb84e7510a805378a5cda43cf2965b4156ba808"
+    },
+    {
+      "path": "evaluation-summaries/run-aeef1716db18.json",
+      "kind": "evaluation-summary",
+      "sha256": "73ad1ab56f1b099e39c6c75b462b6ea4efc194c4630799b472bc65394ddffb03",
+      "bytes": 8448,
+      "sourceSha256": "4baadbf465564d06c9b8427a7fe29cec1a260ebd4e70bfc24eaf3569f5c8a01a"
+    },
+    {
+      "path": "evaluation-summaries/run-c950df7607b5.json",
+      "kind": "evaluation-summary",
+      "sha256": "1a82a4a4df149c52c44eb8a48de6c980eab0780ac3be066aefe38c3ba74f9feb",
+      "bytes": 8412,
+      "sourceSha256": "6e519dea2c10fb351093a82ef3b0b2c50dfec841dd68b46612445f5e3fd4acc6"
+    },
+    {
+      "path": "validation-summaries/run-96103c9f6c9a.json",
+      "kind": "validation-summary",
+      "sha256": "30fa2b44c2fd75f2fa19cb82b1b025355a16ab0cdb7ff5a0a2eae74d2d9d815d",
+      "bytes": 310,
+      "sourceSha256": "94841e9f82e82fdd0d42752f2689da1e5617850396a36aa0bee66f33308bd876"
+    },
+    {
+      "path": "validation-summaries/run-aeef1716db18.json",
+      "kind": "validation-summary",
+      "sha256": "013a908ef756168fb1f681e36b965716f32cc571d160589078c2f90cb38b6b62",
+      "bytes": 310,
+      "sourceSha256": "6541c0b4d8d78c20168e340f9043bca220204dae5f41b7756da570c811733340"
+    },
+    {
+      "path": "validation-summaries/run-c950df7607b5.json",
+      "kind": "validation-summary",
+      "sha256": "dd691631a2a580a81605972476de4d155412eff7f96014fdf9490d8a11e337ca",
+      "bytes": 310,
+      "sourceSha256": "0c8f5c6f086abf82597c028983ea83f1dad02d8b4d97a80db5cdc443d13ef7b2"
+    }
+  ]
+}

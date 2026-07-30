@@ -1,0 +1,19 @@
+# Concept selection: IRH-6R-WEDGE-01
+
+## Alternatives
+
+1. **6R articulated arm with a vertical parallel jaw wedge gripper — selected.** A 6R arm has orienting freedom at the CNC horizontal insertion axis and vertical tray/nest axes. Candidate-designed welded/base machined structure carries selected frozen motors, reducers, brakes and bearings.
+2. **SCARA plus two-axis wrist and parallel jaws — rejected.** Its planar geometry is attractive for tray operations, but the horizontal CNC axis needs a reorientation and an additional serial pitch axis. The resulting singular/clearance exposure at the fixture mouth was not preferred.
+3. **Cartesian gantry plus wrist and rack gripper — rejected.** A gantry is mechanically feasible, but its long rails would compete with the complete fixed-cell clearance and service envelope; it makes the floor-interface load path and guarding larger.
+
+## Selected architecture and interfaces
+
+IRH-6R-WEDGE-01 is a floor-fixed 6R articulated manipulator: yaw base, shoulder pitch, elbow pitch, three-axis compact wrist, and a symmetric two-jaw gripper. Structural links and housings are candidate-designed; purchased motion components use only MTR-750/MTR-400/MTR-180/MTR-075, RED-250/RED-160/RED-100, BRK-250/BRK-100, BRG-250/BRG-130 and GRP-BS-16 as applicable. The floor connection is limited to IFC-FLR-001 and must be checked to FND-ANCH-001 before release.
+
+The common gripper uses a MTR-075 motor, RED-100, GRP-BS-16 ballscrew and paired 20-degree wedges. The wedges produce equal, opposed jaw travel. Replaceable *pad inserts only* are not changed between baseline cycles: one permanently installed stepped, 70 Shore A polyurethane pad profile engages WP-A rails, WP-B OD arcs and WP-C reinforced pads. WP-C support ledges are secondary anti-drop supports, never the primary load path.
+
+The wrist incorporates a passive 0.5 mm radial-compliance cartridge and a 30-degree lead-in nose around the finger envelope. A commanded low-speed insertion and a controller-provided force/position interlock are required interfaces; no collision, reachability or physical performance claim is made at this concept checkpoint.
+
+## Decision trail and residual risks
+
+The selected concept best addresses mixed vertical/horizontal tool axes while keeping the gripper electrical and mechanically opposed. Residual risks are: static pose identity does not prove reachability; foundation stiffness and CNC clearance require later analysis; coolant/oil friction and WP-C pad pressure require per-contact calculations; brake engagement transients require fault load analysis; and all final source, STEP, drawing, BOM and calculation releases remain due at later checkpoints.

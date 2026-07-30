@@ -1,0 +1,66 @@
+{
+  "schemaVersion": "1.0",
+  "id": "run-aeef1716db18",
+  "benchmarkId": "integrated-robotic-handling",
+  "benchmarkVersion": "1.10",
+  "launchId": "integrated-robotic-handling-v3",
+  "cohortId": "cohort-4b5b5f377a1b",
+  "taskPacketDigest": "b8622ce708f8e7464b3a1c22c11afcadc5ae9117c388ced617713b549397579f",
+  "taskPacketBundleDigest": "5f8081cc853a0665729885c4cfb3ac9883a8ecb7e1dff0a78c96e24f2391a053",
+  "executionContractDigest": "676b7116dea227f181a3d7f072e542f09bdc1b738816a9e246b3273c7cb0c194",
+  "promptSha256": "e06bf42926526485f04b2b880f46052a16a59aeefce61d17f1098e5e911d0a1c",
+  "launchDigest": "0046d640d935e28619a61a15939d661a57ea72023201c73047f03342baff6cb8",
+  "fairnessFingerprint": "660af2de7e63f0764a922e7568f93f59def7fdb4df0c1c216d4f8c16865cb255",
+  "status": "published",
+  "submittedAt": "2026-07-30T09:16:31.304Z",
+  "seal": {
+    "bundleSha256": "24511d69f55c1889caf44a534617cfe5059daf0ceb7a86bf070b9ab372896f3b",
+    "algorithm": "sha256-tree-v1"
+  },
+  "artifacts": [
+    {
+      "id": "requirements-trace",
+      "role": "supporting",
+      "sha256": "ebb5f1f72b53858a788f02faa00681631d21f2e9c4a4c370694f11617f8c48de",
+      "status": "present",
+      "mediaType": "text/csv",
+      "label": "Requirement trace",
+      "downloadPath": "artifacts/run-aeef1716db18/requirements-trace.download"
+    },
+    {
+      "id": "concept-selection",
+      "role": "supporting",
+      "sha256": "d638002cac7386712d5abac73ab5e798c543ca885befcca4057fec7d79a599b3",
+      "status": "present",
+      "mediaType": "text/markdown",
+      "label": "Concept selection",
+      "downloadPath": "artifacts/run-aeef1716db18/concept-selection.download"
+    },
+    {
+      "id": "kinematics",
+      "role": "supporting",
+      "sha256": "1ad056b48146744c862c7597b3505f145e92cbbb0f1e67ffeafc5da5ebd1854a",
+      "status": "present",
+      "mediaType": "application/json",
+      "label": "Concept kinematics",
+      "downloadPath": "artifacts/run-aeef1716db18/kinematics.download"
+    },
+    {
+      "id": "gripper-design",
+      "role": "supporting",
+      "sha256": "e6ec0b0a65fd164ab7e9c0f3187006ab796a9cb307a291c84eea898c490f817d",
+      "status": "present",
+      "mediaType": "application/json",
+      "label": "Gripper concept",
+      "downloadPath": "artifacts/run-aeef1716db18/gripper-design.download"
+    }
+  ],
+  "validation": {
+    "path": "validation-summaries/run-aeef1716db18.json",
+    "sha256": "013a908ef756168fb1f681e36b965716f32cc571d160589078c2f90cb38b6b62"
+  },
+  "evaluation": {
+    "path": "evaluation-summaries/run-aeef1716db18.json",
+    "sha256": "73ad1ab56f1b099e39c6c75b462b6ea4efc194c4630799b472bc65394ddffb03"
+  }
+}

@@ -290,7 +290,7 @@ export type Run = {
   } | null;
 };
 
-const catalog = catalogJson as {
+const catalog = catalogJson as unknown as {
   schemaVersion: "1.0";
   benchmarks: Benchmark[];
   taskPackets: TaskPacket[];

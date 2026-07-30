@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rotorbench.example/schemas/cohort-publication-bundle.schema.json",
+  "title": "Portable public cohort publication bundle",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "kind",
+    "cohortId",
+    "launchId",
+    "fairnessFingerprint",
+    "exportedAt",
+    "source",
+    "files"
+  ],
+  "properties": {
+    "schemaVersion": { "const": "1.0" },
+    "kind": { "const": "rotorbench-public-cohort-publication" },
+    "cohortId": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" },
+    "launchId": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" },
+    "fairnessFingerprint": { "$ref": "artifact.schema.json#/$defs/sha256" },
+    "exportedAt": { "type": "string", "format": "date-time" },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["frameworkValidationDigest", "cohortManifestSha256", "measurementConditionsSha256", "disclosureSha256", "aggregateSha256"],
+      "properties": {
+        "frameworkValidationDigest": { "$ref": "artifact.schema.json#/$defs/sha256" },
+        "cohortManifestSha256": { "$ref": "artifact.schema.json#/$defs/sha256" },
+        "measurementConditionsSha256": { "$ref": "artifact.schema.json#/$defs/sha256" },
+        "disclosureSha256": { "$ref": "artifact.schema.json#/$defs/sha256" },
+        "aggregateSha256": { "$ref": "artifact.schema.json#/$defs/sha256" }
+      }
+    },
+    "files": {
+      "type": "array",
+      "minItems": 4,
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/file" }
+    }
+  },
+  "$defs": {
+    "file": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "kind", "sha256", "bytes", "sourceSha256"],
+      "properties": {
+        "path": {
+          "type": "string",
+          "pattern": "^(?:cohort-disclosure\\.json|cohort-evaluation-aggregate\\.json|(?:candidate-metadata|evaluation-summaries|validation-summaries|artifacts)/[A-Za-z0-9][A-Za-z0-9._/-]*)$"
+        },
+        "kind": { "enum": ["disclosure", "aggregate", "run-metadata", "evaluation-summary", "validation-summary", "artifact"] },
+        "sha256": { "$ref": "artifact.schema.json#/$defs/sha256" },
+        "bytes": { "type": "integer", "minimum": 0 },
+        "sourceSha256": { "$ref": "artifact.schema.json#/$defs/sha256" }
+      }
+    }
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "designId":"IRH-GRP-01","actuation":{"primary":"electrical servo MTR-075","motorId":"MTR-075","reducerId":"RED-100","powerLoss":"spring-set motor-axis brake plus non-backdrivable wedge preload; retention requires fault-load verification"},
+  "openingRange":{"minimumUsableMm":34,"maximumUsableMm":166,"nominalStrokeMm":132,"unit":"mm"},
+  "forceDisplacement":{"transmissionId":"GRP-BS-16","description":"16 mm/rev ballscrew drives paired 20 degree wedges; nominal design target 550 N per jaw before tolerance and contact verification.","units":"N, mm"},
+  "transmission":{"type":"symmetric dual wedge from preloaded ballscrew","catalogueTransmission":"GRP-BS-16","mechanicalStops":"hardened shoulder stops at both commanded limits","backdriveStatement":"Wedge angle/preload selected as a design intent; not a substitute for verified loss-power retention."},
+  "fingerGeometry":{"commonInstalledConfiguration":true,"description":"Two opposing steel jaw carriers each retain one 70 Shore A polyurethane stepped pad, 3 mm minimum thickness, with 38 x 24 mm controlled WP-C pad footprint; integral lower ledges supply secondary WP-C support.","candidateParts":["IRH-FIN-L","IRH-FIN-R","IRH-PAD-L","IRH-PAD-R"]},
+  "contactSurfaces":{"WP-A":"WP-A-GR-1 opposed external rail faces","WP-B":"WP-B-GR-1 opposed outer-diameter arcs","WP-C":"WP-C-GR-1 opposed reinforced pads; GR-2 ledges secondary only","prohibitedSurfaces":"No top sealing face, bore, cosmetic exterior, window, bosses or label zone contact."},
+  "workpieceConfigurations":[{"workpieceId":"WP-A","jawOpeningMm":96,"primaryContacts":2},{"workpieceId":"WP-B","jawOpeningMm":156,"primaryContacts":2},{"workpieceId":"WP-C","jawOpeningMm":132,"primaryContacts":2,"secondarySupports":2}],
+  "presenceSensingInterface":{"type":"two redundant 24 VDC inductive/proximity interfaces","mechanicalControlHandoff":"Motion enable only after controller validates jaw position and both part-present channels; controller/PLC is outside candidate scope."},
+  "lossOfPowerBehavior":{"description":"Axis brakes are spring applied; gripper wedges are retained by brake-set input and mechanical end stops. No claim of zero drop is made until LC-HND-003 verification."},
+  "primaryRetentionPath":"Opposed powered polyurethane-pad normal force and friction; secondary ledges do not carry the claimed primary retention load."
+}

@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rotorbench.example/schemas/protocol-review.schema.json",
+  "title": "Stage 0 protocol review",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "kind",
+    "reviewer",
+    "authorId",
+    "launchDigest",
+    "executionContractDigest",
+    "promptSha256",
+    "status",
+    "blockingIssues",
+    "reviewedAt"
+  ],
+  "properties": {
+    "schemaVersion": { "const": "3.0" },
+    "kind": { "const": "protocol" },
+    "reviewer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "name": { "type": "string", "minLength": 1 }
+      }
+    },
+    "authorId": { "type": "string", "minLength": 1 },
+    "launchDigest": { "$ref": "artifact.schema.json#/$defs/sha256" },
+    "executionContractDigest": { "$ref": "artifact.schema.json#/$defs/sha256" },
+    "promptSha256": { "$ref": "artifact.schema.json#/$defs/sha256" },
+    "status": { "enum": ["approved", "changes-requested"] },
+    "blockingIssues": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "reviewedAt": { "type": "string", "format": "date-time" }
+  }
+}

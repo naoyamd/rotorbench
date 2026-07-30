@@ -1,0 +1,13 @@
+{
+  "schemaVersion": "1.0",
+  "runId": "run-aeef1716db18",
+  "status": "valid",
+  "generatedAt": "2026-07-30T09:49:25.404Z",
+  "sourceReportSha256": "6541c0b4d8d78c20168e340f9043bca220204dae5f41b7756da570c811733340",
+  "checkCounts": {
+    "pass": 20,
+    "fail": 0,
+    "warning": 0
+  },
+  "issueCodes": []
+}
