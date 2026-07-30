@@ -1,0 +1,226 @@
+{
+  "document": "Quantitative baseline provenance and future correlation record",
+  "version": "1.0",
+  "purpose": "Prevent benchmark design inputs from being mistaken for validated production data. Every quantitative requirement or public engineering input is represented here with its origin, uncertainty, future correlation method, and version-change owner.",
+  "releaseRule": "Every value below is a fixed v1.0 benchmark input. Physical tests have not been performed for this authoring package; that fact is retained in its uncertainty and scope. A later revision may supersede a value only through a new immutable packet, independent review, and a published rationale; it does not retroactively alter v1.0 results.",
+  "sourceClasses": {
+    "published-standard": "A standard supplies a method, vocabulary, safety boundary, or interface principle; it does not itself choose the benchmark threshold.",
+    "manufacturer-public-data-equivalent": "A public manufacturer data sheet or a frozen neutral crosswalk supplies an available component class and rated-property basis.",
+    "benchmark-design-basis": "A transparent benchmark-author choice fixes the intended manufacturing-cell difficulty. It is not asserted to be an as-built measurement.",
+    "calculation-derived": "A value follows from the stated benchmark inputs and method."
+  },
+  "primaryReferences": [
+    {
+      "id": "REF-ISO-9283",
+      "class": "published-standard",
+      "citation": "ISO 9283:1998, Manipulating industrial robots — Performance criteria and related test methods.",
+      "url": "https://www.iso.org/standard/22244.html",
+      "use": "Repeatability and performance-test method framing; not a source for the task's numeric repeatability target."
+    },
+    {
+      "id": "REF-ISO-12100",
+      "class": "published-standard",
+      "citation": "ISO 12100:2010, Safety of machinery — General principles for design — Risk assessment and risk reduction.",
+      "url": "https://www.iso.org/standard/51528.html",
+      "use": "Risk-assessment and risk-reduction framing; not a certification claim."
+    },
+    {
+      "id": "REF-ISO-10218-1",
+      "class": "published-standard",
+      "citation": "ISO 10218-1:2025, Robotics — Safety requirements — Part 1: Industrial robots.",
+      "url": "https://www.iso.org/standard/73933.html",
+      "use": "Industrial robot safety boundary and terminology context; not a declaration of conformity."
+    },
+    {
+      "id": "REF-ISO-TR-20218-1",
+      "class": "published-standard",
+      "citation": "ISO/TR 20218-1:2018, Robots and robotic devices — Safety design for industrial robot systems — Part 1: End-effectors.",
+      "url": "https://www.iso.org/standard/69488.html",
+      "use": "End-effector safety and risk-interface context."
+    },
+    {
+      "id": "REF-IEC-60812",
+      "class": "published-standard",
+      "citation": "IEC 60812:2018, Failure modes and effects analysis (FMEA and FMECA).",
+      "url": "https://webstore.iec.ch/en/publication/26359",
+      "use": "FMEA/FMECA record structure and discipline."
+    },
+    {
+      "id": "REF-YASKAWA-SGM7A",
+      "class": "manufacturer-public-data-equivalent",
+      "citation": "Yaskawa Sigma-7-Series AC Servo Drive Rotary Servomotor Product Manual, SGM7A 750 W table.",
+      "url": "https://www.yaskawa.com/delegate/getAttachment?cmd=documents&documentId=SIEPS80000136&documentName=sieps80000136j_12_0.pdf",
+      "use": "Public-rated torque/speed crosswalk for the MTR-075 neutral catalogue class."
+    }
+  ],
+  "valueRecords": [
+    {
+      "id": "VAL-001",
+      "reference": "workpieces:WP-B.mass.nominal",
+      "name": "maximum baseline workpiece mass",
+      "value": 4.2,
+      "unit": "kg",
+      "source": "Benchmark-author representative bearing-carrier model.",
+      "sourceClass": "benchmark-design-basis",
+      "applicability": "Maximum nominal baseline payload at the gripper interface before gripper, fingers, and auxiliary retention hardware are added.",
+      "uncertainty": "±0.18 kg for the v1.0 benchmark design input.",
+      "requiredCalibration": "Weigh at least five physical representative parts and establish a 99th-percentile operating mass including permitted process residue.",
+      "owner": "workpiece-metrology lead",
+      "physicalTested": false,
+      "status": "resolved-benchmark-design-basis"
+    },
+    {
+      "id": "VAL-002",
+      "reference": "requirements:REQ-012",
+      "name": "nominal baseline sequence target",
+      "value": 32,
+      "unit": "s",
+      "source": "Benchmark-author target derived from representative medium-volume machine-tending cadence.",
+      "sourceClass": "benchmark-design-basis",
+      "applicability": "Public demonstration and fixed-anchor baseline only; excludes machining time and the separately reported candidate execution time.",
+      "uncertainty": "No physical time study or common dynamic host has been calibrated. The v1.8 static validator checks complete connected trajectory coverage and arithmetic, not feasible trajectory time.",
+      "requiredCalibration": "Before any future revision makes an automatic trajectory-feasibility claim, calibrate a published topology-aware host against two reference designs and a physical reference cell. This packet makes no such automatic claim.",
+      "owner": "motion-calibration lead",
+      "physicalTested": false,
+      "status": "resolved-benchmark-design-basis"
+    },
+    {
+      "id": "VAL-003",
+      "reference": "requirements:REQ-013",
+      "name": "tool-centre-point repeatability target",
+      "value": 0.2,
+      "unit": "mm",
+      "source": "Benchmark-author preliminary machining-cell requirement.",
+      "sourceClass": "benchmark-design-basis; ISO 9283:1998 is the measurement-method reference, not the source of the 0.20 mm threshold.",
+      "applicability": "TCP repeatability design criterion under the frozen evidence-only method and stated payload states; it is not a certification or published robot specification claim.",
+      "uncertainty": "System repeatability includes foundation, joints, compliance, sensing, thermal state, and physical effects that a static error budget cannot establish.",
+      "requiredCalibration": "Before any future revision makes an automatic or physical repeatability claim, use an ISO 9283-inspired procedure on reference architectures with a measurement-system analysis. In v1.8, the target remains an evidence-backed design criterion reviewed at stated fidelity.",
+      "owner": "metrology-and-accuracy lead",
+      "physicalTested": false,
+      "status": "resolved-benchmark-design-basis"
+    },
+    {
+      "id": "VAL-004",
+      "reference": "cell-layout:commonEvidenceMotionLimits",
+      "name": "common evidence motion limits",
+      "value": { "maximumTcpSpeed": 1.6, "maximumTcpAcceleration": 6.0, "maximumTcpJerk": 35 },
+      "unit": { "maximumTcpSpeed": "m/s", "maximumTcpAcceleration": "m/s^2", "maximumTcpJerk": "m/s^3" },
+      "source": "Benchmark-author preliminary normalisation to prevent controller implementation from dominating mechanical comparison.",
+      "sourceClass": "benchmark-design-basis",
+      "applicability": "Frozen comparative evidence inputs only. They do not constrain candidate controller software and do not constitute a dynamic host.",
+      "uncertainty": "The published static handoff contract intentionally does not model topology-specific physical motion, collision, or controller correlation.",
+      "requiredCalibration": "Publish and physically verify a topology-aware common dynamic host before a later packet revision claims automatic trajectory or repeatability qualification. The v1.8 validator publishes complete static coverage rather than substituting an unvalidated host.",
+      "owner": "evaluator-and-controls lead",
+      "physicalTested": false,
+      "status": "resolved-benchmark-design-basis"
+    },
+    {
+      "id": "VAL-005",
+      "reference": "workpieces:commonHandlingCases",
+      "name": "nominal and emergency-stop inertial load cases",
+      "value": { "nominalLinear": 6.0, "emergencyLinear": 10.0, "nominalAngular": 8.0, "emergencyAngular": 14.0 },
+      "unit": { "nominalLinear": "m/s^2", "emergencyLinear": "m/s^2", "nominalAngular": "rad/s^2", "emergencyAngular": "rad/s^2" },
+      "source": "Benchmark-author preliminary safety/load-case envelope.",
+      "sourceClass": "benchmark-design-basis; ISO 12100:2010 informs risk-based load-case treatment, not the chosen acceleration figures.",
+      "applicability": "Workpiece, gripper, wrist, arm, base, and floor-interface design load cases for this benchmark; not a robot stopping-distance certification.",
+      "uncertainty": "Actual stop performance depends on topology, payload inertia, control, and brake coordination.",
+      "requiredCalibration": "Measure and simulate bounded stop profiles on the physical reference system; select conservative common-host fault envelopes and document extrapolation limits.",
+      "owner": "mechanical-safety lead",
+      "physicalTested": false,
+      "status": "resolved-benchmark-design-basis"
+    },
+    {
+      "id": "VAL-006",
+      "reference": "workpieces:WP-A/WP-B/WP-C.frictionAssumption",
+      "name": "grasp contact friction under process contamination",
+      "value": "part-specific dry and contaminated coefficient table",
+      "unit": "coefficient of friction",
+      "source": "Benchmark-author preliminary material/contact assumptions.",
+      "sourceClass": "benchmark-design-basis",
+      "applicability": "Minimum-design friction coefficients at permitted primary grasp surfaces. Candidates may use a lower value only with traceable evidence.",
+      "uncertainty": "Surface finish, pad material, coolant/oil condition, normal force, and cycling are not represented by a single deterministic coefficient.",
+      "requiredCalibration": "Run controlled coupon and representative-part slip tests with candidate-permitted pad classes; publish conservative lower-bound distributions and damage limits.",
+      "owner": "grasp-and-workpiece lead",
+      "physicalTested": false,
+      "status": "resolved-benchmark-design-basis"
+    },
+    {
+      "id": "VAL-007",
+      "reference": "component-catalog-snapshot:*",
+      "name": "catalogue ratings and mass properties",
+      "value": "closed neutral catalogue snapshot",
+      "unit": "mixed",
+      "source": "Benchmark-owned synthetic component cards.",
+      "sourceClass": "manufacturer-public-data-equivalent plus benchmark-design-basis. MTR-075 is crosswalked to the public Yaskawa Sigma-7 SGM7A 750 W table; remaining neutral classes are fixed benchmark equivalents.",
+      "applicability": "Supported catalogue selection and automatic range checks. It is not a purchasing specification or manufacturer warranty.",
+      "uncertainty": "Synthetic values are internally consistent but are not licensed manufacturer specifications or validated availability data.",
+      "requiredCalibration": "Replace or crosswalk every supported component card with licensed vendor documents, test data where material to outcome, and a revision-controlled equivalence decision.",
+      "owner": "catalogue-and-procurement lead",
+      "physicalTested": false,
+      "status": "resolved-benchmark-catalogue"
+    },
+    {
+      "id": "VAL-008",
+      "reference": "interface-dimensions, cell-layout, and fixed-geometry",
+      "name": "cell and fixture geometry",
+      "value": "public complete neutral CSG/interface geometry and tolerance set",
+      "unit": "mm and degrees",
+      "source": "Benchmark-author synthetic reference cell.",
+      "sourceClass": "benchmark-design-basis",
+      "applicability": "Public cell geometry, fixture approach, workpiece/grasp geometry, and service envelope for all v1.8 panels; not an as-built factory layout claim.",
+      "uncertainty": "Public envelope geometry has authoring tolerance and is not as-built metrology.",
+      "requiredCalibration": "Build or inspect a traceable physical reference fixture/cell; survey key coordinates and publish the frozen measurement uncertainty budget.",
+      "owner": "cell-integration lead",
+      "physicalTested": false,
+      "status": "resolved-benchmark-design-basis"
+    },
+    {
+      "id": "VAL-009",
+      "reference": "evaluation-commitments:scoring",
+      "name": "dimension weights, metric aggregation, and qualification thresholds",
+      "value": "not yet assigned",
+      "unit": "score",
+      "source": "evaluation/integrated-robotic-handling-v1.10/scoring-contract.json version 1.2.",
+      "sourceClass": "benchmark-design-basis with independent review protocol; the contract publishes a multi-dimensional ordinal vector and no arbitrary composite weight.",
+      "applicability": "Official v1.2 result vector, qualification gates, panels, attainment profile, and score intervals.",
+      "uncertainty": "Human-rater and physical-validity uncertainty is preserved in intervals and status fields; no hidden composite is used.",
+      "requiredCalibration": "Rater calibration, reference designs, seeded defects, and physical reference tests remain planned validation activities for a future scoring-contract revision, not a blocker for the current no-composite vector contract.",
+      "owner": "scoring-governance lead",
+      "physicalTested": false,
+      "status": "resolved-scoring-contract"
+    },
+    {
+      "id": "VAL-010",
+      "reference": "workpieces:WP-C.contactAcceptance",
+      "name": "WP-C conservative primary-contact acceptance",
+      "value": 1.2,
+      "unit": "MPa mean pressure per primary contact",
+      "source": "Benchmark-owned fixed polyurethane-pad/contact model with a reserved margin to the nominal damage threshold.",
+      "sourceClass": "benchmark-design-basis",
+      "applicability": "Every WP-C primary contact under LC-HND-001, LC-HND-002, and LC-HND-003 using the fixed area, pad class, and drawing/inspection rules.",
+      "uncertainty": "Not a physical cosmetic-damage qualification. The fixed conservative criterion enables comparable evaluation and may only be superseded in a later reviewed packet.",
+      "requiredCalibration": "Correlate with coupon and representative-part tests in a future packet revision without altering v1.8 results.",
+      "owner": "grasp-and-workpiece lead",
+      "physicalTested": false,
+      "status": "resolved-benchmark-design-basis"
+    }
+  ],
+  "resolvedStandards": [
+    {
+      "id": "STD-001",
+      "name": "standard gravity",
+      "value": 9.80665,
+      "unit": "m/s^2",
+      "source": "Conventional standard gravity used by the common host model.",
+      "uncertainty": "Negligible for this benchmark scope.",
+      "sourceClass": "published-standard",
+      "applicability": "All gravity load calculations in this benchmark.",
+      "physicalTested": false,
+      "status": "resolved"
+    }
+  ],
+  "calibrationCoverageCommitment": {
+    "rule": "An evaluation class/topology combination without validated calibration coverage is reported as evaluator-unsupported or evaluator-uncertain; it is not silently assigned an automatic passing score.",
+    "requiredMatrixDimensions": ["manipulator topology", "load/structural model class", "accuracy model class", "gripper/contact class", "motion/trajectory class", "physical versus virtual evidence"]
+  }
+}

@@ -214,3 +214,53 @@ test("longitudinal aggregation preserves vector, gates, and separate efficiency"
   assert.equal(aggregate.compositeScore, null);
   assert.equal(aggregate.efficiency.separateFromDesignQuality, true);
 });
+
+test("aggregation counts v1.10 non-evaluation causes with v1 failure-cause fallback", () => {
+  const legacy = evaluationRecord({
+    bundle: "f",
+    d01: null,
+    qualified: false,
+    checkpoint: "CKPT-030",
+  });
+  legacy.dimensions[0] = {
+    ...legacy.dimensions[0],
+    evaluable: false,
+    passFail: "not-evaluable",
+    scoreInterval: null,
+    failureCause: "missing-evidence",
+  };
+
+  const v110 = evaluationRecord({
+    bundle: "g",
+    d01: null,
+    qualified: false,
+    checkpoint: "CKPT-030",
+  });
+  v110.dimensions[0] = {
+    id: "D01",
+    label: "Requirements",
+    attempted: true,
+    evidenceCoverage: {
+      required: 2,
+      covered: 0,
+      missing: 2,
+      uncertain: 0,
+      ratio: 0,
+      criteria: [],
+      reviewerObservations: [],
+    },
+    evaluable: false,
+    ratingStatus: "not-evaluable",
+    score: null,
+    scoreInterval: null,
+    nonEvaluationCause: "incomplete-checkpoint",
+    highestVerifiedCheckpoint: "CKPT-030",
+    ratings: [],
+  };
+
+  const aggregate = aggregateEngineeringEvaluations([legacy, v110]);
+  assert.deepEqual(aggregate.dimensions[0].failureCauses, {
+    "incomplete-checkpoint": 1,
+    "missing-evidence": 1,
+  });
+});

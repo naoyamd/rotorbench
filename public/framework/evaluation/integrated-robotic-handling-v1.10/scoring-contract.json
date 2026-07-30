@@ -1,0 +1,825 @@
+{
+  "schemaVersion": "4.0",
+  "id": "integrated-robotic-handling-scoring",
+  "version": "1.2",
+  "status": "frozen-vector-no-composite",
+  "benchmarkId": "integrated-robotic-handling",
+  "purpose": "Measure engineering-design attainment without collapsing unlike capabilities into a single opaque leaderboard number.",
+  "panels": [
+    {
+      "id": "public-demonstration",
+      "label": "Public demonstration",
+      "longitudinalRole": "diagnostic-only"
+    },
+    {
+      "id": "fixed-anchor-baseline",
+      "label": "Fixed public anchor baseline",
+      "longitudinalRole": "primary"
+    },
+    {
+      "id": "hidden-robustness",
+      "label": "Evaluator-hidden robustness",
+      "longitudinalRole": "separate"
+    },
+    {
+      "id": "change-response",
+      "label": "Post-freeze change response",
+      "longitudinalRole": "separate"
+    },
+    {
+      "id": "fresh-generalization",
+      "label": "Fresh private generalization",
+      "longitudinalRole": "separate-never-backfilled"
+    }
+  ],
+  "admissionGate": {
+    "id": "A0",
+    "label": "Submission admission",
+    "failureEffect": "artifact-invalid",
+    "checks": [
+      "launch, packet, bundle, prompt, execution-contract and fairness digests match",
+      "submission manifest is readable and schema-valid",
+      "all submitted paths are safe and all declared hashes match",
+      "no prohibited executable, macro, external link, credential or network-dependent payload reaches the evaluator",
+      "the bundle addresses this benchmark rather than another task"
+    ],
+    "note": "Missing engineering content is not an A0 failure. It remains measurable as partial attainment."
+  },
+  "baselineGates": [
+    {
+      "id": "B0",
+      "label": "Baseline required-output and evidence completeness",
+      "minimumCheckpoint": "CKPT-040",
+      "checks": [
+        "every output required for the fixed-anchor baseline at CKPT-040 is present, safe to process, and traceable",
+        "baseline required-output coverage has no missing or post-attainment-only substitution",
+        "required neutral artifacts can be opened by the declared evaluator path and requirement/evidence references are non-dangling",
+        "a declared missing, unreadable, unsafe, or untraceable baseline required output fails B0; reporting the absence does not pass B0"
+      ]
+    },
+    {
+      "id": "B1",
+      "label": "Geometry and kinematics",
+      "minimumCheckpoint": "CKPT-020",
+      "panelMinimumCheckpoints": { "change-response": "CKPT-050" },
+      "checks": [
+        "the hash-bound static validator passes its published STEP-envelope and kinematic-manifest checks",
+        "base interface and cell envelope compliance are evidence-backed against the complete fixed geometry",
+        "required poses, paths, singularities, self-collision and cell collision are evaluated at declared fidelity rather than inferred from a static validator pass",
+        "gripper opening states and workpiece states are represented"
+      ]
+    },
+    {
+      "id": "B2",
+      "label": "Grasp and workpiece integrity",
+      "minimumCheckpoint": "CKPT-020",
+      "panelMinimumCheckpoints": { "change-response": "CKPT-050" },
+      "checks": [
+        "all baseline workpieces have a permitted grasp",
+        "opening range, jaw travel and retention load path are feasible",
+        "normal operation, emergency deceleration and loss-of-power retention are evaluated",
+        "contact pressure and prohibited-surface constraints are respected, including WP-C-CONTACT-001"
+      ]
+    },
+    {
+      "id": "B3",
+      "label": "Mechanical capacity",
+      "minimumCheckpoint": "CKPT-030",
+      "panelMinimumCheckpoints": { "change-response": "CKPT-050" },
+      "checks": [
+        "governing static, dynamic, emergency and loss-of-power cases are defined",
+        "motors, reducers, brakes, bearings, fasteners, links and gripper transmission have traceable margins",
+        "fatigue, wear and duty assumptions are stated with uncertainty",
+        "loads propagate from workpiece contact to floor interface without an unexplained break and use the fixed FND-ANCH-001 anchor/foundation lower-bound model"
+      ]
+    },
+    {
+      "id": "B4",
+      "label": "Accuracy and tolerance",
+      "minimumCheckpoint": "CKPT-030",
+      "panelMinimumCheckpoints": { "change-response": "CKPT-050" },
+      "checks": [
+        "mechanical and common-control error contributions are separated",
+        "datum, backlash, compliance, thermal, calibration and assembly effects are allocated",
+        "critical stack-ups close against the supplied acceptance limits",
+        "claims are reproducible from submitted evidence; static RSS arithmetic is not treated as a physical repeatability pass"
+      ]
+    },
+    {
+      "id": "B5",
+      "label": "Manufacturing, assembly and service",
+      "minimumCheckpoint": "CKPT-030",
+      "panelMinimumCheckpoints": { "change-response": "CKPT-050" },
+      "checks": [
+        "critical manufactured parts have material, process, datum, tolerance and inspection definitions",
+        "assembly sequence and tool access are feasible",
+        "wear parts, bearings, brakes, drives, fingers and utilities can be serviced",
+        "BOM and CAD are mutually consistent"
+      ]
+    },
+    {
+      "id": "B6",
+      "label": "Mechanical safety",
+      "minimumCheckpoint": "CKPT-030",
+      "panelMinimumCheckpoints": { "change-response": "CKPT-050" },
+      "checks": [
+        "brake and loss-of-power holding capacity meet declared fault loads",
+        "gravity and stored-energy motion are controlled",
+        "mechanical stops, maintenance support and residual-energy release are defined",
+        "pinch and crush hazards have a mechanical control or an explicit integrator interface",
+        "residual risks are not misrepresented as certification"
+      ]
+    }
+  ],
+  "panelGateApplicability": {
+    "public-demonstration": ["B0", "B1", "B2", "B3", "B4", "B5", "B6"],
+    "fixed-anchor-baseline": ["B0", "B1", "B2", "B3", "B4", "B5", "B6"],
+    "hidden-robustness": ["B0", "B1", "B2", "B3", "B4", "B5", "B6"],
+    "change-response": ["B1", "B2", "B3", "B4", "B5", "B6"],
+    "fresh-generalization": ["B0", "B1", "B2", "B3", "B4", "B5", "B6"]
+  },
+  "qualificationRules": {
+    "baselineQualified": "Only the fixed-anchor-baseline panel may report this field. It is true exactly when A0 admission passes, every required-for-baseline checkpoint through CKPT-040 is verified, and B0 through B6 pass for that baseline evidence. No ordinal dimension, cost, efficiency, or change result is a baseline-qualification condition.",
+    "changeQualified": "Only the change-response panel may report this field. It is true exactly when A0 admission passes, CKPT-050 is verified for this changed-design submission, and change-context B1 through B6 independently pass. B0 and any earlier baseline qualification are not imported as a change pass.",
+    "changeFailureDoesNotEraseBaseline": true,
+    "notEvaluableIsNotPass": true,
+    "evaluatorUnsupportedIsNotDesignFailure": true
+  },
+  "checkpoints": [
+    {
+      "id": "CKPT-000",
+      "label": "Initial plan frozen",
+      "requiredForBaseline": true,
+      "evidence": "all disclosed input hashes and launch bindings verified; initial requirements, assumptions, alternatives and verification plan frozen"
+    },
+    {
+      "id": "CKPT-010",
+      "label": "System concept selected",
+      "requiredForBaseline": true,
+      "evidence": "requirements trace, evaluated alternatives, integrated arm/gripper architecture and verification strategy receipt"
+    },
+    {
+      "id": "CKPT-020",
+      "label": "Embodiment established",
+      "requiredForBaseline": true,
+      "evidence": "topology, frames, joints, workspace, powered gripper, neutral CAD/STEP, motion manifest and structured BOM receipt"
+    },
+    {
+      "id": "CKPT-030",
+      "label": "Critical verification established",
+      "requiredForBaseline": true,
+      "evidence": "loads, drives, grasp retention, structure, accuracy, production definition, safety and service evidence receipt"
+    },
+    {
+      "id": "CKPT-040",
+      "label": "Baseline submission sealed",
+      "requiredForBaseline": true,
+      "evidence": "complete neutral handoff, requirement-linked verification record and immutable baseline submission receipt"
+    },
+    {
+      "id": "CKPT-050",
+      "label": "Change response sealed",
+      "requiredForBaseline": false,
+      "evidence": "pre-edit impact analysis plus changed-design receipt"
+    }
+  ],
+  "attainmentProfile": {
+    "label": "Engineering Attainment Profile",
+    "fieldsPerDimension": [
+      "attempted",
+      "evidenceCoverage",
+      "evaluable",
+      "ratingStatus",
+      "scoreInterval",
+      "nonEvaluationCause",
+      "highestVerifiedCheckpoint"
+    ],
+    "ratingStatuses": [
+      "scored",
+      "not-evaluable"
+    ],
+    "nonEvaluationCauses": [
+      "not-attempted",
+      "incomplete-checkpoint",
+      "missing-evidence",
+      "artifact-invalid",
+      "evaluator-unsupported",
+      "evaluator-uncertain",
+      "not-applicable"
+    ]
+  },
+  "ratingScale": {
+    "type": "ordinal",
+    "minimum": 0,
+    "maximum": 4,
+    "passFailThreshold": null,
+    "interpretation": "Scores describe ordinal design-evidence quality only; no score is converted to pass or fail.",
+    "anchors": [
+      {
+        "score": 0,
+        "meaning": "No credible engineering case: absent, contradicted, unsafe, or unsupported by inspectable evidence."
+      },
+      {
+        "score": 1,
+        "meaning": "Fragmentary concept evidence: important interfaces or assumptions are missing and conclusions are not reproducible."
+      },
+      {
+        "score": 2,
+        "meaning": "Plausible preliminary design: principal decisions and calculations exist, but coverage, integration, uncertainty, or production definition remains materially incomplete."
+      },
+      {
+        "score": 3,
+        "meaning": "Complete and traceable engineering design: requirements, decisions, analyses and production evidence are mutually consistent and independently reproducible."
+      },
+      {
+        "score": 4,
+        "meaning": "Release-quality engineering evidence: independent checks support the design, uncertainty and failure behavior are controlled, and the evidence predicts common analysis or test outcomes."
+      }
+    ]
+  },
+  "dimensions": [
+    {
+      "id": "D01",
+      "label": "Requirements decomposition and system concept",
+      "evidenceFocus": [
+        "requirement coverage",
+        "assumption quality",
+        "architecture alternatives",
+        "interface ownership",
+        "decision traceability"
+      ],
+      "requiredEvidence": [
+        {
+          "id": "D01-E01",
+          "criterion": "requirement-to-architecture trace with owned mechanical interfaces"
+        },
+        {
+          "id": "D01-E02",
+          "criterion": "assumption register with verification consequence"
+        },
+        {
+          "id": "D01-E03",
+          "criterion": "at least one rejected architecture alternative and decision rationale"
+        }
+      ],
+      "failConditions": [
+        "a claimed requirement is contradicted by the selected architecture or unowned at a mechanical interface",
+        "the selected concept cannot support the required powered gripper and arm functions"
+      ],
+      "notEvaluableConditions": [
+        "the required requirement trace or concept record is absent or unreadable",
+        "evidence establishes intent only and cannot be tied to a frozen checkpoint"
+      ],
+      "panelApplicability": {
+        "public-demonstration": { "status": "applicable", "mode": "demonstration concept", "minimumCheckpoint": "CKPT-010" },
+        "fixed-anchor-baseline": { "status": "applicable", "mode": "baseline concept", "minimumCheckpoint": "CKPT-010" },
+        "hidden-robustness": { "status": "applicable", "mode": "robustness concept", "minimumCheckpoint": "CKPT-010" },
+        "change-response": { "status": "applicable", "mode": "changed concept and impact scope", "minimumCheckpoint": "CKPT-050" },
+        "fresh-generalization": { "status": "applicable", "mode": "fresh-instance concept", "minimumCheckpoint": "CKPT-010" }
+      },
+      "operationalAnchors": [
+        { "score": 0, "meaning": "No inspectable requirement decomposition, or the selected concept contradicts a controlling requirement." },
+        { "score": 1, "meaning": "A concept is named, but requirements, assumptions, interfaces, or alternatives are materially untraceable." },
+        { "score": 2, "meaning": "A plausible integrated arm/gripper concept and some alternatives are recorded, but ownership or verification closure is incomplete." },
+        { "score": 3, "meaning": "Requirements, assumptions, alternatives, interfaces, and the selected arm/gripper architecture are mutually traceable and verification-oriented." },
+        { "score": 4, "meaning": "The trace anticipates conflicting requirements, failure boundaries, and downstream verification with independently checkable decision evidence." }
+      ]
+    },
+    {
+      "id": "D02",
+      "label": "Kinematics, workspace and cycle feasibility",
+      "evidenceFocus": [
+        "neutral topology",
+        "reachability",
+        "singularity and collision treatment",
+        "waypoints and payload states",
+        "published static neutral-handoff validation and evidence-backed trajectory feasibility"
+      ],
+      "requiredEvidence": [
+        {
+          "id": "D02-E01",
+          "criterion": "neutral CAD/STEP topology, frames, joints, opening states, and motion manifest"
+        },
+        {
+          "id": "D02-E02",
+          "criterion": "required-pose and path evidence covering singularity, self-collision, cell collision, and payload states"
+        },
+        {
+          "id": "D02-E03",
+          "criterion": "declared fidelity and limitations for trajectory and clearance checks"
+        }
+      ],
+      "failConditions": [
+        "a required pose or path is unreachable, colliding, singular without recovery, or incompatible with the fixed envelope",
+        "trajectory feasibility is claimed from a static validator that does not evaluate the claimed motion"
+      ],
+      "notEvaluableConditions": [
+        "geometry, coordinate frames, motion states, or path evidence needed to reconstruct the claim is absent",
+        "the available evaluator cannot process the declared neutral geometry and no inspectable substitute is supplied"
+      ],
+      "panelApplicability": {
+        "public-demonstration": { "status": "applicable", "mode": "demonstration embodiment", "minimumCheckpoint": "CKPT-020" },
+        "fixed-anchor-baseline": { "status": "applicable", "mode": "baseline embodiment", "minimumCheckpoint": "CKPT-020" },
+        "hidden-robustness": { "status": "applicable", "mode": "robustness embodiment", "minimumCheckpoint": "CKPT-020" },
+        "change-response": { "status": "applicable", "mode": "changed motion envelope", "minimumCheckpoint": "CKPT-050" },
+        "fresh-generalization": { "status": "applicable", "mode": "fresh-instance embodiment", "minimumCheckpoint": "CKPT-020" }
+      },
+      "operationalAnchors": [
+        { "score": 0, "meaning": "No inspectable mechanism/motion case, or evidence shows a required motion is infeasible." },
+        { "score": 1, "meaning": "Static geometry or a nominal reach claim exists, but frames, states, collisions, or singularities are materially missing." },
+        { "score": 2, "meaning": "An inspectable topology and nominal workspace exist, but motion coverage or declared analysis fidelity remains incomplete." },
+        { "score": 3, "meaning": "All required poses and paths are traceably checked with opening and payload states, collision/singularity treatment, and explicit model limits." },
+        { "score": 4, "meaning": "Independent or cross-method checks cover boundary paths, toleranced clearances, and credible recovery behavior." }
+      ]
+    },
+    {
+      "id": "D03",
+      "label": "Gripper, grasp and workpiece protection",
+      "evidenceFocus": [
+        "opening and closing mechanism",
+        "guidance and transmission",
+        "grasp coverage",
+        "retention margins",
+        "contact and surface protection"
+      ],
+      "requiredEvidence": [
+        {
+          "id": "D03-E01",
+          "criterion": "powered opening/closing kinematic chain with travel, guidance, and actuator/load path"
+        },
+        {
+          "id": "D03-E02",
+          "criterion": "per-workpiece grasp map, contact definition, and retention calculations for normal, emergency, and loss-of-power cases"
+        },
+        {
+          "id": "D03-E03",
+          "criterion": "pressure, pad, prohibited-surface, and workpiece-integrity evidence"
+        }
+      ],
+      "failConditions": [
+        "a baseline workpiece lacks a permitted grasp or the gripper cannot open/close through the required state",
+        "retention, contact pressure, or prohibited-surface constraints fail a declared governing case"
+      ],
+      "notEvaluableConditions": [
+        "the gripping mechanism, workpiece contact definition, or required load cases are absent",
+        "a retention claim has no inspectable force path, coefficient, or evidence reference"
+      ],
+      "panelApplicability": {
+        "public-demonstration": { "status": "applicable", "mode": "demonstration gripper", "minimumCheckpoint": "CKPT-020" },
+        "fixed-anchor-baseline": { "status": "applicable", "mode": "baseline gripper", "minimumCheckpoint": "CKPT-020" },
+        "hidden-robustness": { "status": "applicable", "mode": "robustness gripper", "minimumCheckpoint": "CKPT-020" },
+        "change-response": { "status": "applicable", "mode": "changed gripper response", "minimumCheckpoint": "CKPT-050" },
+        "fresh-generalization": { "status": "applicable", "mode": "fresh-instance gripper", "minimumCheckpoint": "CKPT-020" }
+      },
+      "operationalAnchors": [
+        { "score": 0, "meaning": "No feasible powered gripping mechanism, or a required workpiece/contact constraint demonstrably fails." },
+        { "score": 1, "meaning": "A jaw shape or actuator is shown, but travel, guidance, force path, or per-workpiece grasp coverage is missing." },
+        { "score": 2, "meaning": "A plausible gripper and nominal grasp calculation exist, but fault retention, pressure, or workpiece protection coverage is incomplete." },
+        { "score": 3, "meaning": "The opening/closing mechanism, guidance, workpiece grasps, contact limits, and normal/fault retention margins are traceable and consistent." },
+        { "score": 4, "meaning": "Independent checks or tests support contact/retention robustness across boundary workpieces and wear/friction uncertainty is controlled." }
+      ]
+    },
+    {
+      "id": "D04",
+      "label": "Load path, structure, drives and life",
+      "evidenceFocus": [
+        "load cases",
+        "drive and brake selection",
+        "bearing and fastener checks",
+        "strength and stiffness",
+        "fatigue, wear and duty"
+      ],
+      "requiredEvidence": [
+        {
+          "id": "D04-E01",
+          "criterion": "governing load-case table from workpiece contact to FND-ANCH-001 floor interface"
+        },
+        {
+          "id": "D04-E02",
+          "criterion": "traceable drive, reducer, brake, bearing, fastener, link, and gripper-transmission selections with margins"
+        },
+        {
+          "id": "D04-E03",
+          "criterion": "strength, stiffness, fatigue/wear, duty-cycle assumptions, and uncertainty record"
+        }
+      ],
+      "failConditions": [
+        "a governing component or interface has a negative declared margin or an unexplained load-path discontinuity",
+        "fault, emergency, or loss-of-power loads are omitted where they govern the selected mechanism"
+      ],
+      "notEvaluableConditions": [
+        "loads, component ratings, boundary conditions, or calculation inputs needed to reconstruct margins are missing",
+        "only unsupported factor-of-safety assertions are supplied"
+      ],
+      "panelApplicability": {
+        "public-demonstration": { "status": "applicable", "mode": "demonstration verification", "minimumCheckpoint": "CKPT-030" },
+        "fixed-anchor-baseline": { "status": "applicable", "mode": "baseline verification", "minimumCheckpoint": "CKPT-030" },
+        "hidden-robustness": { "status": "applicable", "mode": "robustness verification", "minimumCheckpoint": "CKPT-030" },
+        "change-response": { "status": "applicable", "mode": "changed load-path verification", "minimumCheckpoint": "CKPT-050" },
+        "fresh-generalization": { "status": "applicable", "mode": "fresh-instance verification", "minimumCheckpoint": "CKPT-030" }
+      },
+      "operationalAnchors": [
+        { "score": 0, "meaning": "No credible load path or a governing structural/drive/fault case fails." },
+        { "score": 1, "meaning": "Some loads or catalogue parts are named, but force transfer, fault cases, or component margins are materially absent." },
+        { "score": 2, "meaning": "Principal loads and selections are plausible, but integration, fatigue/wear, boundary conditions, or uncertainty are incomplete." },
+        { "score": 3, "meaning": "Traceable governing cases close the full load path with component, structure, brake, life, and uncertainty evidence." },
+        { "score": 4, "meaning": "Independent checks cover controlling transients, sensitivity, fatigue/wear limits, and physical failure behavior." }
+      ]
+    },
+    {
+      "id": "D05",
+      "label": "Accuracy, tolerance and calibration",
+      "evidenceFocus": [
+        "error budget",
+        "datum architecture",
+        "tolerance stacks",
+        "backlash and compliance",
+        "calibration and inspection"
+      ],
+      "requiredEvidence": [
+        {
+          "id": "D05-E01",
+          "criterion": "datum architecture and error budget separating mechanical and common-control contributions"
+        },
+        {
+          "id": "D05-E02",
+          "criterion": "critical tolerance stack-ups including backlash, compliance, thermal, calibration, and assembly effects"
+        },
+        {
+          "id": "D05-E03",
+          "criterion": "calibration and inspection method tied to supplied acceptance limits"
+        }
+      ],
+      "failConditions": [
+        "a critical stack does not close against an acceptance limit",
+        "a repeatability claim is presented as physical proof while omitting dominant mechanical or calibration contributors"
+      ],
+      "notEvaluableConditions": [
+        "datum definitions, contributors, acceptance limits, or calculation provenance are absent",
+        "only an aggregate RSS value is supplied without a traceable physical error model"
+      ],
+      "panelApplicability": {
+        "public-demonstration": { "status": "applicable", "mode": "demonstration accuracy", "minimumCheckpoint": "CKPT-030" },
+        "fixed-anchor-baseline": { "status": "applicable", "mode": "baseline accuracy", "minimumCheckpoint": "CKPT-030" },
+        "hidden-robustness": { "status": "applicable", "mode": "robustness accuracy", "minimumCheckpoint": "CKPT-030" },
+        "change-response": { "status": "applicable", "mode": "changed accuracy regression", "minimumCheckpoint": "CKPT-050" },
+        "fresh-generalization": { "status": "applicable", "mode": "fresh-instance accuracy", "minimumCheckpoint": "CKPT-030" }
+      },
+      "operationalAnchors": [
+        { "score": 0, "meaning": "No inspectable accuracy case, or a critical tolerance/acceptance condition demonstrably fails." },
+        { "score": 1, "meaning": "A target or RSS figure is stated, but datum chain, dominant contributors, or calibration basis is missing." },
+        { "score": 2, "meaning": "A plausible error budget and some stacks exist, but integration, thermal/compliance, or inspection closure is incomplete." },
+        { "score": 3, "meaning": "Datum chain, contributor budget, critical stacks, calibration, and inspection plan are reproducible against supplied limits." },
+        { "score": 4, "meaning": "Independent sensitivity or test-oriented checks show controlled accuracy under assembly, thermal, load, and wear variation." }
+      ]
+    },
+    {
+      "id": "D06",
+      "label": "Manufacturing, assembly, inspection and service",
+      "evidenceFocus": [
+        "DFM and DFA",
+        "critical drawings and PMI",
+        "process and material choices",
+        "tool and service access",
+        "inspection feasibility"
+      ],
+      "requiredEvidence": [
+        {
+          "id": "D06-E01",
+          "criterion": "critical part definitions with material, process, datum, tolerance, and inspection method"
+        },
+        {
+          "id": "D06-E02",
+          "criterion": "assembly sequence, tool access, adjustment, and service access evidence"
+        },
+        {
+          "id": "D06-E03",
+          "criterion": "BOM-to-CAD consistency and replaceable wear-part plan"
+        }
+      ],
+      "failConditions": [
+        "a critical part cannot be manufactured, assembled, inspected, or serviced by the stated process/access concept",
+        "BOM, material/process, and CAD definitions conflict at a critical interface"
+      ],
+      "notEvaluableConditions": [
+        "critical part/process/datum information or assembly evidence is absent",
+        "manufacturability is asserted without inspectable geometry, tolerance, or process evidence"
+      ],
+      "panelApplicability": {
+        "public-demonstration": { "status": "applicable", "mode": "demonstration production definition", "minimumCheckpoint": "CKPT-030" },
+        "fixed-anchor-baseline": { "status": "applicable", "mode": "baseline production definition", "minimumCheckpoint": "CKPT-030" },
+        "hidden-robustness": { "status": "applicable", "mode": "robustness production definition", "minimumCheckpoint": "CKPT-030" },
+        "change-response": { "status": "applicable", "mode": "changed production impact", "minimumCheckpoint": "CKPT-050" },
+        "fresh-generalization": { "status": "applicable", "mode": "fresh-instance production definition", "minimumCheckpoint": "CKPT-030" }
+      },
+      "operationalAnchors": [
+        { "score": 0, "meaning": "No producible/serviceable definition, or a critical manufacturing, assembly, or service conflict is shown." },
+        { "score": 1, "meaning": "Some parts or materials are named, but critical datums, processes, access, or inspection are missing." },
+        { "score": 2, "meaning": "A plausible BOM and manufacturing concept exist, but tolerancing, assembly access, or service evidence remains incomplete." },
+        { "score": 3, "meaning": "Critical definitions, BOM/CAD consistency, assembly, inspection, and service procedures are mutually traceable." },
+        { "score": 4, "meaning": "The production definition anticipates process variation, tooling/inspection capability, change control, and practical field service." }
+      ]
+    },
+    {
+      "id": "D07",
+      "label": "Safety, reliability and failure behavior",
+      "evidenceFocus": [
+        "hazard identification",
+        "objective mechanical safeguards",
+        "loss-of-power behavior",
+        "FMEA reasoning",
+        "residual-risk ownership"
+      ],
+      "requiredEvidence": [
+        {
+          "id": "D07-E01",
+          "criterion": "hazard and fault-case record covering gravity, stored energy, pinch/crush, and maintenance"
+        },
+        {
+          "id": "D07-E02",
+          "criterion": "mechanical safeguards including holding/braking, stops, support, and residual-energy release"
+        },
+        {
+          "id": "D07-E03",
+          "criterion": "residual-risk and integrator-interface ownership statement"
+        }
+      ],
+      "failConditions": [
+        "a declared fault produces uncontrolled gravity/stored-energy motion or a required mechanical safeguard is insufficient",
+        "a safety claim represents unresolved risk as certification or omits ownership"
+      ],
+      "notEvaluableConditions": [
+        "fault loads, safeguard geometry/capacity, or maintenance-state evidence is absent",
+        "hazards are listed without an inspectable control or residual-risk disposition"
+      ],
+      "panelApplicability": {
+        "public-demonstration": { "status": "applicable", "mode": "demonstration fault behavior", "minimumCheckpoint": "CKPT-030" },
+        "fixed-anchor-baseline": { "status": "applicable", "mode": "baseline fault behavior", "minimumCheckpoint": "CKPT-030" },
+        "hidden-robustness": { "status": "applicable", "mode": "robustness fault behavior", "minimumCheckpoint": "CKPT-030" },
+        "change-response": { "status": "applicable", "mode": "changed fault regression", "minimumCheckpoint": "CKPT-050" },
+        "fresh-generalization": { "status": "applicable", "mode": "fresh-instance fault behavior", "minimumCheckpoint": "CKPT-030" }
+      },
+      "operationalAnchors": [
+        { "score": 0, "meaning": "No credible fault/safety case, or a required fault behavior is uncontrolled or unsafe." },
+        { "score": 1, "meaning": "Hazards are named, but safeguards, fault loads, maintenance behavior, or ownership are materially absent." },
+        { "score": 2, "meaning": "A plausible safety concept exists, but fault coverage, capacity evidence, or residual-risk control is incomplete." },
+        { "score": 3, "meaning": "Hazards, fault cases, mechanical controls, maintenance states, and residual-risk ownership are traceable and evidence-backed." },
+        { "score": 4, "meaning": "Independent reasoning covers credible failures, degraded modes, safeguarding limits, and service/maintenance misuse." }
+      ]
+    },
+    {
+      "id": "D08",
+      "label": "Verification and traceability",
+      "evidenceFocus": [
+        "requirement-evidence links",
+        "reproducible calculations",
+        "independent common analysis",
+        "model limitations",
+        "claim-to-artifact consistency"
+      ],
+      "requiredEvidence": [
+        {
+          "id": "D08-E01",
+          "criterion": "requirement-to-evidence matrix with artifact and calculation references"
+        },
+        {
+          "id": "D08-E02",
+          "criterion": "reproducible calculation inputs, methods, outputs, and declared model limits"
+        },
+        {
+          "id": "D08-E03",
+          "criterion": "consistency record linking CAD, BOM, verification claims, and checkpoint receipts"
+        }
+      ],
+      "failConditions": [
+        "a controlling claim has no traceable evidence or conflicts with its cited artifact",
+        "a required verification is presented as passed without a reproducible method or known limitation"
+      ],
+      "notEvaluableConditions": [
+        "evidence references are dangling, unreadable, or cannot be linked to the claimed requirement",
+        "the evaluator cannot reconstruct the claimed method from the submitted record"
+      ],
+      "panelApplicability": {
+        "public-demonstration": { "status": "applicable", "mode": "demonstration traceability", "minimumCheckpoint": "CKPT-030" },
+        "fixed-anchor-baseline": { "status": "applicable", "mode": "baseline traceability", "minimumCheckpoint": "CKPT-030" },
+        "hidden-robustness": { "status": "applicable", "mode": "robustness traceability", "minimumCheckpoint": "CKPT-030" },
+        "change-response": { "status": "applicable", "mode": "changed-design traceability", "minimumCheckpoint": "CKPT-050" },
+        "fresh-generalization": { "status": "applicable", "mode": "fresh-instance traceability", "minimumCheckpoint": "CKPT-030" }
+      },
+      "operationalAnchors": [
+        { "score": 0, "meaning": "Evidence is absent, contradictory, or cannot be connected to the engineering claims." },
+        { "score": 1, "meaning": "Some artifacts are cited, but claims, inputs, limits, or checkpoint provenance remain materially untraceable." },
+        { "score": 2, "meaning": "A plausible trace exists, but coverage, reproducibility, cross-artifact consistency, or model limitations are incomplete." },
+        { "score": 3, "meaning": "Requirements, artifacts, calculations, limitations, and receipts form a reproducible and mutually consistent verification chain." },
+        { "score": 4, "meaning": "Independent evidence paths and contradiction checks expose uncertainty and would reliably detect common traceability defects." }
+      ]
+    },
+    {
+      "id": "D09",
+      "label": "Change response",
+      "evidenceFocus": [
+        "impact analysis before editing",
+        "dependency identification",
+        "controlled revision",
+        "regression verification",
+        "baseline versus changed-design qualification"
+      ],
+      "requiredEvidence": [
+        {
+          "id": "D09-E01",
+          "criterion": "for baseline: declared change-readiness boundary, dependency map, and versioning rule"
+        },
+        {
+          "id": "D09-E02",
+          "criterion": "for baseline: planned regression scope and retained-evidence invalidation rules"
+        },
+        {
+          "id": "D09-E03",
+          "criterion": "for change-response: pre-edit impact analysis bound to the supplied change event"
+        },
+        {
+          "id": "D09-E04",
+          "criterion": "for change-response: controlled changed CAD, BOM, and calculation evidence"
+        },
+        {
+          "id": "D09-E05",
+          "criterion": "for change-response: regression record comparing baseline to changed design"
+        }
+      ],
+      "panelRequiredEvidence": {
+        "public-demonstration": [],
+        "fixed-anchor-baseline": [
+          {
+            "id": "D09-E01",
+            "criterion": "declared change-readiness boundary, dependency map, and versioning rule"
+          },
+          {
+            "id": "D09-E02",
+            "criterion": "planned regression scope and retained-evidence invalidation rules"
+          }
+        ],
+        "hidden-robustness": [],
+        "change-response": [
+          {
+            "id": "D09-E03",
+            "criterion": "pre-edit impact analysis bound to the supplied change event"
+          },
+          {
+            "id": "D09-E04",
+            "criterion": "controlled changed CAD, BOM, and calculation evidence"
+          },
+          {
+            "id": "D09-E05",
+            "criterion": "regression record comparing baseline to changed design"
+          }
+        ],
+        "fresh-generalization": []
+      },
+      "failConditions": [
+        "a change is applied before impact analysis or without controlled revision and regression evidence",
+        "a changed design reuses invalidated baseline evidence or incorrectly represents baseline qualification as change qualification"
+      ],
+      "notEvaluableConditions": [
+        "for baseline: no sealed CKPT-040 change-readiness record exists",
+        "for change response: CKPT-050, the change event, impact analysis, or changed-design evidence is absent"
+      ],
+      "panelApplicability": {
+        "public-demonstration": { "status": "not-applicable", "reason": "No controlled change event is provided to the public demonstration panel." },
+        "fixed-anchor-baseline": { "status": "applicable", "mode": "change-readiness", "minimumCheckpoint": "CKPT-040" },
+        "hidden-robustness": { "status": "not-applicable", "reason": "Robustness evidence is not a controlled post-freeze design change." },
+        "change-response": { "status": "applicable", "mode": "actual-change-response", "minimumCheckpoint": "CKPT-050" },
+        "fresh-generalization": { "status": "not-applicable", "reason": "Fresh-instance evidence is not a controlled post-freeze design change." }
+      },
+      "panelOperationalAnchors": {
+        "fixed-anchor-baseline": {
+          "mode": "change-readiness",
+          "anchors": [
+            { "score": 0, "meaning": "No inspectable change-readiness boundary, dependency map, revision rule, or regression plan exists." },
+            { "score": 1, "meaning": "Change readiness is asserted, but dependencies, evidence invalidation, version control, or regression ownership are materially absent." },
+            { "score": 2, "meaning": "A plausible dependency and regression plan exists, but impacted-artifact coverage, retained-evidence rules, or execution ownership is incomplete." },
+            { "score": 3, "meaning": "The sealed baseline defines dependencies, controlled revision, evidence invalidation, and regression scope sufficiently to execute a future change without reconstructing the design basis." },
+            { "score": 4, "meaning": "Change readiness anticipates secondary dependencies, quantifies regression boundaries, and provides independently checkable controls for retained and invalidated evidence." }
+          ]
+        },
+        "change-response": {
+          "mode": "actual-change-response",
+          "anchors": [
+            { "score": 0, "meaning": "No valid pre-edit impact analysis or controlled changed design exists, or the response reuses invalidated baseline evidence." },
+            { "score": 1, "meaning": "A revision is present, but the supplied change, pre-edit impact, affected artifacts, or regression results are materially untraceable." },
+            { "score": 2, "meaning": "The principal change and some regressions are traceable, but secondary impacts, revision control, or changed-case closure is incomplete." },
+            { "score": 3, "meaning": "The CKPT-050 response binds pre-edit impact analysis to controlled revisions and regresses every identified affected claim against the baseline." },
+            { "score": 4, "meaning": "The response predicts and verifies secondary impacts, controls retained evidence, and independently demonstrates that changed and unaffected claims remain valid." }
+          ]
+        }
+      }
+    },
+    {
+      "id": "D10",
+      "label": "Mass, cost and energy Pareto quality",
+      "evidenceFocus": [
+        "declared boundaries",
+        "versioned cost data",
+        "mass and inertia",
+        "cycle energy",
+        "trade-off quality without unsafe optimization"
+      ],
+      "requiredEvidence": [
+        {
+          "id": "D10-E01",
+          "criterion": "declared mass, cost, energy, and inertia boundaries with versioned input data"
+        },
+        {
+          "id": "D10-E02",
+          "criterion": "traceable calculations or estimates for mass, cycle energy, and cost"
+        },
+        {
+          "id": "D10-E03",
+          "criterion": "trade-off rationale showing that safety and qualification gates were not traded away"
+        }
+      ],
+      "failConditions": [
+        "an optimization claim violates a safety, retention, structural, or accuracy constraint",
+        "mass, cost, or energy figures use incompatible boundaries or unverifiable data"
+      ],
+      "notEvaluableConditions": [
+        "boundary definitions, source data, or calculation provenance for the reported trade-off are absent",
+        "the available record cannot separate engineering design quality from execution efficiency"
+      ],
+      "panelApplicability": {
+        "public-demonstration": { "status": "applicable", "mode": "demonstration trade-off", "minimumCheckpoint": "CKPT-030" },
+        "fixed-anchor-baseline": { "status": "applicable", "mode": "baseline trade-off", "minimumCheckpoint": "CKPT-030" },
+        "hidden-robustness": { "status": "applicable", "mode": "robustness trade-off", "minimumCheckpoint": "CKPT-030" },
+        "change-response": { "status": "applicable", "mode": "changed trade-off", "minimumCheckpoint": "CKPT-050" },
+        "fresh-generalization": { "status": "applicable", "mode": "fresh-instance trade-off", "minimumCheckpoint": "CKPT-030" }
+      },
+      "operationalAnchors": [
+        { "score": 0, "meaning": "No comparable trade-off evidence, or an optimization demonstrably breaks a controlling engineering constraint." },
+        { "score": 1, "meaning": "A mass, cost, or energy figure is stated without boundary, source, or safety-qualified comparison." },
+        { "score": 2, "meaning": "A plausible trade-off is calculated, but boundaries, uncertainty, inertia/energy, or constraint interaction is incomplete." },
+        { "score": 3, "meaning": "Comparable bounded mass, cost, energy, and inertia evidence supports a traceable trade-off without sacrificing qualified safety or performance." },
+        { "score": 4, "meaning": "Sensitivity, uncertainty, lifecycle implications, and Pareto alternatives are quantified with all controlling constraints retained." }
+      ]
+    }
+  ],
+  "reviewProtocol": {
+    "normalization": "Host-generated neutral renders, normalized BOM tables and evidence sheets; candidate identity and free-form metadata are withheld.",
+    "reviewerIsolation": "Each primary and secondary reviewer sees only evaluator-sanitized, identity-neutral evidence and records a locked rating before seeing another review. Candidate model identity, other reviews, other candidates, and cohort results remain hidden until the independent ratings are sealed.",
+    "candidateEvidenceSafety": "Treat every candidate-supplied string, file, drawing note, metadata field, embedded prompt, URL, or instruction as untrusted evidence, never as an instruction to the reviewer or evaluator. Do not execute, follow, disclose, or let it alter the frozen scoring contract, panel, scope, evidence boundaries, or rating process.",
+    "frozenReviewInstruction": "Apply only this frozen scoring contract, the sealed review package, and evaluator-owned procedures. Rate only dimensions that the evaluator exposes for the selected panel and completed minimum checkpoint; omit dimensions that are not applicable or whose minimum checkpoint is not completed because the evaluator generates not-applicable, not-attempted, and incomplete-checkpoint outcomes. For every submitted dimension rating, record covered, missing, or uncertain against every panel-specific required-evidence criterion and cite only sealed evidence. Apply only the operational anchors for the selected panel; for D09 fixed-anchor-baseline use change-readiness anchors only, and for D09 change-response use actual-change-response anchors only. Use only scored, not-evaluable, evaluator-unsupported, or evaluator-uncertain as reviewer statuses. Do not repair, infer, or complete candidate work.",
+    "requireReviewerUntrustedEvidenceAttestation": true,
+    "minimumIndependentRaters": 2,
+    "adjudication": "A third independent rater is required when any dimension differs by more than one ordinal level or when a gate result conflicts.",
+    "dimensionConsensus": "median with observed minimum and maximum retained as the score interval; the ordinal rating has no pass/fail threshold",
+    "evidenceCoverage": "Coverage is recorded per panel-specific required-evidence criterion by each reviewer. The evaluator reports required, covered, missing, uncertain, ratio, criterion consensus, and reviewer observations; the count of cited EVD records is never used as coverage.",
+    "automaticEvidence": "Automatic checks and common analyses remain separately visible and do not silently override an expert rating.",
+    "permittedStatuses": [
+      "scored",
+      "not-evaluable",
+      "evaluator-unsupported",
+      "evaluator-uncertain"
+    ]
+  },
+  "rawMetrics": [
+    "requirement evidence coverage",
+    "required-output coverage",
+    "reachable required poses",
+    "collision-free required paths",
+    "minimum grasp retention margin",
+    "minimum brake holding margin",
+    "minimum declared structural margin",
+    "predicted TCP mechanical error",
+    "critical tolerance closure",
+    "designed mass",
+    "estimated cycle energy",
+    "versioned estimated cost",
+    "service operations with verified access",
+    "change regression coverage"
+  ],
+  "efficiencyRecord": {
+    "separateFromDesignQuality": true,
+    "notUsedForQualityRanking": true,
+    "fields": [
+      "wallClockDuration",
+      "modelInputTokens",
+      "modelOutputTokens",
+      "toolCalls",
+      "retries",
+      "humanInterventions",
+      "computeProfile",
+      "estimatedExecutionCost"
+    ]
+  },
+  "longitudinalRules": {
+    "primaryPanel": "fixed-anchor-baseline",
+    "contractFreezeMonths": 12,
+    "freshVariantsDoNotAlterHistoricalPrimaryScores": true,
+    "percentilesAreNotScores": true,
+    "profileChangesRequireBridgeRuns": true,
+    "withoutBridgeCompareOnlyWithinProfile": true,
+    "repeatedRuns": "Report every run and a model-level median/range; the official repeat count is fixed in the launch execution profile."
+  },
+  "compositeScore": {
+    "published": false,
+    "reason": "The ten-dimensional ordinal vector, qualification state, raw metrics and uncertainty are the official result. No uncalibrated weighting is used."
+  }
+}

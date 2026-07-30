@@ -53,11 +53,16 @@ export default function EvaluateTaskPage() {
               is never executed.
             </li>
             <li>
-              Give each reviewer the neutral template outside the repository,
-              then seal its completed input into an evaluator-owned opaque
-              record. Bind package and record hashes into the assessment;
-              primary and secondary reviews are required, with an adjudicator
-              on material disagreement.
+              Give each reviewer a copy of{" "}
+              <code>
+                evaluation/integrated-robotic-handling-v1.10/reviewer-template.json
+              </code>{" "}
+              outside the repository, then seal its completed input into an
+              evaluator-owned opaque record. Build the assessment from the
+              matching <code>integrated-robotic-handling-v1.10</code> template.
+              Bind package and record hashes into the assessment; primary and
+              secondary reviews are required, with an adjudicator on material
+              disagreement.
             </li>
             <li>
               Score from the public deterministic rubric and the sealed review

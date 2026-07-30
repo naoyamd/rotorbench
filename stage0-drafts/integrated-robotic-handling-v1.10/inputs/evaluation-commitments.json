@@ -1,0 +1,87 @@
+{
+  "document": "Public evaluation-facing commitments",
+  "version": "1.0",
+  "purpose": "State how an engineering design will be assessed without revealing hidden instances, held-out cases, or change-event values. This file is a fairness commitment, not a design solution and not the final scoring contract.",
+  "evaluationContract": {
+    "id": "integrated-robotic-handling-v1.10-scoring",
+    "authoringSource": "evaluation/integrated-robotic-handling-v1.10/scoring-contract.json",
+    "scoringVersion": "1.2",
+    "freezeRequirement": "A candidate launch must bind the exact scoring-contract digest. No scoring version, qualification threshold, or hidden-case value may be altered after the first candidate in a cohort begins."
+  },
+  "visibilityClasses": [
+    {
+      "id": "candidate-public",
+      "disclosedAt": "launch",
+      "contents": "TASK.md, public requirements, cell interfaces, workpiece baseline, public catalogue, output contract, and public scoring/evaluation commitments."
+    },
+    {
+      "id": "run-private-instance",
+      "disclosedAt": "candidate-run-start",
+      "contents": "A separately provisioned future instance, disclosed to one candidate at start and embargoed from later candidates. It is not used by the public fixed-anchor baseline panel."
+    },
+    {
+      "id": "evaluator-hidden-robustness",
+      "disclosedAt": "never-before-evaluation",
+      "contents": "Precommitted robustness cases that remain hidden until evaluator processing. They may not add a new requirement category beyond this public task."
+    },
+    {
+      "id": "event-private-change",
+      "disclosedAt": "after prior-stage receipt is sealed",
+      "contents": "A design-change event with public category commitment and privately disclosed values. Baseline and change qualification are reported separately."
+    },
+    {
+      "id": "evaluator-secret",
+      "disclosedAt": "never",
+      "contents": "Anti-leakage checks, integrity controls, and evaluator security details; never used as a hidden design requirement."
+    }
+  ],
+  "qualificationGates": [
+    { "id": "A0", "name": "admission and integrity", "commitment": "Packet, launch, baseline, hash, path, and required-manifest integrity must pass before engineering evaluation." },
+    { "id": "B0", "name": "baseline required-output and evidence completeness", "commitment": "For baseline qualification, every output required at CKPT-040 is present, safe to process, traceable, and not substituted by a post-attainment artifact. Reporting a missing baseline output does not pass B0." },
+    { "id": "B1", "name": "geometry and kinematics", "commitment": "The hash-bound static validator checks the published neutral handoff scope; exact cell/workpiece geometry, reach, collision, insertion, and trajectory evidence are assessed at declared fidelity without pretending that the static tool proves them." },
+    { "id": "B2", "name": "grip and workpiece handling", "commitment": "The common powered gripper and declared contact/load path are evaluable for each baseline workpiece, including the fixed WP-C contact pressure, pad, and damage acceptance method." },
+    { "id": "B3", "name": "mechanical integrity", "commitment": "Governing loads, closed-catalogue component/interface ratings, FND-ANCH-001 foundation/anchor margins, structural reasoning, and fault cases are evidenced." },
+    { "id": "B4", "name": "accuracy and tolerance", "commitment": "The error budget and interface/tolerance reasoning are evidence-backed at the declared fidelity; static RSS arithmetic is not misrepresented as a physical repeatability result." },
+    { "id": "B5", "name": "manufacturing and assembly", "commitment": "Critical manufacturing, assembly, service, and inspection evidence is available." },
+    { "id": "B6", "name": "mechanical safety", "commitment": "Mechanical safety concept, risk evidence, retention, braking, stops, and maintenance hazards are addressed." }
+  ],
+  "scoring": {
+    "designQualityDimensions": [
+      "requirements and system concept",
+      "kinematics, workspace, and cycle",
+      "gripper, grasp, and workpiece protection",
+      "load path, structure, drives, and life",
+      "accuracy, tolerance, and calibration",
+      "DFM, DFA, inspection, and service",
+      "safety, reliability, and fault behavior",
+      "verification quality and traceability",
+      "change response",
+      "mass, cost, and energy trade-off"
+    ],
+    "weightPolicy": "The v1.2 scoring contract intentionally publishes no composite score or arbitrary dimension weights. Qualification, ordinal dimensions, raw metrics, score intervals, and evaluation status are official results; any future weighted composite requires a new reviewed scoring version.",
+    "separatePanels": [
+      "public demonstration",
+      "fixed-anchor public baseline",
+      "hidden robustness",
+      "change response",
+      "fresh generalization",
+      "execution-efficiency (reported separately from design quality)"
+    ],
+    "partialAttainment": "A non-completing run retains an Engineering Attainment Profile containing attempted status, clause-level evidence coverage, rating status, score interval where valid, non-evaluation cause, and highest verified checkpoint. Attempted-but-incomplete checkpoints remain distinct from work that was not attempted. The 0–4 ordinal quality rating has no pass/fail threshold and is never converted into a fabricated zero-quality design score."
+  },
+  "neutralEvidencePolicy": {
+    "primaryEvaluationSource": "Neutral STEP plus the hash-bound kinematic/motion contract, fixed geometry, structured BOM, calculations, all indexed drawings/PMI, and evidence manifest.",
+    "nativeCad": "Supporting evidence only; no candidate CAD macro, executable, external link, or browser code is executed by the evaluator.",
+    "unsupportedPolicy": "The static validator's stated scope is the only automatic neutral-handoff claim. Invalid admission artifacts are marked artifact-invalid; unsupported or indeterminate evaluator capabilities are marked evaluator-unsupported or evaluator-uncertain. Missing evidence remains separate. None is silently converted into an ordinal engineering-quality rating."
+  },
+  "changePolicy": {
+    "baselineProtection": "Failure to meet a later change event does not erase a valid baseline qualification.",
+    "receiptPolicy": "A change event is only disclosed after the applicable prior receipt/checkpoint is sealed by the orchestrator.",
+    "comparisonPolicy": "Longitudinal comparison uses fixed anchor instances and absolute metrics. Fresh variants are reported separately and do not retrospectively alter the main score."
+  },
+  "sanitizationPolicy": {
+    "candidateArtifacts": "No candidate executable, CAD macro, external reference, credential, or network access crosses into sealed evaluation. Only approved static artifact types are sanitized and processed.",
+    "trustedInputs": "Packet inputs are read-only and hash-bound. Other candidate runs and sealed evaluator assets are unavailable to the candidate workspace."
+  },
+  "status": "resolved-scoring-contract-v1.2"
+}

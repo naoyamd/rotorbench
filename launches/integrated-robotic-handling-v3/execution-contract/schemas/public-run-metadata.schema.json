@@ -1,0 +1,84 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rotorbench.example/schemas/public-run-metadata.schema.json",
+  "title": "Publication-safe engineering benchmark run metadata",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "id",
+    "benchmarkId",
+    "benchmarkVersion",
+    "launchId",
+    "cohortId",
+    "taskPacketDigest",
+    "fairnessFingerprint",
+    "status",
+    "submittedAt",
+    "seal",
+    "artifacts",
+    "validation",
+    "evaluation"
+  ],
+  "properties": {
+    "schemaVersion": { "const": "1.0" },
+    "id": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" },
+    "benchmarkId": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" },
+    "benchmarkVersion": { "type": "string", "minLength": 1 },
+    "launchId": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" },
+    "cohortId": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" },
+    "taskPacketDigest": { "$ref": "artifact.schema.json#/$defs/sha256" },
+    "taskPacketBundleDigest": { "$ref": "artifact.schema.json#/$defs/sha256" },
+    "executionContractDigest": { "$ref": "artifact.schema.json#/$defs/sha256" },
+    "promptSha256": { "$ref": "artifact.schema.json#/$defs/sha256" },
+    "launchDigest": { "$ref": "artifact.schema.json#/$defs/sha256" },
+    "fairnessFingerprint": { "$ref": "artifact.schema.json#/$defs/sha256" },
+    "status": { "const": "published" },
+    "submittedAt": { "type": "string", "format": "date-time" },
+    "summary": { "type": "string", "minLength": 1 },
+    "seal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["bundleSha256", "algorithm"],
+      "properties": {
+        "bundleSha256": { "$ref": "artifact.schema.json#/$defs/sha256" },
+        "algorithm": { "const": "sha256-tree-v1" }
+      }
+    },
+    "artifacts": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/artifact" }
+    },
+    "validation": { "$ref": "#/$defs/reference" },
+    "evaluation": { "$ref": "#/$defs/reference" }
+  },
+  "$defs": {
+    "publicationPath": {
+      "type": "string",
+      "pattern": "^(?:candidate-metadata|evaluation-summaries|validation-summaries|artifacts)/[A-Za-z0-9][A-Za-z0-9._/-]*$"
+    },
+    "reference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256"],
+      "properties": {
+        "path": { "$ref": "#/$defs/publicationPath" },
+        "sha256": { "$ref": "artifact.schema.json#/$defs/sha256" }
+      }
+    },
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "role", "sha256", "status", "downloadPath"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" },
+        "role": { "enum": ["cad-source", "step", "drawing", "bom", "calculation", "supporting"] },
+        "sha256": { "$ref": "artifact.schema.json#/$defs/sha256" },
+        "status": { "enum": ["present", "processed", "failed"] },
+        "mediaType": { "type": "string", "pattern": "^[A-Za-z0-9!#$&^_.+-]+/[A-Za-z0-9!#$&^_.+-]+$" },
+        "label": { "type": "string", "minLength": 1 },
+        "downloadPath": { "type": "string", "pattern": "^artifacts/[a-z0-9]+(?:-[a-z0-9]+)*/[a-z0-9]+(?:-[a-z0-9]+)*\\.download$" }
+      }
+    }
+  }
+}

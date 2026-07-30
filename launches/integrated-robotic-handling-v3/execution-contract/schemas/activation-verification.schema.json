@@ -1,0 +1,94 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rotorbench.example/schemas/activation-verification.schema.json",
+  "title": "Post-activation Stage B verification",
+  "description": "Operational, post-deployment attestation. observedPageSha256 is forensic evidence only and is not a page-stability invariant.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "algorithm",
+    "launchId",
+    "launchDigest",
+    "promptSha256",
+    "launchJsonSha256",
+    "liveVerificationDigest",
+    "markerProjection",
+    "markerProjectionDigest",
+    "observedPageSha256",
+    "canonicalBaseUrl",
+    "canonicalOrigin",
+    "basePath",
+    "launchUrl",
+    "launchJsonUrl",
+    "promptUrl",
+    "checks",
+    "status",
+    "activatedAt"
+  ],
+  "properties": {
+    "schemaVersion": { "const": "1.0" },
+    "algorithm": { "const": "sha256-canonical-launch-markers-v1" },
+    "launchId": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" },
+    "launchDigest": { "$ref": "artifact.schema.json#/$defs/sha256" },
+    "promptSha256": { "$ref": "artifact.schema.json#/$defs/sha256" },
+    "launchJsonSha256": { "$ref": "artifact.schema.json#/$defs/sha256" },
+    "liveVerificationDigest": { "$ref": "artifact.schema.json#/$defs/sha256" },
+    "markerProjection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "algorithm", "launchId", "launchDigest", "promptSha256", "launchJsonSha256"],
+      "properties": {
+        "schemaVersion": { "const": "1.0" },
+        "algorithm": { "const": "sha256-canonical-launch-markers-v1" },
+        "launchId": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" },
+        "launchDigest": { "$ref": "artifact.schema.json#/$defs/sha256" },
+        "promptSha256": { "$ref": "artifact.schema.json#/$defs/sha256" },
+        "launchJsonSha256": { "$ref": "artifact.schema.json#/$defs/sha256" }
+      }
+    },
+    "markerProjectionDigest": { "$ref": "artifact.schema.json#/$defs/sha256" },
+    "observedPageSha256": {
+      "$ref": "artifact.schema.json#/$defs/sha256",
+      "description": "Forensic observation of one page response, not a current integrity invariant."
+    },
+    "canonicalBaseUrl": {
+      "type": "string",
+      "format": "uri",
+      "pattern": "^https://[^/?#]+(?::[0-9]+)?(?:/[A-Za-z0-9._~-]+)*$"
+    },
+    "canonicalOrigin": {
+      "type": "string",
+      "pattern": "^https://[^/?#]+(?::[0-9]+)?$"
+    },
+    "basePath": {
+      "type": "string",
+      "pattern": "^(?:|/(?:[A-Za-z0-9._~-]+/?)*)$"
+    },
+    "launchUrl": { "type": "string", "format": "uri" },
+    "launchJsonUrl": { "type": "string", "format": "uri" },
+    "promptUrl": { "type": "string", "format": "uri" },
+    "checks": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "redirectFree",
+        "sameOrigin",
+        "basePathMatched",
+        "launchJsonExact",
+        "promptExact",
+        "pageMarkerMatched"
+      ],
+      "properties": {
+        "redirectFree": { "const": true },
+        "sameOrigin": { "const": true },
+        "basePathMatched": { "const": true },
+        "launchJsonExact": { "const": true },
+        "promptExact": { "const": true },
+        "pageMarkerMatched": { "const": true }
+      }
+    },
+    "status": { "const": "activated" },
+    "activatedAt": { "type": "string", "format": "date-time" }
+  }
+}

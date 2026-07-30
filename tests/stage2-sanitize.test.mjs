@@ -75,10 +75,24 @@ async function fixture({
   limitOverrides = {},
   model = { provider: "unknown", name: "unknown", version: "unknown" },
   identityLeakInPlan = "",
+  ancillaryFiles = {},
+  additionalArtifacts = [],
 } = {}) {
   const { root, workspace } = await projectRoot();
   const source = path.join(root, "source");
   await mkdir(source);
+  const declaredArtifacts = [
+    {
+      id: "proof",
+      role: "supporting",
+      path: artifactPath,
+      mediaType,
+      bytes: artifactBytes,
+      requiredOutputRefs: ["OUT-001"],
+      requiredFields: mediaType === "application/json" ? ["proof"] : [],
+    },
+    ...additionalArtifacts,
+  ];
   const publicFiles = {
     "visibility.json": "{}\n",
     "checkpoints.json": "{}\n",
@@ -90,12 +104,18 @@ async function fixture({
     }, null, 2),
     "sanitize.json": "{\"policy\":\"static\"}\n",
     "output-contract.json": JSON.stringify({
-      candidateCheckpoints: [{ id: "CKPT-000", requiredArtefacts: [artifactPath] }],
-      artefacts: [{
-        id: "ART-001", path: artifactPath, role: "supporting", requiredOutputRef: "OUT-001",
-        mediaType, requiredFields: mediaType === "application/json" ? ["proof"] : [],
-      }],
+      version: "1.0",
+      candidateCheckpoints: [{ id: "CKPT-000", requiredArtefacts: declaredArtifacts.map(({ path: artifactPath }) => artifactPath) }],
+      artefacts: declaredArtifacts.map((artifact, index) => ({
+        id: `ART-${String(index + 1).padStart(3, "0")}`,
+        path: artifact.path,
+        role: artifact.role,
+        requiredOutputRef: artifact.requiredOutputRefs.at(0),
+        mediaType: artifact.mediaType,
+        requiredFields: artifact.requiredFields ?? [],
+      })),
     }, null, 2),
+    "requirements.json": JSON.stringify({ requirements: [{ id: "REQ-001" }] }, null, 2),
   };
   for (const [name, contents] of Object.entries(publicFiles)) {
     await writeFile(path.join(source, name), contents);
@@ -112,7 +132,7 @@ async function fixture({
     inputs: [
       input("visibility", "visibility.json"), input("checkpoints", "checkpoints.json"),
       input("evaluation", "evaluation.json"), input("scoring-contract", "scoring-contract.json"), input("sanitize", "sanitize.json"),
-      input("output-contract", "output-contract.json"),
+      input("output-contract", "output-contract.json"), input("requirements", "requirements.json"),
     ],
     requiredOutputs: [{ id: "OUT-001", role: "supporting", description: "Proof" }],
     completionCriteria: [{ id: "CRIT-001", statement: "Proof exists", requiredOutputRefs: ["OUT-001"], evidenceRoles: ["supporting"] }],
@@ -189,12 +209,18 @@ async function fixture({
   const checkpointBytes = await readFile(path.join(submitted, "initial-plan.sha256"));
   const receipt = {
     schemaVersion: "1.0", id: "RCP-000", sequence: 0, checkpointId: "CKPT-000", previousReceiptSha256: hex("0"),
-    createdAt: "2026-07-29T00:00:00Z", evidence: [{ path: "plan.json", sha256: sha256(planBytes) }],
+    createdAt: "2026-07-29T00:00:00Z", evidence: [
+      { path: "plan.json", sha256: sha256(planBytes) },
+      { path: "initial-plan.sha256", sha256: sha256(checkpointBytes) },
+    ],
   };
   await writeJson(path.join(submitted, "receipts", "RCP-000.json"), receipt);
   const receiptBytes = await readFile(path.join(submitted, "receipts", "RCP-000.json"));
-  await writeFile(path.join(submitted, artifactPath), artifactBytes);
-  const artifactSha256 = sha256(artifactBytes);
+  for (const artifact of declaredArtifacts) {
+    const destination = path.join(submitted, ...artifact.path.split("/"));
+    await mkdir(path.dirname(destination), { recursive: true });
+    await writeFile(destination, artifact.bytes);
+  }
   const submission = {
     schemaVersion: "1.0", protocolVersion: "4.0", status: "partial", launchId: frozenLaunch.launch.id,
     taskPacket: frozenLaunch.launch.taskPacket, executionContractDigest: frozenLaunch.launch.executionContractDigest,
@@ -207,9 +233,22 @@ async function fixture({
     partialAttainment: { attemptedCheckpointIds: ["CKPT-000"], completedCheckpointIds: ["CKPT-000"], highestVerifiedCheckpointId: "CKPT-000", stoppedReason: "candidate-stop" },
     sanitizationRequest: { profileDigest: frozenLaunch.launch.v4Contract.sanitizationProfile.digest },
     v4Contract: frozenLaunch.launch.v4Contract,
-    artifacts: [{ id: "proof", role: "supporting", path: artifactPath, sha256: artifactSha256, mediaType, status: "present", requiredOutputRefs: ["OUT-001"] }],
+    artifacts: declaredArtifacts.map((artifact) => ({
+      id: artifact.id,
+      role: artifact.role,
+      path: artifact.path,
+      sha256: sha256(artifact.bytes),
+      mediaType: artifact.mediaType,
+      status: "present",
+      requiredOutputRefs: artifact.requiredOutputRefs,
+    })),
   };
   await writeJson(path.join(submitted, "submission.json"), submission);
+  for (const [relativePath, bytes] of Object.entries(ancillaryFiles)) {
+    const destination = path.join(submitted, ...relativePath.split("/"));
+    await mkdir(path.dirname(destination), { recursive: true });
+    await writeFile(destination, bytes);
+  }
   const bundleSha256 = await bundleTreeHash(submitted);
   const run = {
     schemaVersion: "1.0", id: runId, benchmarkId: task.id, benchmarkVersion: task.version,
@@ -219,7 +258,7 @@ async function fixture({
     fairnessFingerprint: frozenLaunch.launch.fairnessFingerprint, status: "validated", submittedAt: "2026-07-29T00:00:00Z",
     model: submission.model, seal: { sealed: true, bundlePath: "submitted", bundleSha256, algorithm: "sha256-tree-v1" },
     processEvidence: { initialPlan: { path: "submitted/plan.json", sha256: sha256(planBytes) }, workRecord: { path: "submitted/work-record.json", sha256: sha256(workBytes) } },
-    artifacts: [{ ...submission.artifacts[0], path: `submitted/${artifactPath}` }],
+    artifacts: submission.artifacts.map((artifact) => ({ ...artifact, path: `submitted/${artifact.path}` })),
     checkpointReceipts: [{ ...submission.checkpointReceipts[0], path: "submitted/receipts/RCP-000.json" }],
     partialAttainment: submission.partialAttainment,
     sanitization: { actor: "evaluator", profileDigest: submission.sanitizationRequest.profileDigest, status: "not-run", sanitizedArtifactIds: [] },
@@ -228,7 +267,7 @@ async function fixture({
   };
   await writeJson(path.join(runRoot, "run.json"), run);
   await writeJson(path.join(runRoot, "evaluation-record.json"), { schemaVersion: "4.0", runId, evaluationContractDigest: run.evaluation.contractDigest, scoringVersion: "1.0", status: "pending" });
-  return { root, runId, runRoot, submitted, artifactPath, artifactBytes };
+  return { root, runId, runRoot, submitted, artifactPath, artifactBytes, artifacts: declaredArtifacts };
 }
 
 function reviewerInput(role, evidenceId = "EVD-001") {
@@ -241,6 +280,10 @@ function reviewerInput(role, evidenceId = "EVD-001") {
       blindToCandidateIdentity: true,
       reviewedSanitizedEvidenceOnly: true,
       ratingLockedBeforeAdjudication: true,
+      reviewedPanel: "fixed-anchor-baseline",
+      treatedCandidateContentAsUntrustedEvidence: true,
+      followedFrozenReviewInstructionOnly: true,
+      appliedPanelSpecificAnchorsAndCriterionCoverage: true,
     },
     gateRatings: [{
       gateId: "B0",
@@ -253,6 +296,11 @@ function reviewerInput(role, evidenceId = "EVD-001") {
       status: "scored",
       score: 3,
       evidenceRefs: [evidenceId],
+      criterionCoverage: [{
+        criterionId: "D01-E01",
+        status: "covered",
+        evidenceRefs: [evidenceId],
+      }],
       rationale: "Static evidence supports this ordinal rating.",
     }],
   };
@@ -312,6 +360,60 @@ test("sanitizer copies only statically admitted bytes and leaves submitted bytes
   }
 });
 
+test("sanitizer scans but excludes safe workspace and working files from review evidence", async () => {
+  const ancillaryFiles = {
+    "workspace-receipt.json": "{\"kind\":\"candidate-workspace-receipt\"}\n",
+    "README.md": "# Bootstrap notes\n",
+    "templates/plan.template.json": "{\"schemaVersion\":\"1.0\"}\n",
+    // If this were executed as part of sanitization, the test would fail.  It
+    // is a sealed candidate working helper, not engineering evidence.
+    "tools/build-helper.mjs": "throw new Error('ancillary helper must not execute');\n",
+  };
+  const context = await fixture({ ancillaryFiles });
+  try {
+    const before = await bundleTreeHash(context.submitted);
+    const sanitized = await sanitizeRun({
+      projectRoot: context.root,
+      runId: context.runId,
+      generatedAt: "2026-07-29T01:00:00Z",
+    });
+    assert.equal(sanitized.report.status, "passed", JSON.stringify(sanitized.report));
+    assert.deepEqual(sanitized.attestation.sanitizedArtifactIds, ["proof"]);
+    assert.equal(
+      sanitized.report.issues.some(({ code }) => code === "unexpected-candidate-file"),
+      false,
+    );
+    for (const relativePath of Object.keys(ancillaryFiles)) {
+      await assert.rejects(
+        readFile(path.join(context.runRoot, "sanitized", "artifacts", ...relativePath.split("/"))),
+        /ENOENT/,
+      );
+    }
+
+    await prepareReviewPackage({ projectRoot: context.root, runId: context.runId });
+    const manifestBytes = await readFile(
+      path.join(context.runRoot, "sanitized", "review-package", "review-package.json"),
+    );
+    const manifest = manifestBytes.toString("utf8");
+    for (const relativePath of Object.keys(ancillaryFiles)) {
+      assert.equal(manifest.includes(relativePath), false);
+    }
+    const reviewPackage = JSON.parse(manifest);
+    const reviewEvidence = await Promise.all(reviewPackage.evidence.map(({ outputPath }) => (
+      readFile(path.join(context.runRoot, "sanitized", "review-package", ...outputPath.split("/")))
+    )));
+    for (const bytes of Object.values(ancillaryFiles)) {
+      assert.equal(
+        reviewEvidence.some((entry) => entry.equals(Buffer.from(bytes))),
+        false,
+      );
+    }
+    assert.equal(await bundleTreeHash(context.submitted), before);
+  } finally {
+    await rm(context.root, { recursive: true, force: true });
+  }
+});
+
 test("review package admits process evidence and sanitized artifacts under opaque identifiers", async () => {
   const context = await fixture();
   try {
@@ -327,14 +429,16 @@ test("review package admits process evidence and sanitized artifacts under opaqu
       runId: context.runId,
     });
     assert.match(prepared.reviewPackageId, /^review-[a-f0-9]{16}$/);
-    assert.equal(prepared.evidenceIds.length, 5);
+    assert.equal(prepared.evidenceIds.length, 11);
     const packageRoot = path.join(context.runRoot, "sanitized", "review-package");
     const manifest = JSON.parse(await readFile(path.join(packageRoot, "review-package.json"), "utf8"));
     assert.equal(manifest.reviewPackageId, prepared.reviewPackageId);
     assert.equal(manifest.sanitizationReport.status, "passed");
     assert.equal(manifest.evidence[0].id, "EVD-001");
     assert.equal(manifest.evidence[0].kind, "initial-plan");
-    assert.equal(manifest.evidence.at(-1).kind, "artifact");
+    assert.equal(manifest.evidence[4].kind, "artifact");
+    assert.equal(manifest.evidence.at(-1).kind, "derived");
+    assert.equal(manifest.evidence.at(-1).derivation.status, "not-present");
     assert.equal(manifest.evidence.some((entry) => entry.id === "proof"), false);
     assert.equal(JSON.stringify(manifest).includes("candidate-a"), false);
     assert.equal(JSON.stringify(manifest).includes("submission.json"), false);
@@ -392,6 +496,94 @@ test("review package refuses copied evidence that leaks a nontrivial submitted m
   }
 });
 
+test("sanitizer-to-review package retains sealed STEP and drawing roles for neutral derivation", async () => {
+  const cube = await readFile(path.join(
+    repositoryRoot,
+    "node_modules",
+    "occt-import-js",
+    "test",
+    "testfiles",
+    "simple-basic-cube",
+    "cube.stp",
+  ));
+  const context = await fixture({
+    additionalArtifacts: [
+      {
+        id: "assembly-step",
+        role: "step",
+        path: "artifacts/cad/assembly.step",
+        mediaType: "model/step",
+        bytes: cube,
+        requiredOutputRefs: ["OUT-001"],
+      },
+      {
+        id: "drawing-index",
+        role: "drawing",
+        path: "artifacts/drawings/critical-drawing-index.csv",
+        mediaType: "text/csv",
+        bytes: Buffer.from("drawingId,drawingPath,pmiPath\nDRW-001,artifacts/drawings/critical.pdf,artifacts/drawings/critical-pmi.json\n"),
+        requiredOutputRefs: ["OUT-001"],
+        requiredFields: ["drawingId", "drawingPath", "pmiPath"],
+      },
+      {
+        id: "critical-drawing",
+        role: "drawing",
+        path: "artifacts/drawings/critical.pdf",
+        mediaType: "application/pdf",
+        bytes: Buffer.from("%PDF-1.7\n%%EOF\n"),
+        requiredOutputRefs: ["OUT-001"],
+      },
+      {
+        id: "critical-pmi",
+        role: "drawing",
+        path: "artifacts/drawings/critical-pmi.json",
+        mediaType: "application/json",
+        bytes: Buffer.from('{"pmiRecords":[{"id":"PMI-001"}]}\n'),
+        requiredOutputRefs: ["OUT-001"],
+      },
+    ],
+  });
+  try {
+    const sanitized = await sanitizeRun({
+      projectRoot: context.root,
+      runId: context.runId,
+      generatedAt: "2026-07-29T01:00:00Z",
+    });
+    assert.equal(sanitized.report.status, "passed", JSON.stringify(sanitized.report));
+    // Sanitization intentionally strips candidate-owned role metadata. The
+    // packager must rebind it from the sealed run before derivation.
+    assert.equal(sanitized.report.artifacts.some((artifact) => Object.hasOwn(artifact, "role")), false);
+
+    await prepareReviewPackage({ projectRoot: context.root, runId: context.runId });
+    const packageRoot = path.join(context.runRoot, "sanitized", "review-package");
+    const manifest = JSON.parse(await readFile(path.join(packageRoot, "review-package.json"), "utf8"));
+    const stepEvidence = manifest.evidence.find(({ kind, role }) => kind === "artifact" && role === "step");
+    assert.ok(stepEvidence, "sealed STEP role must reach neutral derivation");
+    assert.equal(manifest.evidence.filter(({ kind, role }) => kind === "artifact" && role === "drawing").length, 3);
+
+    const derivedForStep = manifest.evidence.filter(({ kind, derivation }) => (
+      kind === "derived" && derivation.sourceEvidenceIds.includes(stepEvidence.id)
+    ));
+    const geometryEntry = derivedForStep.find(({ mediaType }) => mediaType === "application/json");
+    assert.ok(geometryEntry, "missing sealed role would suppress STEP geometry");
+    assert.equal(geometryEntry.derivation.status, "processed");
+    const geometry = JSON.parse(await readFile(path.join(packageRoot, ...geometryEntry.outputPath.split("/")), "utf8"));
+    assert.equal(geometry.status, "processed");
+    assert.ok(geometry.geometry.triangleCount > 0);
+    assert.equal(derivedForStep.filter(({ mediaType, derivation }) => mediaType === "image/svg+xml" && derivation.status === "processed").length, 3);
+
+    const derivedJson = await Promise.all(manifest.evidence
+      .filter(({ kind, mediaType }) => kind === "derived" && mediaType === "application/json")
+      .map(async (entry) => JSON.parse(await readFile(path.join(packageRoot, ...entry.outputPath.split("/")), "utf8"))));
+    const drawingIndex = derivedJson.find(({ kind }) => kind === "normalized-drawing-index");
+    assert.equal(drawingIndex.status, "processed");
+    assert.equal(drawingIndex.boundDrawingPathCount, 1, "missing sealed drawing roles would reduce this binding to zero");
+    assert.equal(drawingIndex.boundPmiPathCount, 1, "missing sealed drawing roles would reduce this binding to zero");
+  } finally {
+    await rm(context.root, { recursive: true, force: true });
+  }
+});
+
 test("sanitizer fails closed for a sealed-bundle tamper and never changes submitted bytes", async () => {
   const context = await fixture();
   try {
@@ -423,6 +615,25 @@ test("sanitizer rejects over-limit data and malformed PDF envelopes", async () =
     assert.ok(result.report.issues.some(({ code }) => code === "artifact-pdf-invalid-envelope"));
   } finally {
     await rm(malformed.root, { recursive: true, force: true });
+  }
+});
+
+test("sanitizer still rejects an oversized ancillary working file", async () => {
+  const context = await fixture({
+    ancillaryFiles: { "tools/oversized-helper.mjs": Buffer.alloc(131073, "x") },
+  });
+  try {
+    const result = await sanitizeRun({
+      projectRoot: context.root,
+      runId: context.runId,
+      generatedAt: "2026-07-29T01:00:00Z",
+    });
+    assert.equal(result.report.status, "failed");
+    assert.ok(result.report.issues.some(({ code, path: filePath }) => (
+      code === "candidate-file-size-limit" && filePath === "tools/oversized-helper.mjs"
+    )));
+  } finally {
+    await rm(context.root, { recursive: true, force: true });
   }
 });
 

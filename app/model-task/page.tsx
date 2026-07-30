@@ -44,7 +44,7 @@ export default function ModelTaskPage() {
               <ol className="plain-list">
                 <li>
                   Download the{" "}
-                  <a href={sitePath("framework/evaluation/integrated-robotic-handling-v1/measurement-conditions-template.json")}>
+                  <a href={sitePath("framework/evaluation/integrated-robotic-handling-v1.10/measurement-conditions-template.json")}>
                     measurement-conditions template
                   </a>
                   , assign every opaque run ID, and keep the real model mapping

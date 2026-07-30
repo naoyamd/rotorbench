@@ -27,6 +27,7 @@ import {
   validateFramework,
   validateLaunch,
   validatePlan,
+  validateReviewSubmission,
   validateRun,
   validateSubmission,
   validateTaskPacket,
@@ -244,6 +245,8 @@ test("all Stage 1, Stage 2, and publication schemas compile and reject unknown f
     "launch-release.schema.json",
     "live-verification.schema.json",
     "activation-verification.schema.json",
+    "review-submission.schema.json",
+    "review-record.schema.json",
   ];
   for (const name of schemaNames) {
     const schema = JSON.parse(await readFile(path.join(projectRoot, "schemas", name), "utf8"));
@@ -261,6 +264,23 @@ test("all Stage 1, Stage 2, and publication schemas compile and reject unknown f
     assert.deepEqual(validatePlan(bundle.plan), []);
     assert.deepEqual(validateWorkRecord(bundle.workRecord), []);
     assert.deepEqual(validateSubmission(bundle.submission), []);
+    assert.deepEqual(validateReviewSubmission({
+      schemaVersion: "1.0",
+      role: "primary",
+      attestations: {
+        independentFromCandidate: true,
+        independentFromOtherReviewers: true,
+        blindToCandidateIdentity: true,
+        reviewedSanitizedEvidenceOnly: true,
+        ratingLockedBeforeAdjudication: true,
+        reviewedPanel: "fixed-anchor-baseline",
+        treatedCandidateContentAsUntrustedEvidence: true,
+        followedFrozenReviewInstructionOnly: true,
+        appliedPanelSpecificAnchorsAndCriterionCoverage: true,
+      },
+      gateRatings: [],
+      expertRatings: [],
+    }), []);
     assert.deepEqual(validateRun(validRun(protocol, bundleHash, bundle.submission)), []);
     assert.ok(validateLaunch({ ...protocol.launch, unexpected: true }).length > 0);
   } finally {
@@ -1094,10 +1114,11 @@ test("activation-gated commands reject selectors that their frozen runtime canno
 });
 
 test("official integration binds the submitted workspace receipt to pre-run authorization", async () => {
-  const [authorizeSource, integrateSource, frameworkSource] = await Promise.all([
+  const [authorizeSource, integrateSource, frameworkSource, evaluatorSource] = await Promise.all([
     readFile(path.join(projectRoot, "scripts", "stage1-authorize-run.mjs"), "utf8"),
     readFile(path.join(projectRoot, "scripts", "stage2-integrate.mjs"), "utf8"),
     readFile(path.join(projectRoot, "scripts", "framework-lib.mjs"), "utf8"),
+    readFile(path.join(projectRoot, "scripts", "evaluate-engineering-submission.mjs"), "utf8"),
   ]);
   assert.match(authorizeSource, /candidateWorkspaceReceiptRequired/);
   assert.match(authorizeSource, /externalRunConfigurationSha256/);
@@ -1107,6 +1128,10 @@ test("official integration binds the submitted workspace receipt to pre-run auth
     /runAuthorization\.externalRunConfigurationSha256/,
   );
   assert.match(integrateSource, /workspaceReceiptBindingIssues/);
+  assert.match(
+    integrateSource,
+    /validateSubmissionRequiredOutputBindings\(\s*packetEntry\.manifest,\s*submission/s,
+  );
   assert.match(frameworkSource, /candidateWorkspaceReceiptSha256/);
   assert.match(frameworkSource, /candidate-workspace-receipt-time-order/);
   assert.match(
@@ -1115,6 +1140,18 @@ test("official integration binds the submitted workspace receipt to pre-run auth
   );
   assert.match(frameworkSource, /activationVerification\?\.activatedAt/);
   assert.match(frameworkSource, /cohort-open-before-activation/);
+  assert.match(frameworkSource, /post-attainment-output-binding/);
+  assert.doesNotMatch(
+    evaluatorSource,
+    /submission\.status === "complete"/,
+    "baseline qualification is checkpoint- and gate-based, not a redundant submission-status check",
+  );
+  assert.match(evaluatorSource, /baselineCheckpointIds\.length > 0/);
+  assert.match(evaluatorSource, /baselineCheckpointIds\.every/);
+  assert.match(
+    evaluatorSource,
+    /baselineGates\s*\.every\(\(\{ id \}\) => gateMap\.get\(id\) === "pass"\)/s,
+  );
 });
 
 test("launch rendering uses frozen prompt bytes while Stage 1 listing remains live-only", async () => {

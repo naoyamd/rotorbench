@@ -1,0 +1,83 @@
+{
+  "document": "Mechanical interfaces and datum system",
+  "version": "1.0",
+  "coordinateSystem": {
+    "name": "W",
+    "units": "mm",
+    "origin": "Centre of the candidate base mounting pattern on the finished cell floor.",
+    "axes": {
+      "x": "positive toward CNC loading station",
+      "y": "positive toward finished-tray and inspection side",
+      "z": "positive vertically upward"
+    },
+    "orientationConvention": "Right-handed. Pose rotations are XYZ intrinsic degrees unless a neutral motion manifest declares an equivalent unambiguous convention."
+  },
+  "floorMounting": {
+    "id": "IFC-FLR-001",
+    "anchorPattern": {
+      "fasteners": "8 × M16 property class 10.9 post-installed anchors supplied by the cell integrator. The candidate designs the mating base only and shall use the fixed anchor/foundation model below; no alternative anchor, embedment, or floor-stiffness assumption is permitted for a benchmark margin claim.",
+      "holeCentres": [[-180, -180], [-180, 180], [180, -180], [180, 180], [-180, -60], [-180, 60], [180, -60], [180, 60]],
+      "anchorPlaneZ": 0,
+      "allowedFootprint": {
+        "x": [-300, 300],
+        "y": [-300, 300],
+        "z": [0, 950]
+      }
+    },
+    "foundationModel": {
+      "id": "FND-ANCH-001",
+      "status": "public-fixed-benchmark-model",
+      "concreteBlock": { "plan": [1600, 1600], "thickness": 600, "concreteStrength": 32, "units": { "plan": "mm", "thickness": "mm", "concreteStrength": "MPa" } },
+      "anchor": { "nominalDiameter": 16, "propertyClass": "10.9", "effectiveEmbedment": 180, "preload": 70, "installation": "post-installed adhesive anchor; the stated design capacities already include the benchmark installation and concrete-edge model", "units": { "effectiveEmbedment": "mm", "preload": "kN" } },
+      "groupCapacityAtLowerBound": { "perAnchorTension": 46, "perAnchorShear": 29, "interaction": "For every anchor use (N/46 kN)^1.5 + (V/29 kN)^1.5 <= 1.0. Tension is positive uplift and shear is resultant in the floor plane.", "groupMomentTransfer": "Resolve base wrench into the eight stated anchor coordinates by linear-elastic bolt-group analysis with compression carried only by the base/floor bearing plane; an anchor may not carry compression.", "units": "kN" },
+      "baseToFloorComplianceAtLowerBound": { "translation": { "x": 180000000, "y": 180000000, "z": 260000000, "unit": "N/m" }, "rotation": { "x": 32000000, "y": 32000000, "z": 48000000, "unit": "N*m/rad" }, "coupling": "zero for the benchmark model", "application": "Apply at W origin to the completed candidate base/floor interface for static, nominal-transfer, emergency-stop, and accuracy calculations." },
+      "uncertainty": { "capacity": "The listed capacities are already the required lower-bound values; do not add favourable capacity tolerance.", "stiffness": "Use the listed lower-bound stiffnesses. For sensitivity reporting, also report results at 1.25 times each listed stiffness, but acceptance and the 0.20 mm allocation use the lower-bound result.", "modelLimit": "This is a fixed comparative model, not a construction design, pull-out test, seismic qualification, or certification claim." },
+      "acceptance": "The candidate shall report the governing anchor interaction utilisation, base/floor translation and rotation contribution at TCP, and all loads used. A margin is evaluable only against this exact model."
+    }
+  },
+  "toolInterface": {
+    "id": "IFC-TCP-001",
+    "definition": "TCP is a candidate-declared datum rigidly related to the gripper. Its transform and payload state shall be present in every motion-manifest pose.",
+    "endEffectorInterface": "Candidate-designed. The candidate shall provide a controlled interface drawing between wrist and gripper and shall not rely on an undeclared purchased end-effector.",
+    "minimumClearanceAtCnc": 8,
+    "minimumClearanceAtTrays": 12
+  },
+  "machineInterfaces": [
+    {
+      "id": "IFC-CNC-001",
+      "name": "CNC load fixture",
+      "datum": "Fixture datum F1",
+      "fixturePlane": { "origin": [1220, 0, 945], "normal": [-1, 0, 0] },
+      "insertionAxis": [-1, 0, 0],
+      "approachLength": 180,
+      "partSeatingTolerance": 0.15,
+      "leadIn": "The cell provides a 20 degree × 3 mm chamfer at the fixture mouth. Candidate shall provide the remaining alignment strategy.",
+      "machineEnvelope": { "x": [1020, 1480], "y": [-360, 360], "z": [640, 1380] }
+    },
+    {
+      "id": "IFC-INS-001",
+      "name": "Inspection nest",
+      "datum": "Nest datum I1",
+      "fixturePlane": { "origin": [700, 560, 875], "normal": [0, 0, 1] },
+      "insertionAxis": [0, 0, -1],
+      "approachLength": 160,
+      "partSeatingTolerance": 0.25,
+      "leadIn": "Four 4 mm radius guide features are available; no clamp is provided by the cell.",
+      "machineEnvelope": { "x": [520, 880], "y": [370, 760], "z": [760, 1110] }
+    }
+  ],
+  "utilityInterfaces": {
+    "id": "IFC-UTL-001",
+    "electrical": "Common controller provides 400 VAC three-phase and 24 VDC at the base service point. Candidate shall declare required channels, power estimate, and moving-cable strategy; cable selection is intentionally candidate-designed.",
+    "pneumatic": "No pneumatic primary-actuation interface is supplied for this packet. Facility compressed air is outside the benchmark component boundary and shall not be used for primary gripper, manipulator, brake, retention, or safety actuation. The closed catalogue contains no pneumatic actuator, valve, accumulator/spring, or seal-pack card; candidates shall use the supported electrical motor/reducer/brake/gripper-transmission classes for every primary actuation claim.",
+    "baseServicePoint": [0, -330, 420],
+    "routingConstraint": "All moving utilities must remain inside the service envelope or a candidate-declared protected route. They must not cross machine openings or required operator access zones."
+  },
+  "provenance": {
+    "status": "resolved-benchmark-design-basis",
+    "sourceClass": "benchmark-design-basis; ISO 9409-1:2004 informs the mechanical-interface convention but does not prescribe this cell's anchor pattern.",
+    "basis": "Benchmark-author industrial-cell synthesis fixed for v1.0.",
+    "applicability": "Candidate floor, fixture, TCP, utility, clearance, and approach calculations.",
+    "uncertainty": "Unless a tighter tolerance is stated, public envelope coordinates have ±2 mm authoring tolerance and are not claimed to be metrology-grade as-built data. The fixed foundation model is a separate lower-bound comparative model defined at IFC-FLR-001."
+  }
+}

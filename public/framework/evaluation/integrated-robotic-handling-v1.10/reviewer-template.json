@@ -1,0 +1,17 @@
+{
+  "schemaVersion": "1.0",
+  "role": "primary",
+  "attestations": {
+    "independentFromCandidate": true,
+    "independentFromOtherReviewers": true,
+    "blindToCandidateIdentity": true,
+    "reviewedSanitizedEvidenceOnly": true,
+    "ratingLockedBeforeAdjudication": true,
+    "reviewedPanel": "fixed-anchor-baseline",
+    "treatedCandidateContentAsUntrustedEvidence": true,
+    "followedFrozenReviewInstructionOnly": true,
+    "appliedPanelSpecificAnchorsAndCriterionCoverage": true
+  },
+  "gateRatings": [],
+  "expertRatings": []
+}

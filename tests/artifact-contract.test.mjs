@@ -1,9 +1,10 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
+import { fileURLToPath } from "node:url";
 import { validateArtifactContract } from "../scripts/artifact-contract.mjs";
 
 const packet = {
@@ -299,5 +300,129 @@ test("artifact contract requires every controlled drawing file named by its inde
     assert.equal(valid.status, "valid", JSON.stringify(valid));
   } finally {
     await rm(context.parent, { recursive: true, force: true });
+  }
+});
+
+test("v1.8 rejects CKPT-050 artifact bytes until the receipt-derived closure attains CKPT-050", async () => {
+  const packetRoot = fileURLToPath(new URL(
+    "../task-packets/integrated-robotic-handling/1.8/",
+    import.meta.url,
+  ));
+  const frozenPacket = JSON.parse(await readFile(
+    path.join(packetRoot, "packet.json"),
+    "utf8",
+  ));
+  const parent = await mkdtemp(path.join(
+    os.tmpdir(),
+    "edbf-v18-post-attainment-",
+  ));
+  const candidateRoot = path.join(parent, "candidate-output");
+  const impactPath = "artifacts/design/change-impact.json";
+  const baselinePath = "artifacts/design/change-readiness.csv";
+  await mkdir(path.join(candidateRoot, "artifacts", "design"), {
+    recursive: true,
+  });
+  await writeFile(
+    path.join(candidateRoot, baselinePath),
+    [
+      "changeCategory,affectedInterfaces,affectedParts,affectedCalculations,affectedEvidence,revalidationPlan",
+      "geometry,none,none,none,none,none",
+      "",
+    ].join("\n"),
+  );
+  await writeFile(
+    path.join(candidateRoot, impactPath),
+    `${JSON.stringify({
+      changeEventId: "CHANGE-001",
+      affectedOutputRefs: [],
+      revisedArtifactPaths: [],
+      baselineCheckpoint: "CKPT-040",
+      impactSummary: "No affected baseline output in this guard fixture.",
+      revalidationResults: [],
+    })}\n`,
+  );
+
+  const baselineCheckpointIds = frozenPacket.checkpoints
+    .filter(({ requiredForBaseline }) => requiredForBaseline !== false)
+    .map(({ id }) => id);
+  const receiptsThrough = (checkpointIds) => checkpointIds.map(
+    (checkpointId, sequence) => ({
+      id: `RCP-${String(sequence).padStart(3, "0")}`,
+      sequence,
+      checkpointId,
+    }),
+  );
+  const declaredArtifacts = [
+    artifact(
+      "change-readiness",
+      "supporting",
+      baselinePath,
+      "text/csv",
+      "OUT-009",
+    ),
+    artifact(
+      "change-impact",
+      "supporting",
+      impactPath,
+      "application/json",
+      "OUT-009",
+    ),
+  ];
+  const baselineSubmission = {
+    protocolVersion: "4.0",
+    status: "complete",
+    partialAttainment: {
+      attemptedCheckpointIds: baselineCheckpointIds,
+      completedCheckpointIds: baselineCheckpointIds,
+      highestVerifiedCheckpointId: "CKPT-040",
+      stoppedReason: "completed",
+    },
+    checkpointReceipts: receiptsThrough(baselineCheckpointIds),
+    artifacts: declaredArtifacts,
+  };
+
+  try {
+    const beforeChange = await validateArtifactContract({
+      candidateRoot,
+      packetRoot,
+      packet: frozenPacket,
+      submission: baselineSubmission,
+    });
+    const postAttainmentIssues = beforeChange.admissionIssues.filter(
+      ({ code }) => code === "post-attainment-artifact-declared",
+    );
+    assert.deepEqual(
+      postAttainmentIssues.map(({ path: issuePath }) => issuePath),
+      [impactPath],
+      "the CKPT-040 baseline artifact remains in scope while change-impact does not",
+    );
+
+    const completedThroughChange = [
+      ...baselineCheckpointIds,
+      "CKPT-050",
+    ];
+    const afterChange = await validateArtifactContract({
+      candidateRoot,
+      packetRoot,
+      packet: frozenPacket,
+      submission: {
+        ...baselineSubmission,
+        partialAttainment: {
+          attemptedCheckpointIds: completedThroughChange,
+          completedCheckpointIds: completedThroughChange,
+          highestVerifiedCheckpointId: "CKPT-050",
+          stoppedReason: "completed",
+        },
+        checkpointReceipts: receiptsThrough(completedThroughChange),
+      },
+    });
+    assert.ok(
+      !afterChange.admissionIssues.some(
+        ({ code }) => code === "post-attainment-artifact-declared",
+      ),
+      "the same optional artifact enters scope only after CKPT-050 is receipted",
+    );
+  } finally {
+    await rm(parent, { recursive: true, force: true });
   }
 });
