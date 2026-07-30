@@ -1,0 +1,95 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rotorbench.example/schemas/launch-release.schema.json",
+  "title": "Digest-bound Stage 0 launch release state",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "launchId",
+    "status",
+    "launchDigest",
+    "packetDigest",
+    "packetBundleDigest",
+    "executionContractDigest",
+    "canonicalBaseUrl",
+    "promptSha256",
+    "updatedAt"
+  ],
+  "properties": {
+    "schemaVersion": { "const": "3.0" },
+    "launchId": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" },
+    "status": {
+      "enum": ["launch-frozen", "approved", "release-ready", "live-verified", "retired"]
+    },
+    "launchDigest": { "$ref": "artifact.schema.json#/$defs/sha256" },
+    "packetDigest": { "$ref": "artifact.schema.json#/$defs/sha256" },
+    "packetBundleDigest": { "$ref": "artifact.schema.json#/$defs/sha256" },
+    "executionContractDigest": { "$ref": "artifact.schema.json#/$defs/sha256" },
+    "canonicalBaseUrl": {
+      "type": "string",
+      "format": "uri",
+      "pattern": "^https://[^/?#]+(?::[0-9]+)?(?:/[A-Za-z0-9._~-]+)*$"
+    },
+    "promptSha256": { "$ref": "artifact.schema.json#/$defs/sha256" },
+    "engineeringReviewDigest": { "$ref": "artifact.schema.json#/$defs/sha256" },
+    "protocolReviewDigest": { "$ref": "artifact.schema.json#/$defs/sha256" },
+    "approvalAttestation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "expectedLaunchDigest",
+        "engineeringReviewDigest",
+        "protocolReviewDigest",
+        "statement",
+        "attestedAt"
+      ],
+      "properties": {
+        "expectedLaunchDigest": { "$ref": "artifact.schema.json#/$defs/sha256" },
+        "engineeringReviewDigest": { "$ref": "artifact.schema.json#/$defs/sha256" },
+        "protocolReviewDigest": { "$ref": "artifact.schema.json#/$defs/sha256" },
+        "statement": { "type": "string", "minLength": 1 },
+        "attestedAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "approvalAttestationDigest": { "$ref": "artifact.schema.json#/$defs/sha256" },
+    "liveVerificationDigest": { "$ref": "artifact.schema.json#/$defs/sha256" },
+    "updatedAt": { "type": "string", "format": "date-time" }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "enum": ["approved", "release-ready", "live-verified", "retired"]
+          }
+        },
+        "required": ["status"]
+      },
+      "then": {
+        "required": [
+          "engineeringReviewDigest",
+          "protocolReviewDigest",
+          "approvalAttestation",
+          "approvalAttestationDigest"
+        ],
+        "properties": {
+          "engineeringReviewDigest": true,
+          "protocolReviewDigest": true,
+          "approvalAttestation": true,
+          "approvalAttestationDigest": true
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": { "status": { "const": "live-verified" } },
+        "required": ["status"]
+      },
+      "then": {
+        "required": ["liveVerificationDigest"],
+        "properties": { "liveVerificationDigest": true }
+      }
+    }
+  ]
+}

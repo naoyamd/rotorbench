@@ -1,0 +1,10 @@
+{
+  "schemaVersion": "3.0",
+  "algorithm": "sha256-git-worktree-v1",
+  "baselineCommit": "0b5596433dfdb8f8c872cc8953870c44228a86a6",
+  "workspaceDigest": "5bfed40f94d6afd8cbbe447cc6d893922eeab0c79ce7c653a917f5b53554dc85",
+  "clean": true,
+  "symlinkFree": true,
+  "submoduleFree": true,
+  "verifiedAt": "2026-07-30T10:36:57.367Z"
+}

@@ -1,0 +1,435 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://naoyamd.github.io/rotorbench/framework/evaluation/integrated-robotic-handling-v1/assessment.schema.json",
+  "title": "Integrated robotic handling assessment evidence",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "scoringContract",
+    "panel",
+    "runId",
+    "launchId",
+    "fairnessFingerprint",
+    "candidateBundleSha256",
+    "evaluatedAt",
+    "sanitization",
+    "automaticChecks",
+    "checkpointReceipts",
+    "rawMetrics",
+    "reviewPackage",
+    "reviewRecords",
+    "efficiency"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "4.0"
+    },
+    "scoringContract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "version",
+        "sha256"
+      ],
+      "properties": {
+        "id": {
+          "const": "integrated-robotic-handling-scoring"
+        },
+        "version": {
+          "const": "1.1"
+        },
+        "sha256": {
+          "oneOf": [
+            {
+              "pattern": "^[a-f0-9]{64}$",
+              "type": "string"
+            },
+            {
+              "const": "<filled-by-orchestrator>"
+            }
+          ]
+        }
+      }
+    },
+    "panel": {
+      "enum": [
+        "public-demonstration",
+        "fixed-anchor-baseline",
+        "hidden-robustness",
+        "change-response",
+        "fresh-generalization"
+      ]
+    },
+    "runId": {
+      "oneOf": [
+        {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+        },
+        {
+          "const": "<opaque-candidate-id>"
+        }
+      ]
+    },
+    "launchId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "fairnessFingerprint": {
+      "oneOf": [
+        {
+          "pattern": "^[a-f0-9]{64}$",
+          "type": "string"
+        },
+        {
+          "const": "<64hex>"
+        }
+      ]
+    },
+    "candidateBundleSha256": {
+      "oneOf": [
+        {
+          "pattern": "^[a-f0-9]{64}$",
+          "type": "string"
+        },
+        {
+          "const": "<64hex>"
+        }
+      ]
+    },
+    "evaluatedAt": {
+      "oneOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "const": "<ISO-8601>"
+        }
+      ]
+    },
+    "sanitization": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "actor",
+        "profileDigest",
+        "status",
+        "sanitizedArtifactIds",
+        "report"
+      ],
+      "properties": {
+        "actor": {
+          "const": "evaluator"
+        },
+        "profileDigest": {
+          "oneOf": [
+            {
+              "pattern": "^[a-f0-9]{64}$",
+              "type": "string"
+            },
+            {
+              "const": "<64hex>"
+            }
+          ]
+        },
+        "status": {
+          "enum": [
+            "passed",
+            "failed"
+          ]
+        },
+        "sanitizedArtifactIds": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+          }
+        },
+        "report": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["path", "sha256"],
+          "properties": {
+            "path": {
+              "oneOf": [
+                { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*(?:/[A-Za-z0-9][A-Za-z0-9._-]*)*$" },
+                { "const": "<sanitization-report-path>" }
+              ]
+            },
+            "sha256": {
+              "oneOf": [
+                { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+                { "const": "<64hex>" }
+              ]
+            }
+          }
+        }
+      }
+    },
+    "automaticChecks": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/check"
+      }
+    },
+    "checkpointReceipts": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/receipt"
+      }
+    },
+    "rawMetrics": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/metric"
+      }
+    },
+    "reviewPackage": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "#/$defs/reviewPackageRef" }
+      ]
+    },
+    "reviewRecords": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/reviewRecordRef" }
+    },
+    "efficiency": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "wallClockDuration",
+        "modelInputTokens",
+        "modelOutputTokens",
+        "toolCalls",
+        "retries",
+        "humanInterventions",
+        "computeProfile",
+        "estimatedExecutionCost"
+      ],
+      "properties": {
+        "wallClockDuration": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "modelInputTokens": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "modelOutputTokens": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "toolCalls": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "retries": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "humanInterventions": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "computeProfile": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "estimatedExecutionCost": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        }
+      }
+    }
+  },
+  "$defs": {
+    "reviewPackageRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "path",
+        "sha256"
+      ],
+      "properties": {
+        "id": {
+          "oneOf": [
+            { "type": "string", "pattern": "^review-[a-f0-9]{16}$" },
+            { "const": "<review-package-id>" }
+          ]
+        },
+        "path": {
+          "const": "sanitized/review-package/review-package.json"
+        },
+        "sha256": {
+          "oneOf": [
+            { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+            { "const": "<64hex>" }
+          ]
+        }
+      }
+    },
+    "reviewRecordRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256"],
+      "properties": {
+        "path": { "type": "string", "pattern": "^sanitized/reviews/rater-[a-f0-9]{16}\\.json$" },
+        "sha256": {
+          "oneOf": [
+            { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+            { "const": "<64hex>" }
+          ]
+        }
+      }
+    },
+    "check": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "gateId",
+        "result",
+        "evidenceRefs",
+        "detail"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "gateId": {
+          "enum": [
+            "A0",
+            "B0",
+            "B1",
+            "B2",
+            "B3",
+            "B4",
+            "B5",
+            "B6"
+          ]
+        },
+        "result": {
+          "enum": [
+            "pass",
+            "fail",
+            "not-evaluable",
+            "evaluator-unsupported",
+            "evaluator-uncertain"
+          ]
+        },
+        "evidenceRefs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "detail": {
+          "type": "string"
+        }
+      }
+    },
+    "receipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "checkpointId",
+        "status",
+        "receiptSha256"
+      ],
+      "properties": {
+        "checkpointId": {
+          "pattern": "^CKPT-[0-9]{3,}$",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "verified",
+            "invalid",
+            "missing"
+          ]
+        },
+        "receiptSha256": {
+          "pattern": "^[a-f0-9]{64}$",
+          "type": "string"
+        }
+      }
+    },
+    "metric": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "value",
+        "unit",
+        "status",
+        "evidenceRefs"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "value": {
+          "anyOf": [
+            { "type": "number" },
+            { "type": "string" },
+            { "type": "null" }
+          ]
+        },
+        "unit": {
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "measured",
+            "calculated",
+            "not-evaluable",
+            "evaluator-unsupported",
+            "evaluator-uncertain"
+          ]
+        },
+        "evidenceRefs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        }
+      }
+    }
+  }
+}

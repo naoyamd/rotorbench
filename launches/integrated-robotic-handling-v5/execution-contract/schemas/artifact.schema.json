@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rotorbench.example/schemas/artifact.schema.json",
+  "title": "Engineering benchmark artifact",
+  "$defs": {
+    "safePath": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*(?:/[A-Za-z0-9][A-Za-z0-9._-]*)*$"
+    },
+    "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+  },
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "role", "path", "sha256", "status"],
+  "properties": {
+    "id": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" },
+    "role": {
+      "type": "string",
+      "enum": ["cad-source", "step", "drawing", "bom", "calculation", "supporting"]
+    },
+    "path": {
+      "$ref": "#/$defs/safePath"
+    },
+    "sha256": { "$ref": "#/$defs/sha256" },
+    "mediaType": { "type": "string", "pattern": "^[A-Za-z0-9!#$&^_.+-]+/[A-Za-z0-9!#$&^_.+-]+$" },
+    "label": { "type": "string", "minLength": 1 },
+    "status": { "type": "string", "enum": ["present", "processed", "failed"] },
+    "requiredOutputRefs": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "type": "string", "pattern": "^OUT-[0-9]{3,}$" }
+    },
+    "extensions": { "type": "object" }
+  }
+}

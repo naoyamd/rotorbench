@@ -1,0 +1,210 @@
+{
+  "schemaVersion": "1.0",
+  "id": "integrated-robotic-handling-v5",
+  "protocolVersion": "4.0",
+  "taskPacket": {
+    "id": "integrated-robotic-handling",
+    "version": "1.10",
+    "digest": "b8622ce708f8e7464b3a1c22c11afcadc5ae9117c388ced617713b549397579f",
+    "bundleDigest": "5f8081cc853a0665729885c4cfb3ac9883a8ecb7e1dff0a78c96e24f2391a053"
+  },
+  "baselineCommit": "0b5596433dfdb8f8c872cc8953870c44228a86a6",
+  "workspaceDigest": "5bfed40f94d6afd8cbbe447cc6d893922eeab0c79ce7c653a917f5b53554dc85",
+  "canonicalBaseUrl": "https://naoyamd.github.io/rotorbench",
+  "executionProfile": {
+    "id": "integrated-robotic-handling-common",
+    "version": "1.1",
+    "digest": "7e6843bdfad1f05865efb3acdf21cc8a584f23fd7065024fcfc53275ebebf1ac"
+  },
+  "baselineAttestationDigest": "d1463e9e9bd88e4643f3a0e14dcc6d8a48ff01c6728ed5b0dfce57c0e6f62229",
+  "executionContractDigest": "dcfd1263731cd98bbfda1982781b2691fd55e950444b39e846e178d6a01e35bc",
+  "outputRoot": "candidate-output",
+  "startAction": "checkpoint-initial-plan",
+  "stopConditions": [
+    "Stop before engineering work if a declared public input is unavailable or its SHA-256 does not match the launch.",
+    "If a tool or time limit prevents completion, preserve all verified checkpoint receipts and submit a schema-valid partial result instead of fabricating evidence.",
+    "Do not claim a calculation, inspection, simulation, or physical test that was not actually performed."
+  ],
+  "fairnessFingerprint": "189ed5ef2f0c4372a5361272ce722b99e65e675c1e015234d38578db5d43b0ba",
+  "launchDigest": "937237bc4e134622cd4966a8d5297206309a14940eca7bd01e18e251f16fbc99",
+  "promptSha256": "afa8fdfd16a48440102bdeb70a97fdbbfbf8374c5e0fe5baea0a50597087de10",
+  "v4Contract": {
+    "scoringVersion": "1.2",
+    "instanceBankManifest": {
+      "id": "INSTANCE-BANK",
+      "visibilityClass": "candidate-public",
+      "disclosedAt": "before-run",
+      "requirementRefs": [
+        "REQ-004",
+        "REQ-005",
+        "REQ-006",
+        "REQ-007",
+        "REQ-008",
+        "REQ-011",
+        "REQ-012"
+      ],
+      "digest": "a0fd5811d9345c3338d5960c0d37cd4434177c4f311c37a5166756491ecdb46f"
+    },
+    "visibilityPolicy": {
+      "id": "VISIBILITY-POLICY",
+      "visibilityClass": "candidate-public",
+      "disclosedAt": "before-run",
+      "requirementRefs": [
+        "REQ-001",
+        "REQ-022",
+        "REQ-023",
+        "REQ-024"
+      ],
+      "digest": "a0f69021d1bf77c02c225d0e47c1eb4e84de5f1f57fce7280c7e0b8ac42aa982"
+    },
+    "checkpointContract": {
+      "id": "CHECKPOINT-CONTRACT",
+      "visibilityClass": "candidate-public",
+      "disclosedAt": "before-run",
+      "requirementRefs": [
+        "REQ-001",
+        "REQ-011",
+        "REQ-022",
+        "REQ-023"
+      ],
+      "digest": "36bebfd98593c69bd4c3d3e120fcbe589392a21319175e94c4b53ec376a15cc7"
+    },
+    "changeEventContract": {
+      "id": "CHANGE-EVENT-CONTRACT",
+      "visibilityClass": "event-private-change",
+      "disclosedAt": "after-prior-receipt",
+      "requirementRefs": [
+        "REQ-006",
+        "REQ-007",
+        "REQ-012",
+        "REQ-018",
+        "REQ-024"
+      ],
+      "digest": "2ea63470d48f36949c92ee77409e10836322045f7130d9c05c5e3d9000d1199f"
+    },
+    "evaluationContract": {
+      "id": "EVALUATION-CONTRACT",
+      "visibilityClass": "candidate-public",
+      "disclosedAt": "before-run",
+      "requirementRefs": [
+        "REQ-001",
+        "REQ-005",
+        "REQ-007",
+        "REQ-015",
+        "REQ-018",
+        "REQ-022"
+      ],
+      "digest": "eea1422a5ede492ed9fd57b3a4f312a813355ef5a46f39f24917c0a74dac4073"
+    },
+    "sanitizationProfile": {
+      "id": "SANITIZATION-PROFILE",
+      "visibilityClass": "candidate-public",
+      "disclosedAt": "before-run",
+      "requirementRefs": [
+        "REQ-022",
+        "REQ-023"
+      ],
+      "digest": "a6a822d1dcacf3a04a3b977cc228da65bc5d381e2b3afc3150a0074dfcb36ca6"
+    },
+    "sealedAssetCommitments": [
+      {
+        "id": "FIXED-GEOMETRY",
+        "visibilityClass": "candidate-public",
+        "disclosedAt": "before-run",
+        "requirementRefs": [
+          "REQ-004",
+          "REQ-005",
+          "REQ-007",
+          "REQ-008",
+          "REQ-009",
+          "REQ-014"
+        ],
+        "digest": "2d4b9c96605f32d26845517fc316ace0f487357db49a834d51b5f4ae1e442267"
+      },
+      {
+        "id": "COMPONENT-INTERFACE-CARDS",
+        "visibilityClass": "candidate-public",
+        "disclosedAt": "before-run",
+        "requirementRefs": [
+          "REQ-003",
+          "REQ-006",
+          "REQ-015",
+          "REQ-016",
+          "REQ-021"
+        ],
+        "digest": "5d6b4bf46068ab960e057ebbb50653263c87e16a1bfbf4166b1515ee28fd31c8"
+      },
+      {
+        "id": "NEUTRAL-HANDOFF-CONTRACT",
+        "visibilityClass": "candidate-public",
+        "disclosedAt": "before-run",
+        "requirementRefs": [
+          "REQ-002",
+          "REQ-005",
+          "REQ-011",
+          "REQ-012",
+          "REQ-013",
+          "REQ-022"
+        ],
+        "digest": "785b1d4564b36a12d720d491e41127cd043aa4cbc6205b3f9ce9151a67cee749"
+      },
+      {
+        "id": "NEUTRAL-HANDOFF-VALIDATOR",
+        "visibilityClass": "candidate-public",
+        "disclosedAt": "before-run",
+        "requirementRefs": [
+          "REQ-002",
+          "REQ-005",
+          "REQ-011",
+          "REQ-012",
+          "REQ-013",
+          "REQ-022"
+        ],
+        "digest": "af9b60bfeb1db396bf8a742992cbf94c337242285fdef1141378e6048e52a856"
+      },
+      {
+        "id": "GRASP-SURFACE-VALIDATOR",
+        "visibilityClass": "candidate-public",
+        "disclosedAt": "before-run",
+        "requirementRefs": [
+          "REQ-007",
+          "REQ-008",
+          "REQ-009"
+        ],
+        "digest": "5534790861c03b53166ac77deaa7186997bc5d732933f68a4490c3c24513005d"
+      },
+      {
+        "id": "COMMON-EVALUATION-METHOD",
+        "visibilityClass": "candidate-public",
+        "disclosedAt": "before-run",
+        "requirementRefs": [
+          "REQ-002",
+          "REQ-005",
+          "REQ-011",
+          "REQ-012",
+          "REQ-013"
+        ],
+        "digest": "668b1ef3c1e33f374cc8a0b8614191cf0e991b5cca399447e3309a3e6bf41cc1"
+      }
+    ],
+    "disclosureSchedule": [
+      {
+        "id": "DISCLOSURE-SCHEDULE",
+        "visibilityClass": "candidate-public",
+        "disclosedAt": "before-run",
+        "requirementRefs": [
+          "REQ-001",
+          "REQ-022",
+          "REQ-023",
+          "REQ-024"
+        ],
+        "digest": "b60be0ebb662bb256128fda7918100031d233f3957c61cd999267a1f4d70f9b3"
+      }
+    ]
+  },
+  "workspaceBootstrap": {
+    "kind": "public-bundle",
+    "location": "https://naoyamd.github.io/rotorbench/framework/workspaces/integrated-robotic-handling-v2.json",
+    "sha256": "6db8f7abc7831444501a47b34683179ec4cdb345cf8764ceb11e3d5ccdd66f98"
+  }
+}
