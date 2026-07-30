@@ -1,0 +1,24 @@
+{
+  "schemaVersion": "3.0",
+  "launchId": "integrated-robotic-handling-v5",
+  "launchDigest": "937237bc4e134622cd4966a8d5297206309a14940eca7bd01e18e251f16fbc99",
+  "promptSha256": "afa8fdfd16a48440102bdeb70a97fdbbfbf8374c5e0fe5baea0a50597087de10",
+  "launchJsonSha256": "d1ba59dfa7d7042d3c6185fa3df3042d0f9b0950c2bc077573607b2103e179e5",
+  "pageSha256": "5ca017a9bdc7694043ae25f51910bc757f989c48b9d5b75f765b0be50aa731b0",
+  "canonicalBaseUrl": "https://naoyamd.github.io/rotorbench",
+  "canonicalOrigin": "https://naoyamd.github.io",
+  "basePath": "/rotorbench",
+  "launchUrl": "https://naoyamd.github.io/rotorbench/launch/integrated-robotic-handling-v5/",
+  "launchJsonUrl": "https://naoyamd.github.io/rotorbench/framework/launches/integrated-robotic-handling-v5/launch.json",
+  "promptUrl": "https://naoyamd.github.io/rotorbench/framework/launches/integrated-robotic-handling-v5/prompt.txt",
+  "checks": {
+    "redirectFree": true,
+    "sameOrigin": true,
+    "basePathMatched": true,
+    "launchJsonExact": true,
+    "promptExact": true,
+    "pageMarkerMatched": true
+  },
+  "status": "verified",
+  "verifiedAt": "2026-07-30T11:11:18.103Z"
+}
