@@ -1,0 +1,115 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rotorbench.example/schemas/public-evaluation-summary.schema.json",
+  "title": "Publication-safe evaluator summary",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "runId", "status", "evaluationRecordSha256", "finalization", "qualification", "attainment", "gates", "dimensions", "rawMetrics", "efficiency", "compositeScore", "compositeScorePublished"],
+  "properties": {
+    "schemaVersion": { "const": "1.0" },
+    "runId": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" },
+    "status": { "enum": ["admitted", "artifact-invalid"] },
+    "evaluationRecordSha256": { "$ref": "artifact.schema.json#/$defs/sha256" },
+    "finalization": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "required": ["status", "finalizedAt", "candidateBundleSha256", "candidateSubmissionSha256", "pendingRecordSha256", "sourceEvaluationSha256"],
+      "properties": {
+        "status": { "const": "finalized" },
+        "finalizedAt": { "type": "string", "format": "date-time" },
+        "candidateBundleSha256": { "$ref": "artifact.schema.json#/$defs/sha256" },
+        "candidateSubmissionSha256": { "$ref": "artifact.schema.json#/$defs/sha256" },
+        "pendingRecordSha256": { "$ref": "artifact.schema.json#/$defs/sha256" },
+        "sourceEvaluationSha256": { "$ref": "artifact.schema.json#/$defs/sha256" }
+      }
+    },
+    "qualification": { "type": "object" },
+    "attainment": { "type": "object" },
+    "gates": { "type": "array", "items": { "type": "object" } },
+    "dimensions": { "type": "array", "items": { "$ref": "#/$defs/dimension" } },
+    "rawMetrics": { "type": "array" },
+    "efficiency": { "type": "object" },
+    "compositeScore": { "type": "null" },
+    "compositeScorePublished": { "const": false }
+  },
+  "$defs": {
+    "dimension": {
+      "oneOf": [
+        { "$ref": "#/$defs/legacyDimension" },
+        { "$ref": "#/$defs/v110Dimension" }
+      ]
+    },
+    "legacyDimension": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^D(?:0[1-9]|10)$" },
+        "label": { "type": "string", "minLength": 1 },
+        "attempted": { "type": "boolean" },
+        "evidenceCoverage": { "type": "number", "minimum": 0 },
+        "evaluable": { "type": "boolean" },
+        "passFail": { "enum": ["scored", "not-evaluable"] },
+        "score": { "type": ["number", "null"], "minimum": 0, "maximum": 4 },
+        "scoreInterval": {
+          "type": ["array", "null"],
+          "minItems": 2,
+          "maxItems": 2,
+          "items": { "type": "number", "minimum": 0, "maximum": 4 }
+        },
+        "failureCause": { "type": ["string", "null"], "minLength": 1 },
+        "highestVerifiedCheckpoint": { "type": ["string", "null"], "minLength": 1 }
+      }
+    },
+    "v110Dimension": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "label",
+        "attempted",
+        "evidenceCoverage",
+        "evaluable",
+        "ratingStatus",
+        "score",
+        "scoreInterval",
+        "nonEvaluationCause",
+        "highestVerifiedCheckpoint"
+      ],
+      "properties": {
+        "id": { "type": "string", "pattern": "^D(?:0[1-9]|10)$" },
+        "label": { "type": "string", "minLength": 1 },
+        "attempted": { "type": "boolean" },
+        "evidenceCoverage": { "$ref": "#/$defs/v110EvidenceCoverage" },
+        "evaluable": { "type": "boolean" },
+        "ratingStatus": { "enum": ["scored", "not-evaluable"] },
+        "score": { "type": ["number", "null"], "minimum": 0, "maximum": 4 },
+        "scoreInterval": {
+          "type": ["array", "null"],
+          "minItems": 2,
+          "maxItems": 2,
+          "items": { "type": "number", "minimum": 0, "maximum": 4 }
+        },
+        "nonEvaluationCause": { "type": ["string", "null"], "minLength": 1 },
+        "highestVerifiedCheckpoint": { "type": ["string", "null"], "minLength": 1 }
+      }
+    },
+    "v110EvidenceCoverage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["required", "covered", "missing", "uncertain", "ratio", "criterionConsensus"],
+      "properties": {
+        "required": { "type": "integer", "minimum": 0 },
+        "covered": { "type": "integer", "minimum": 0 },
+        "missing": { "type": "integer", "minimum": 0 },
+        "uncertain": { "type": "integer", "minimum": 0 },
+        "ratio": { "type": ["number", "null"], "minimum": 0, "maximum": 1 },
+        "criterionConsensus": {
+          "type": "object",
+          "propertyNames": { "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$" },
+          "additionalProperties": { "enum": ["covered", "missing", "uncertain"] }
+        }
+      }
+    }
+  }
+}

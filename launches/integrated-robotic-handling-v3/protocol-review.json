@@ -1,0 +1,15 @@
+{
+  "schemaVersion": "3.0",
+  "kind": "protocol",
+  "reviewer": {
+    "id": "codex-independent-protocol-reviewer-v3",
+    "name": "Codex independent Stage 0 protocol reviewer"
+  },
+  "authorId": "rotorbench-engineering-benchmark",
+  "launchDigest": "0046d640d935e28619a61a15939d661a57ea72023201c73047f03342baff6cb8",
+  "executionContractDigest": "676b7116dea227f181a3d7f072e542f09bdc1b738816a9e246b3273c7cb0c194",
+  "promptSha256": "e06bf42926526485f04b2b880f46052a16a59aeefce61d17f1098e5e911d0a1c",
+  "status": "approved",
+  "blockingIssues": [],
+  "reviewedAt": "2026-07-30T07:56:24.4486070Z"
+}
