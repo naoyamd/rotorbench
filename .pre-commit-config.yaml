@@ -1,0 +1,28 @@
+minimum_pre_commit_version: "3.7.0"
+exclude: '(^|/)(node_modules|\.next|dist|out)/'
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: 3e8a8703264a2f4a69428a0aa4dcb512790b2c8c # v6.0.0
+    hooks:
+      - id: check-added-large-files
+        args: ["--maxkb=2048"]
+      - id: check-case-conflict
+      - id: check-json
+      - id: check-merge-conflict
+      - id: check-toml
+      - id: check-yaml
+      - id: detect-private-key
+      - id: end-of-file-fixer
+      - id: mixed-line-ending
+        args: ["--fix=no"]
+      - id: trailing-whitespace
+
+  - repo: local
+    hooks:
+      - id: eslint
+        name: ESLint on staged source files
+        entry: pnpm exec eslint --no-warn-ignored
+        language: system
+        types_or: [javascript, jsx, ts, tsx]
+        require_serial: true
